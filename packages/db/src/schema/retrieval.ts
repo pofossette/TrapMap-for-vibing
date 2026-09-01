@@ -76,34 +76,4 @@ export const graphIndexDocuments = pgTable(
   ],
 );
 
-/**
- * Durable badcase trace records for retrieval/summary reproducibility.
- * Separate from usage analytics so operators can inspect failures even when
- * analytics retention or rollups change.
- */
-export const retrievalBadcaseTraces = pgTable(
-  'retrieval_badcase_traces',
-  {
-    id: text('id').primaryKey(),
-    feedbackId: text('feedback_id').notNull(),
-    queryId: text('query_id'),
-    querySeed: text('query_seed'),
-    routeFamily: text('route_family'),
-    entryId: text('entry_id').notNull(),
-    entryType: text('entry_type').notNull(),
-    failureClassification: text('failure_classification'),
-    expectedCorrection: text('expected_correction'),
-    selectedResultSnapshot: jsonb('selected_result_snapshot'),
-    ...auditTimestamps(),
-  },
-  (table) => [
-    index('idx_retrieval_badcase_query').on(table.queryId),
-    index('idx_retrieval_badcase_feedback').on(table.feedbackId),
-    index('idx_retrieval_badcase_entry').on(table.entryId, table.entryType),
-    check('ck_retrieval_badcase_entry_type', sql`${table.entryType} IN ('trap', 'skill')`),
-    check(
-      'ck_retrieval_badcase_route_family',
-      sql`${table.routeFamily} IS NULL OR ${table.routeFamily} IN ('entry', 'capsule', 'graph-plan')`,
-    ),
-  ],
-);
+

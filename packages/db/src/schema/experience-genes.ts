@@ -126,6 +126,9 @@ export const experienceGeneEmbeddings = pgTable(
     embedding: vector('embedding', { dimensions: 384 }).notNull(),
     // fallow-ignore-next-line code-duplication -- projection tail is intentionally parallel across both Gene indexes.
     embeddingModelVersion: text('embedding_model_version').notNull(),
+    /** Consolidated search document (was experience_gene_search_documents.document) */
+    document: text('document').notNull().default(''),
+    labels: text('labels').array().notNull().default([]),
     status: text('status').notNull().default('pending').$type<GeneIndexStatus>(),
     lastError: text('last_error'),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -139,23 +142,4 @@ export const experienceGeneEmbeddings = pgTable(
   ],
 );
 
-export const experienceGeneSearchDocuments = pgTable(
-  'experience_gene_search_documents',
-  {
-    geneId: text('gene_id').primaryKey(),
-    contentHash: text('content_hash').notNull(),
-    // fallow-ignore-next-line code-duplication -- keyword projection mirrors the established knowledge search shape.
-    document: text('document').notNull(),
-    labels: text('labels').array().notNull().default([]),
-    status: text('status').notNull().default('pending').$type<GeneIndexStatus>(),
-    lastError: text('last_error'),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    index('idx_experience_gene_search_documents_content_hash').on(table.contentHash),
-    check(
-      'ck_experience_gene_search_documents_status',
-      sql`${table.status} IN ('pending', 'ready', 'failed')`,
-    ),
-  ],
-);
+

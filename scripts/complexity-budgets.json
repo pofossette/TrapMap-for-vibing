@@ -3,12 +3,21 @@
     {
       "file": "docs/guides/CODE_GUIDE.md",
       "mustContain": [],
-      "mustNotContain": ["createApp()"]
+      "mustNotContain": [
+        "createApp()"
+      ]
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md", "127.0.0.1", "gpt-4o-mini"],
-      "mustNotContain": ["| `HOST` | `0.0.0.0` |", "| `AI_CHAT_MODEL` | `gpt-4o` |"]
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md",
+        "127.0.0.1",
+        "gpt-4o-mini"
+      ],
+      "mustNotContain": [
+        "| `HOST` | `0.0.0.0` |",
+        "| `AI_CHAT_MODEL` | `gpt-4o` |"
+      ]
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
@@ -107,7 +116,10 @@
     },
     {
       "file": "docs/guides/GETTING_STARTED.md",
-      "mustContain": ["PostgreSQL 设置（推荐）", ".data/skill-shareer.json"],
+      "mustContain": [
+        "PostgreSQL 设置（推荐）",
+        ".data/skill-shareer.json"
+      ],
       "mustNotContain": [
         "PostgreSQL 模式（可选）",
         ".data/trapmap.json",
@@ -142,7 +154,9 @@
         "SESSION_SECRET",
         "当前未内置 `/metrics` 端点"
       ],
-      "mustNotContainRegex": ["gpt-4o(?!-)"],
+      "mustNotContainRegex": [
+        "gpt-4o(?!-)"
+      ],
       "mustContainCount": {
         "pattern": "PostgreSQL",
         "minOccurrences": 3
@@ -150,13 +164,28 @@
     },
     {
       "file": "docs/operations/REGRESSION-COMMANDS.md",
-      "mustContain": ["pnpm test:observability-benchmark", "grep -i traceparent"],
-      "mustNotContain": ["grep X-Trace-Id"]
+      "mustContain": [
+        "pnpm test:observability-benchmark",
+        "grep -i traceparent"
+      ],
+      "mustNotContain": [
+        "grep X-Trace-Id"
+      ]
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["55 张表"],
-      "mustNotContain": ["48 张表", "54 张表", "56 张表", "62 张表", "63 张表", "64 张表"]
+      "mustContain": [
+        "42 张表"
+      ],
+      "mustNotContain": [
+        "48 张表",
+        "54 张表",
+        "56 张表",
+        "62 张表",
+        "63 张表",
+        "64 张表",
+        "55 张表"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
@@ -193,7 +222,11 @@
         "gateway -> governance-review -> knowledge-write",
         "gateway -> candidate-ingestion -> knowledge-write"
       ],
-      "mustNotContain": [".data/trapmap.json", "默认 openai", "Phase 1 试点"]
+      "mustNotContain": [
+        ".data/trapmap.json",
+        "默认 openai",
+        "Phase 1 试点"
+      ]
     },
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
@@ -205,12 +238,21 @@
         "fallback 已经从运行态消失",
         "不再接纳新的 production 主路径"
       ],
-      "mustNotContain": ["48 张表", "56 张表"]
+      "mustNotContain": [
+        "48 张表",
+        "56 张表"
+      ]
     },
     {
       "file": "docs/guides/CONTRIBUTING.md",
-      "mustContain": ["packages/service-*/drizzle/", "已有开发数据库需重建"],
-      "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
+      "mustContain": [
+        "packages/service-*/drizzle/",
+        "已有开发数据库需重建"
+      ],
+      "mustNotContain": [
+        "pnpm run db:generate",
+        "pnpm run db:migrate"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
@@ -244,7 +286,9 @@
         "pnpm test:deployment-smoke",
         "pnpm eval:smoke"
       ],
-      "mustNotContain": ["TIER=core pnpm eval:ci"]
+      "mustNotContain": [
+        "TIER=core pnpm eval:ci"
+      ]
     },
     {
       "file": "docs/operations/OBSERVABILITY-OPERATIONS.md",
@@ -252,7 +296,9 @@
         "NestJS: `not-ready` 和 `unhealthy` 返回 `503`；`degraded` 和 `ready` 返回 `200`",
         "pnpm test:observability-closeout"
       ],
-      "mustNotContain": ["NestJS: 当前始终返回 200"]
+      "mustNotContain": [
+        "NestJS: 当前始终返回 200"
+      ]
     },
     {
       "file": "plan.md",
@@ -367,7 +413,10 @@
         "默认不承担当前执行面",
         "historical-reference"
       ],
-      "mustNotContain": ["active-reference", "NestJS 与服务演进执行索引"]
+      "mustNotContain": [
+        "active-reference",
+        "NestJS 与服务演进执行索引"
+      ]
     },
     {
       "file": "docs/operations/CI_CD.md",
@@ -381,33 +430,70 @@
         "doc-guardrails",
         "`pnpm eval:smoke`"
       ],
-      "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
+      "mustNotContain": [
+        "Node.js 20 + pnpm 10.33.0"
+      ]
     },
     {
       "file": "docs/architecture/components/EVALUATION.md",
-      "mustContain": ["pnpm eval:smoke", "pnpm eval:core", "datasets/", "scenarios/"],
-      "mustNotContain": ["pnpm eval:governance", "cases/"]
+      "mustContain": [
+        "pnpm eval:smoke",
+        "pnpm eval:core",
+        "datasets/",
+        "scenarios/"
+      ],
+      "mustNotContain": [
+        "pnpm eval:governance",
+        "cases/"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["fallback", "OPENAI_API_KEY", "GEMINI_API_KEY", "未暴露为稳定 CLI 命令"],
-      "mustNotContain": ["默认 openai"]
+      "mustContain": [
+        "fallback",
+        "OPENAI_API_KEY",
+        "GEMINI_API_KEY",
+        "未暴露为稳定 CLI 命令"
+      ],
+      "mustNotContain": [
+        "默认 openai"
+      ]
     },
     {
       "file": "docs/architecture/components/AI_PROVIDER.md",
-      "mustContain": ["fallback", "google-genai", "gpt-4o-mini", "llama3"],
-      "mustNotContain": ["默认 openai", "llama2"]
+      "mustContain": [
+        "fallback",
+        "google-genai",
+        "gpt-4o-mini",
+        "llama3"
+      ],
+      "mustNotContain": [
+        "默认 openai",
+        "llama2"
+      ]
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["pgvector/pgvector:pg16", "wget"],
-      "mustNotContain": ["image: postgres:16"],
-      "mustNotContainRegex": ["curl.*-f.*health"]
+      "mustContain": [
+        "pgvector/pgvector:pg16",
+        "wget"
+      ],
+      "mustNotContain": [
+        "image: postgres:16"
+      ],
+      "mustNotContainRegex": [
+        "curl.*-f.*health"
+      ]
     },
     {
       "file": "docs/architecture/components/ARTIFACTS.md",
-      "mustContain": ["agent-pass", "SkillArtifactRecord"],
-      "mustNotContain": ["interface SkillArtifact {"]
+      "mustContain": [
+        "agent-pass",
+        "SkillArtifactRecord"
+      ],
+      "mustNotContain": [
+        "interface SkillArtifact {"
+      ]
     },
     {
       "file": "evals/README.md",
@@ -444,7 +530,10 @@
     },
     {
       "file": "evals/README.md",
-      "mustContain": ["root-plan closeout 已冻结该边界", "唯一序列化载荷"]
+      "mustContain": [
+        "root-plan closeout 已冻结该边界",
+        "唯一序列化载荷"
+      ]
     },
     {
       "file": "docs/PACKAGES.md",
@@ -489,16 +578,24 @@
         "service-autonomous remote cache",
         "adaptive backpressure"
       ],
-      "mustNotContain": ["packages/host-distributed 是 compatibility shell"]
+      "mustNotContain": [
+        "packages/host-distributed 是 compatibility shell"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["默认 `light` 主线"],
-      "mustNotContain": ["Phase 1 试点"]
+      "mustContain": [
+        "默认 `light` 主线"
+      ],
+      "mustNotContain": [
+        "Phase 1 试点"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
-      "mustContain": ["Phase 4 验证归属矩阵"]
+      "mustContain": [
+        "Phase 4 验证归属矩阵"
+      ]
     },
     {
       "file": "docs/architecture/components/ASYNC_MODEL.md",
@@ -513,7 +610,9 @@
     },
     {
       "file": "README.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md",
@@ -526,7 +625,10 @@
         "pnpm check:docs-drift",
         "pnpm check:structure"
       ],
-      "mustNotContain": ["第二个 URL", "第四种 deployment profile"]
+      "mustNotContain": [
+        "第二个 URL",
+        "第四种 deployment profile"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/badcase-feedback-loop.md",

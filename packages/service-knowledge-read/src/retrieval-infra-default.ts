@@ -112,7 +112,7 @@ async function keywordRecall(
     field_tokens_detail: string[];
     field_tokens_labels: string[];
   }>(
-    `SELECT entry_id, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels FROM knowledge_keywords WHERE ${conditions.join(' AND ')} LIMIT $${paramIndex}`,
+    `SELECT entry_id, tokens, field_tokens_shortcut, field_tokens_detail, field_tokens_labels FROM knowledge_search_documents WHERE ${conditions.join(' AND ')} LIMIT $${paramIndex}`,
     params,
   );
   return result.rows

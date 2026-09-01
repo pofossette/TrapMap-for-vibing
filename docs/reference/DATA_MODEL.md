@@ -14,7 +14,7 @@
 >
 > **Round 3 更新（历史，2026-09-01 前）**：知识域完成结构化改造。`knowledge_entries` 表补齐 `CHECK` 约束（`scope`、`lifecycle_state`、`required_level`）。`knowledge_labels` 表从 JSONB 拆分为结构化子表，支持按标签精确过滤和聚合。边界（boundary）曾从单 JSONB 列拆为六个子表：`knowledge_boundary_contexts`、`knowledge_boundary_versions`、`knowledge_boundary_prerequisites`、`knowledge_boundary_signals`、`knowledge_boundary_exclusions`、`knowledge_boundary_evidence`（**已于 2026-09-01 压缩移除，回退为 JSONB+GIN，见下条压缩更新**）。维护（maintenance）拆为 `knowledge_maintenance_assignments` 独立表。`knowledge_revisions` 补齐 `(entry_id, revision_no)` 唯一约束。`lifecycle_events` 补齐 `type` CHECK 约束。
 
-> **2026-09-01 压缩更新（69→55，80-90%性能保底）**：知识域 6 个 `knowledge_boundary_*` 子表与技能域 6 个 `skill_artifact_boundary_*` 子表共 12 张表已移除，统一回退为 `knowledge_entries.boundary` / `skill_artifacts.boundary` JSONB + GIN 索引；`feedback_custom_answers` 与 `usage_events_daily_rollup` 同步移除。详见 `docs/reference/DATABASE_SCHEMA.md` 表压缩说明。
+> **2026-09-01 压缩更新（69→55→42，80-90%性能保底）**：Phase 1 移除 12 boundary +2 低频表（69→55）；Phase 2 再移除 13 张小基数 1:1/1:N 表（55→42）：`candidate_analyses`→`candidates.analysis` jsonb、`candidate_duplicate_matches`→`candidate_duplicate_cases.matches` jsonb、`candidate_manual_results`+`candidate_resolution_outcomes`→`candidate_outcomes`、`skill_artifact_manifest_references/assets/scripts`→`skill_artifact_manifest_items`、`skill_artifact_capsule_keywords`→`skill_artifact_capsules.keywordTokens`、`skill_artifact_metadata`/`skill_artifact_maintenance_assignments`→`skill_artifacts` jsonb、`knowledge_keywords`→`knowledge_search_documents`、`knowledge_maintenance_assignments`→`knowledge_entries` jsonb、`knowledge_review_decisions`→`knowledge_submissions` jsonb、`retrieval_badcase_traces`→`feedback_records`、`experience_gene_search_documents`→`experience_gene_embeddings`。详见 `docs/reference/DATABASE_SCHEMA.md` 表压缩说明。
 
 ## 基线冻结（Round 0）
 
@@ -29,7 +29,7 @@ Round 0 的目标不是立即改完所有表，而是冻结后续数据库现代
 | Candidate | PostgreSQL 结构化表 | 候选、重复检测、处理状态与队列已切到 PG 主路径 |
 | Task Queue | PostgreSQL 结构化表 | 队列表和相关索引由 Drizzle migration 管理 |
 | Team / User / Member / Session / AccessKey / Audit | PostgreSQL 结构化表 | 主读写路径已切换为 PG repo，通过 `repos.team/user/membership/session/accessKey/audit` 访问 |
-| Duplicates / Lineage / Graph Index 等辅助域 | PostgreSQL 结构化表 | `candidate_duplicate_cases` / `candidate_duplicate_matches` / `entity_lineage`（Round 5）、`graph_index_documents`（Round 7）均已迁移为 PG 结构化表 |
+| Duplicates / Lineage / Graph Index 等辅助域 | PostgreSQL 结构化表 | `candidate_duplicate_cases`（含 matches jsonb，Phase2 合并） / `entity_lineage`、`graph_index_documents`（Round 7）均已迁移为 PG 结构化表 |
 | Feedback | PostgreSQL 结构化表 | `feedback_records`（`custom_answers` JSONB + GIN，原 `feedback_custom_answers` 已压缩移除 2026-09-01） |
 | Conflict | PostgreSQL 结构化表 | `conflict_relations`；governance-review 写入，knowledge-read 只读投影 |
 | Usage Analytics | PostgreSQL 结构化表 | `usage_events` 主表（`usage_events_daily_rollup` 已于 2026-09-01 移除，改为实时查询 + 物化视图派生） |
@@ -291,6 +291,7 @@ draft → submitted → agent-pass/agent-rejected
 唯一约束：`unique(entry_id, label)`。支持按标签精确过滤（AND 语义）和聚合统计。
 
 > **已归档 2026-09-01**：以下 6 个 `knowledge_boundary_*` 子表（`contexts/versions/prerequisites/signals/exclusions/evidence`）已于表压缩（69→55）中移除，现由 `knowledge_entries.boundary` JSONB + GIN 统一承载；历史 schema 仅供参考，代码真相以 `packages/db/src/schema/knowledge.ts` 为准。
+> **2026-09-01 Phase 2**：另 13 张表已合并为 jsonb/单表（见上条），当前 42 张表。
 
 #### knowledge_boundary_contexts（边界上下文）
 

@@ -86,7 +86,7 @@ describe('PostgreSQL experience gene repository', () => {
       expect.stringContaining('INSERT INTO experience_genes'),
       expect.stringContaining('INSERT INTO experience_gene_events'),
       expect.stringContaining('INSERT INTO experience_gene_embeddings'),
-      expect.stringContaining('INSERT INTO experience_gene_search_documents'),
+      expect.stringContaining('UPDATE experience_gene_embeddings'),
       'COMMIT',
     ]);
     const geneInsert = queries[1]!;
@@ -181,7 +181,7 @@ describe('PostgreSQL experience gene repository', () => {
 
     expect(result.status).toBe('solidified');
     expect(
-      queries.some(({ sql }) => sql.includes('INSERT INTO experience_gene_search_documents')),
+      queries.some(({ sql }) => sql.includes('UPDATE experience_gene_embeddings')),
     ).toBe(true);
     expect(queries.some(({ sql }) => sql.includes('INSERT INTO domain_event_outbox'))).toBe(true);
     expect(queries[0]?.sql).toBe('BEGIN');
@@ -217,7 +217,7 @@ describe('PostgreSQL experience gene repository', () => {
       }),
     );
 
-    expect(queries.filter(({ sql }) => sql.includes('UPDATE experience_gene_'))).toHaveLength(2);
+    expect(queries.filter(({ sql }) => sql.includes('UPDATE experience_gene_'))).toHaveLength(2); // embeddings + genes (search merged)
     expect(
       queries.find(({ sql }) => sql.includes('UPDATE experience_gene_embeddings'))?.params,
     ).toEqual(['gene-1', gene.contentHash, `[${embedding.join(',')}]`, 'provider-model-v1']);
@@ -247,7 +247,7 @@ describe('PostgreSQL experience gene repository', () => {
       queries.filter(({ sql }) => sql.includes('experience_gene')).map(({ sql }) => sql),
     ).toEqual([
       expect.stringContaining('UPDATE experience_gene_embeddings'),
-      expect.stringContaining('UPDATE experience_gene_search_documents'),
+
       expect.stringContaining('UPDATE experience_genes'),
       expect.stringContaining('INSERT INTO experience_gene_events'),
     ]);

@@ -242,19 +242,8 @@ async function writeAnalysis(
   snapshot: AnalysisSnapshot,
 ): Promise<void> {
   await client.query(
-    `INSERT INTO candidate_analyses (candidate_id, normalized_at, fingerprint, keywords, tokens, duplicate_trace)
-     VALUES ($1, $2, $3, $4::jsonb, $5::jsonb, $6::jsonb)
-     ON CONFLICT (candidate_id) DO UPDATE SET normalized_at = EXCLUDED.normalized_at,
-       fingerprint = EXCLUDED.fingerprint, keywords = EXCLUDED.keywords, tokens = EXCLUDED.tokens,
-       duplicate_trace = EXCLUDED.duplicate_trace`,
-    [
-      candidateId,
-      snapshot.normalizedAt,
-      snapshot.fingerprint,
-      JSON.stringify(snapshot.keywords),
-      JSON.stringify(snapshot.tokens),
-      snapshot.duplicateTrace ? JSON.stringify(snapshot.duplicateTrace) : null,
-    ],
+    `UPDATE candidates SET analysis = $2::jsonb, updated_at = NOW() WHERE id = $1`,
+    [candidateId, JSON.stringify(snapshot)],
   );
 }
 
@@ -266,12 +255,12 @@ async function writeDuplicateCase(
   if (existing && sameDuplicateCase(existing, duplicateCase)) return false;
   await client.query(
     `INSERT INTO candidate_duplicate_cases (
-       id, candidate_id, detected_at, detection_version, highest_similarity, has_exact_duplicate, duplicate_type
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+       id, candidate_id, detected_at, detection_version, highest_similarity, has_exact_duplicate, duplicate_type, matches
+     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
      ON CONFLICT (id) DO UPDATE SET candidate_id = EXCLUDED.candidate_id,
        detected_at = EXCLUDED.detected_at, detection_version = EXCLUDED.detection_version,
        highest_similarity = EXCLUDED.highest_similarity, has_exact_duplicate = EXCLUDED.has_exact_duplicate,
-       duplicate_type = EXCLUDED.duplicate_type`,
+       duplicate_type = EXCLUDED.duplicate_type, matches = EXCLUDED.matches`,
     [
       duplicateCase.id,
       duplicateCase.candidateId,
@@ -280,30 +269,20 @@ async function writeDuplicateCase(
       duplicateCase.highestSimilarity,
       duplicateCase.hasExactDuplicate ? 1 : 0,
       duplicateCase.duplicateType,
+      JSON.stringify(
+        duplicateCase.matches.map((m) => ({
+          entityType: m.entityType,
+          entityId: m.entityId,
+          entityTitle: m.entityTitle,
+          similarityScore: m.similarityScore,
+          matchType: m.matchType,
+          sharedKeywords: m.overlapDetails.sharedKeywords,
+          sharedTokens: m.overlapDetails.sharedTokens,
+          textOverlapPercent: m.overlapDetails.textOverlapPercent,
+        })),
+      ),
     ],
   );
-  await client.query('DELETE FROM candidate_duplicate_matches WHERE duplicate_case_id = $1', [
-    duplicateCase.id,
-  ]);
-  for (const match of duplicateCase.matches) {
-    await client.query(
-      `INSERT INTO candidate_duplicate_matches (
-         duplicate_case_id, entity_type, entity_id, entity_title, similarity_score, match_type,
-         shared_keywords, shared_tokens, text_overlap_percent
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9)`,
-      [
-        duplicateCase.id,
-        match.entityType,
-        match.entityId,
-        match.entityTitle,
-        match.similarityScore,
-        match.matchType,
-        JSON.stringify(match.overlapDetails.sharedKeywords),
-        JSON.stringify(match.overlapDetails.sharedTokens),
-        match.overlapDetails.textOverlapPercent,
-      ],
-    );
-  }
   return true;
 }
 
@@ -315,11 +294,11 @@ async function writeManualResult(
   submittedAt: string,
 ): Promise<void> {
   await client.query(
-    `INSERT INTO candidate_manual_results (
-       candidate_id, decision, notes, merged_with_entity_type, merged_with_entity_id,
+    `INSERT INTO candidate_outcomes (
+       candidate_id, kind, decision, notes, merged_with_entity_type, merged_with_entity_id,
        merged_with_entity_title, submitted_at, submitted_by_user_id
-     ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     ON CONFLICT (candidate_id) DO UPDATE SET decision = EXCLUDED.decision, notes = EXCLUDED.notes,
+     ) VALUES ($1, 'manual', $2, $3, $4, $5, $6, $7, $8)
+     ON CONFLICT (candidate_id) DO UPDATE SET kind='manual', decision = EXCLUDED.decision, notes = EXCLUDED.notes,
        merged_with_entity_type = EXCLUDED.merged_with_entity_type,
        merged_with_entity_id = EXCLUDED.merged_with_entity_id,
        merged_with_entity_title = EXCLUDED.merged_with_entity_title,
@@ -353,11 +332,19 @@ async function readDuplicateCaseFromClient(
   ]);
   const caseRow = rows[0] as Row | undefined;
   if (!caseRow) return null;
-  const matches = await client.query(
-    'SELECT * FROM candidate_duplicate_matches WHERE duplicate_case_id = $1 ORDER BY id',
-    [duplicateCaseId],
-  );
-  return rowToDuplicateCase(caseRow, matches.rows as Row[]);
+  // matches are stored as jsonb in candidate_duplicate_cases.matches
+  const rawMatches = (caseRow.matches as unknown[] | null) ?? [];
+  const matchRows = (rawMatches as Record<string, unknown>[]).map((m) => ({
+    entity_type: (m as Record<string, unknown>).entityType,
+    entity_id: (m as Record<string, unknown>).entityId,
+    entity_title: (m as Record<string, unknown>).entityTitle,
+    similarity_score: (m as Record<string, unknown>).similarityScore,
+    match_type: (m as Record<string, unknown>).matchType,
+    shared_keywords: (m as Record<string, unknown>).sharedKeywords,
+    shared_tokens: (m as Record<string, unknown>).sharedTokens,
+    text_overlap_percent: (m as Record<string, unknown>).textOverlapPercent,
+  }));
+  return rowToDuplicateCase(caseRow, matchRows as Row[]);
 }
 
 export function createCandidateIngestionPgOwnerBundle(
@@ -406,13 +393,22 @@ export function createCandidateIngestionPgOwnerBundle(
       const row = rows[0] as Row | undefined;
       if (!row) return null;
       const candidate = rowToCandidate(row);
-      const [analysisResult, duplicate, manualResult] = await Promise.all([
-        pool.query('SELECT * FROM candidate_analyses WHERE candidate_id = $1', [candidateId]),
+      // analysis is now stored as jsonb in candidates.analysis
+      if (row.analysis) {
+        const a = row.analysis as Record<string, unknown>;
+        // stored as AnalysisSnapshot jsonb
+        candidate.analysisSnapshot = {
+          normalizedAt: String((a as Record<string, unknown>).normalizedAt ?? a.normalized_at),
+          fingerprint: String((a as Record<string, unknown>).fingerprint),
+          keywords: ((a as Record<string, unknown>).keywords as string[]) ?? [],
+          tokens: ((a as Record<string, unknown>).tokens as string[]) ?? [],
+          duplicateTrace: (a as Record<string, unknown>).duplicateTrace as AnalysisSnapshot['duplicateTrace'] ?? undefined,
+        };
+      }
+      const [duplicate, manualResult] = await Promise.all([
         readDuplicateCaseByCandidate(pool, candidateId),
-        pool.query('SELECT * FROM candidate_manual_results WHERE candidate_id = $1', [candidateId]),
+        pool.query("SELECT * FROM candidate_outcomes WHERE candidate_id = $1 AND kind='manual'", [candidateId]),
       ]);
-      if (analysisResult.rows[0])
-        candidate.analysisSnapshot = rowToAnalysis(analysisResult.rows[0] as Row);
       if (duplicate) candidate.duplicateCase = duplicate;
       if (manualResult.rows[0])
         candidate.manualResult = rowToManualResult(manualResult.rows[0] as Row);
@@ -426,11 +422,11 @@ export function createCandidateIngestionPgOwnerBundle(
     async attachAnalysis(candidateId, snapshot) {
       await withTransaction(pool, async (client) => {
         await lockCandidate(client, candidateId);
-        const { rows } = await client.query(
-          'SELECT * FROM candidate_analyses WHERE candidate_id = $1',
-          [candidateId],
-        );
-        if (rows[0] && sameAnalysis(rowToAnalysis(rows[0] as Row), snapshot)) return;
+        const { rows } = await client.query('SELECT analysis FROM candidates WHERE id = $1', [candidateId]);
+        const existing = rows[0]?.analysis as AnalysisSnapshot | null;
+        if (existing && sameAnalysis(existing as unknown as AnalysisSnapshot, snapshot)) return;
+        // fallback for legacy row shape
+        if (rows[0] && rows[0].fingerprint && sameAnalysis(rowToAnalysis(rows[0] as Row), snapshot)) return;
         await writeAnalysis(client, candidateId, snapshot);
       });
     },
@@ -446,7 +442,7 @@ export function createCandidateIngestionPgOwnerBundle(
       await withTransaction(pool, async (client) => {
         await lockCandidate(client, candidateId);
         const { rows } = await client.query(
-          'SELECT * FROM candidate_manual_results WHERE candidate_id = $1',
+          "SELECT * FROM candidate_outcomes WHERE candidate_id = $1 AND kind='manual'",
           [candidateId],
         );
         if (rows[0] && sameManualResult(rowToManualResult(rows[0] as Row), result, reviewedBy))
@@ -467,9 +463,7 @@ export function createCandidateIngestionPgOwnerBundle(
     },
     async findByFingerprint(fingerprint) {
       const { rows } = await pool.query(
-        `SELECT c.id FROM candidates c
-         JOIN candidate_analyses a ON a.candidate_id = c.id
-         WHERE a.fingerprint = $1 ORDER BY c.received_at LIMIT 1`,
+        `SELECT id FROM candidates WHERE analysis->>'fingerprint' = $1 ORDER BY received_at LIMIT 1`,
         [fingerprint],
       );
       return rows[0] ? String((rows[0] as Row).id) : null;
@@ -498,10 +492,10 @@ export function createCandidateIngestionPgOwnerBundle(
     async upsert(outcome) {
       await withTransaction(pool, async (client) => {
         await client.query(
-          `INSERT INTO candidate_resolution_outcomes (
-             candidate_id, decision, published_entity_id, merged_into_entity_id, entity_type, resolved_at, resolved_by, notes
-           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (candidate_id) DO UPDATE SET decision = EXCLUDED.decision,
+          `INSERT INTO candidate_outcomes (
+             candidate_id, kind, decision, published_entity_id, merged_into_entity_id, entity_type, resolved_at, resolved_by, notes
+           ) VALUES ($1, 'resolution', $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (candidate_id) DO UPDATE SET kind='resolution', decision = EXCLUDED.decision,
              published_entity_id = EXCLUDED.published_entity_id,
              merged_into_entity_id = EXCLUDED.merged_into_entity_id, entity_type = EXCLUDED.entity_type,
              resolved_at = EXCLUDED.resolved_at, resolved_by = EXCLUDED.resolved_by, notes = EXCLUDED.notes`,
@@ -520,7 +514,7 @@ export function createCandidateIngestionPgOwnerBundle(
     },
     async getByCandidateId(candidateId) {
       const { rows } = await pool.query(
-        'SELECT * FROM candidate_resolution_outcomes WHERE candidate_id = $1',
+        "SELECT * FROM candidate_outcomes WHERE candidate_id = $1 AND kind='resolution'",
         [candidateId],
       );
       return rows[0] ? rowToOutcome(rows[0] as Row) : null;

@@ -28,7 +28,7 @@ import {
   auditTimestamps,
   capsuleIndexColumns,
   lifecycleEventColumns,
-  maintenanceAssignmentColumns,
+
   revisionColumns,
 } from './column-factories.js';
 
@@ -308,48 +308,22 @@ export const skillArtifactCapsules = pgTable(
     labels: jsonb('labels').notNull().$type<string[]>().default([]),
     scope: text('scope').notNull().$type<Scope>(),
     requiredLevel: integer('required_level').notNull(),
+    /** Consolidated keyword tokens (was skill_artifact_capsule_keywords text[] GIN) */
+    keywordTokens: jsonb('keyword_tokens').$type<string[]>().default([]),
+    fieldKeywordTokens: jsonb('field_keyword_tokens')
+      .$type<Record<string, string[]>>()
+      .default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index('idx_skill_artifact_capsules_revision').on(table.artifactRevisionId),
     index('idx_skill_artifact_capsules_artifact').on(table.artifactId, table.revisionNo),
+    index('idx_skill_artifact_capsules_keyword_gin').using('gin', table.keywordTokens),
     check('ck_skill_artifact_capsules_scope', sql`${table.scope} IN ('global', 'project')`),
   ],
 );
 
-/**
- * Capsule keyword tokens for PostgreSQL lexical search.
- * Derived index table -- stores tokenized capsule field content for fast keyword recall.
- * Uses GIN-indexed text[] arrays with && (overlap) operator for efficient matching.
- *
- * Fields tokenized: content, situation, problem, goal, labels, contextualPrefix
- * Governance columns (teamId, scope, requiredLevel) mirror capsules for WHERE filtering.
- */
-export const skillArtifactCapsuleKeywords = pgTable(
-  'skill_artifact_capsule_keywords',
-  {
-    ...capsuleIndexColumns(),
-    tokens: text('tokens').array().notNull().default([]),
-    fieldTokensContent: text('field_tokens_content').array().notNull().default([]),
-    fieldTokensSituation: text('field_tokens_situation').array().notNull().default([]),
-    fieldTokensProblem: text('field_tokens_problem').array().notNull().default([]),
-    fieldTokensGoal: text('field_tokens_goal').array().notNull().default([]),
-    fieldTokensLabels: text('field_tokens_labels').array().notNull().default([]),
-    fieldTokensContextualPrefix: text('field_tokens_contextual_prefix')
-      .array()
-      .notNull()
-      .default([]),
-    contentHash: text('content_hash').notNull(),
-    lastError: text('last_error'),
-    ...auditTimestamps(),
-  },
-  (table) => [
-    index('idx_capsule_keywords_artifact_revision').on(table.artifactId, table.revisionNo),
-    index('idx_capsule_keywords_tokens_gin').using('gin', table.tokens),
-    index('idx_capsule_keywords_status').on(table.status),
-    check('ck_skill_artifact_capsule_keywords_scope', sql`${table.scope} IN ('global', 'project')`),
-  ],
-);
+
 
 /**
  * Capsule embedding vectors for PostgreSQL semantic search.
@@ -396,62 +370,34 @@ export const skillArtifactClientManifests = pgTable(
   ],
 );
 
-export const skillArtifactManifestReferences = pgTable(
-  'skill_artifact_manifest_references',
+export const skillArtifactManifestItems = pgTable(
+  'skill_artifact_manifest_items',
   {
     ...artifactRevisionItemColumns(),
     ...artifactFileDetailsColumns(),
+    kind: text('kind').notNull().$type<'references' | 'assets' | 'scripts'>(),
+    // script-only columns nullable for references/assets
+    capability: text('capability'),
+    argsSchemaSummary: text('args_schema_summary'),
+    sideEffectSummary: text('side_effect_summary'),
+    defaultPolicy: text('default_policy'),
   },
   (table) => [
-    index('idx_skill_artifact_manifest_references_revision').on(table.artifactRevisionId),
-    uniqueIndex('idx_skill_artifact_manifest_references_revision_path').on(
+    index('idx_skill_artifact_manifest_items_revision').on(table.artifactRevisionId),
+    index('idx_skill_artifact_manifest_items_kind').on(table.kind),
+    uniqueIndex('idx_skill_artifact_manifest_items_revision_kind_path').on(
       table.artifactRevisionId,
+      table.kind,
       table.path,
+    ),
+    check(
+      'ck_skill_artifact_manifest_items_kind',
+      sql`${table.kind} IN ('references', 'assets', 'scripts')`,
     ),
   ],
 );
 
-export const skillArtifactManifestAssets = pgTable(
-  'skill_artifact_manifest_assets',
-  {
-    ...artifactRevisionItemColumns(),
-    ...artifactFileDetailsColumns(),
-  },
-  (table) => [
-    index('idx_skill_artifact_manifest_assets_revision').on(table.artifactRevisionId),
-    uniqueIndex('idx_skill_artifact_manifest_assets_revision_path').on(
-      table.artifactRevisionId,
-      table.path,
-    ),
-  ],
-);
 
-export const skillArtifactManifestScripts = pgTable(
-  'skill_artifact_manifest_scripts',
-  {
-    ...artifactRevisionItemColumns(),
-    ...artifactScriptDetailsColumns(),
-  },
-  (table) => [
-    index('idx_skill_artifact_manifest_scripts_revision').on(table.artifactRevisionId),
-    uniqueIndex('idx_skill_artifact_manifest_scripts_revision_path').on(
-      table.artifactRevisionId,
-      table.path,
-    ),
-  ],
-);
-
-export const skillArtifactMaintenanceAssignments = pgTable(
-  'skill_artifact_maintenance_assignments',
-  {
-    artifactId: text('artifact_id').primaryKey(),
-    ...maintenanceAssignmentColumns(),
-  },
-  (table) => [
-    index('idx_skill_artifact_maintenance_assignments_maintainer').on(table.maintainerUserId),
-    index('idx_skill_artifact_maintenance_assignments_review_by').on(table.reviewBy),
-  ],
-);
 
 export const skillArtifactAgentReviews = pgTable(
   'skill_artifact_agent_reviews',
@@ -486,32 +432,7 @@ export const skillArtifactAgentReviews = pgTable(
   ],
 );
 
-export const skillArtifactMetadataTable = pgTable(
-  'skill_artifact_metadata',
-  {
-    artifactId: text('artifact_id').primaryKey(),
-    sourceKind: text('source_kind').notNull(),
-    submissionCount: integer('submission_count').notNull().default(0),
-    resubmissionCount: integer('resubmission_count').notNull().default(0),
-    revisionCount: integer('revision_count').notNull().default(0),
-    latestSubmissionId: text('latest_submission_id'),
-    latestSubmittedAt: timestamp('latest_submitted_at', { withTimezone: true }),
-    latestReviewedAt: timestamp('latest_reviewed_at', { withTimezone: true }),
-    latestDecision: text('latest_decision'),
-    ...auditTimestamps(),
-  },
-  (table) => [
-    index('idx_skill_artifact_metadata_source_kind').on(table.sourceKind),
-    check(
-      'ck_skill_artifact_metadata_source_kind',
-      sql`${table.sourceKind} IN ('skill-directory', 'single-skill-md', 'legacy-knowledge')`,
-    ),
-    check(
-      'ck_skill_artifact_metadata_latest_decision',
-      sql`${table.latestDecision} IS NULL OR ${table.latestDecision} IN ('approve', 'reject')`,
-    ),
-  ],
-);
+
 
 /**
  * Artifact lifecycle events table for audit trail of state transitions.

@@ -229,14 +229,8 @@ export class PgExperienceGeneRepository
           ],
         );
         await this.pool.query(
-          `INSERT INTO experience_gene_search_documents
-             (gene_id,content_hash,document,labels,status,last_error,updated_at)
-           VALUES ($1,$2,to_tsvector('english',$3),$4,'pending',NULL,now())
-           ON CONFLICT (gene_id) DO UPDATE SET
-             content_hash = EXCLUDED.content_hash, document = EXCLUDED.document,
-             labels = EXCLUDED.labels, status = 'pending', last_error = NULL,
-             updated_at = now()`,
-          [gene.geneId, gene.contentHash, searchDocument(gene), gene.labels],
+          `UPDATE experience_gene_embeddings SET document = $2, labels = $3, status = 'pending', last_error = NULL, updated_at = now() WHERE gene_id = $1`,
+          [gene.geneId, searchDocument(gene), gene.labels],
         );
         return mapGene(insertedRow);
       }
@@ -306,13 +300,7 @@ export class PgExperienceGeneRepository
          WHERE gene_id = $1`,
         [geneId, current.content_hash, vectorLiteral(embedding), modelVersion],
       );
-      const documentResult = await this.pool.query(
-        `UPDATE experience_gene_search_documents
-         SET status = 'ready', last_error = NULL, updated_at = now()
-         WHERE gene_id = $1 AND content_hash = $2`,
-        [geneId, current.content_hash],
-      );
-      if (embeddingResult.rowCount !== 1 || documentResult.rowCount !== 1) {
+      if (embeddingResult.rowCount !== 1) {
         throw new Error(`missing retry projection for experience gene: ${geneId}`);
       }
       const updated = await this.pool.query<GeneRow>(
@@ -365,14 +353,8 @@ export class PgExperienceGeneRepository
       }
 
       await this.pool.query(
-        `INSERT INTO experience_gene_search_documents
-           (gene_id,content_hash,document,labels,status,last_error,updated_at)
-         VALUES ($1,$2,to_tsvector('english',$3),$4,'ready',NULL,now())
-         ON CONFLICT (gene_id) DO UPDATE SET
-           content_hash = EXCLUDED.content_hash, document = EXCLUDED.document,
-           labels = EXCLUDED.labels, status = 'ready', last_error = NULL,
-           updated_at = now()`,
-        [geneId, current.content_hash, searchDocument(current), current.labels],
+        `UPDATE experience_gene_embeddings SET document = $2, labels = $3, status = 'ready', last_error = NULL, updated_at = now() WHERE gene_id = $1`,
+        [geneId, searchDocument(current), current.labels],
       );
 
       const updated = await this.updateStatus(geneId, 'solidified', ['validated']);
@@ -419,15 +401,12 @@ export class PgExperienceGeneRepository
 
     return this.transaction(async () => {
       if (status !== 'pending') {
-        for (const table of ['experience_gene_embeddings', 'experience_gene_search_documents']) {
-          const result = await this.pool.query(
-            `UPDATE ${table} SET status = $2, last_error = $3, updated_at = now()
-             WHERE gene_id = $1`,
-            [geneId, status, error ?? null],
-          );
-          if (status === 'ready' && result.rowCount !== 1) {
-            throw new Error(`missing ready projection in ${table}`);
-          }
+        const result = await this.pool.query(
+          `UPDATE experience_gene_embeddings SET status = $2, last_error = $3, updated_at = now() WHERE gene_id = $1`,
+          [geneId, status, error ?? null],
+        );
+        if (status === 'ready' && result.rowCount !== 1) {
+          throw new Error(`missing ready projection in experience_gene_embeddings`);
         }
       }
 

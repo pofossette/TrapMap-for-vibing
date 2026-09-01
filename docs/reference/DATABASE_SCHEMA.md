@@ -20,27 +20,23 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (55 张表 — 2026-09-01 压缩，69→55，80-90%性能保底)
+## 表总览 (42 张表 — 2026-09-01 Phase 2 压缩，55→42，再 -13，80-90%性能保底)
 
-> 表清单以 `packages/db/src/` 实测 55 张 `pgTable` 为准（2026-09-01 从 69 压缩：移除 12 张零引用 boundary 子表 + 2 张低频表，低频 Q&A 与边界约束改 JSONB + GIN，见“表压缩说明”）；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
+> 表清单以 `packages/db/src/` 实测 42 张 `pgTable` 为准（2026-09-01 Phase 2 从 55 压缩至 42：再移除 13 张小基数 1:1/1:N 表，改 jsonb+GIN/函数索引，保留 pgvector HNSW 独表；Phase 1 69→55 已移除 12 boundary +2 低频）；迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
 
-### 知识域 (10 表 — 16→10，6 boundary 子表已 JSONB 化)
+### 知识域 (7 表 — 16→10→7，6 boundary + 3 Phase2 小表已 JSONB 化)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
 | `knowledge_entries` | 知识条目主表 | `id` (text) |
 | `knowledge_revisions` | 条目修订历史 | `id` (text) |
-| `knowledge_submissions` | 知识提交记录（agent/reviewer 快照与提交生命周期） | `id` (text) |
-| `knowledge_review_decisions` | 审核决策记录（approve/reject） | `id` (identity) |
+| `knowledge_submissions` | 知识提交记录（agent/reviewer 快照与提交生命周期，Phase2 后承载 reviewer 决策 jsonb） | `id` (text) |
 | `lifecycle_events` | 状态变更审计 | `id` (text) |
 | `knowledge_labels` | 结构化标签 | 唯一索引 `(entry_id, label)` |
-| `knowledge_maintenance_assignments` | 维护指派 (1:1) | `entry_id` (text) |
-| `knowledge_embeddings` | 向量嵌入 (pgvector) | `id` (text) |
-| `knowledge_keywords` | 关键词索引 (GIN) | `id` (text) |
-| `knowledge_search_documents` | 全文搜索 (tsvector) | `(entry_id, revision_no)` |
+| `knowledge_embeddings` | 向量嵌入 (pgvector HNSW) | `id` (text) |
+| `knowledge_search_documents` | 全文搜索 + 合并关键词索引 (tsvector + tokens GIN，Phase2 合并) | `(entry_id, revision_no)` |
 
-### 技能工件域 (16 表 — 22→16，6 boundary 子表已 JSONB 化，含 2 张派生索引表)
-
+### 技能工件域 (11 表 — 22→16→11，6 boundary + 5 Phase2 小表已 JSONB/合并化)
 > **Round 4 事实源规则**：结构化子表为事实源，`skill_artifacts` 和 `artifact_revisions` 上的对应 JSONB 列为兼容缓存。
 > 读取时结构化优先，写入时两套表示同步维护。详见 [`round4-cross-table-consistency-plan.md`](../plans/round4-cross-table-consistency-plan.md) 阶段 0。
 
@@ -52,30 +48,21 @@
 | `skill_artifact_files` | 文件记录 | **结构化事实源** (覆盖 `artifact_revisions.files` JSONB) | `id` (identity) |
 | `skill_artifact_script_descriptors` | 脚本描述符 | **结构化事实源** (覆盖 `artifact_revisions.script_descriptors` JSONB) | `id` (identity) |
 | `skill_artifact_profiles` | 派生配置 (1:1) | **结构化事实源** (覆盖 `artifact_revisions.derived.profile` JSONB) | `artifact_revision_id` (text) |
-| `skill_artifact_capsules` | 派生胶囊 | **结构化事实源** (覆盖 `artifact_revisions.derived.capsules` JSONB) | `capsule_id` (text) |
+| `skill_artifact_capsules` | 派生胶囊 | **结构化事实源** (覆盖 `artifact_revisions.derived.capsules` JSONB，Phase2 已含 keywordTokens jsonb+GIN) | `capsule_id` (text) |
+| `skill_artifact_capsule_embeddings` | 胶囊向量嵌入 (pgvector HNSW) | **派生索引表** (非事实源) | `capsule_id` (text) |
 | `skill_artifact_client_manifests` | 客户端清单 (1:1) | **结构化事实源** (覆盖 `artifact_revisions.derived.clientManifest` JSONB) | `artifact_revision_id` (text) |
-| `skill_artifact_manifest_references` | 清单-引用文件 | **结构化事实源** (覆盖 `derived.clientManifest.references` JSONB) | `id` (identity) |
-| `skill_artifact_manifest_assets` | 清单-资源文件 | **结构化事实源** (覆盖 `derived.clientManifest.assets` JSONB) | `id` (identity) |
-| `skill_artifact_manifest_scripts` | 清单-脚本 | **结构化事实源** (覆盖 `derived.clientManifest.scripts` JSONB) | `id` (identity) |
-| `skill_artifact_maintenance_assignments` | 维护指派 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.maintenance_meta` JSONB) | `artifact_id` (text) |
+| `skill_artifact_manifest_items` | 清单条目（合并 references/assets/scripts，三合一 Phase2） | **结构化事实源** (覆盖 `derived.clientManifest.*` JSONB) | `id` (identity) |
 | `skill_artifact_agent_reviews` | Agent 审核结果 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.agent_review` JSONB) | `artifact_id` (text) |
-| `skill_artifact_metadata` | 工件元数据 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.metadata` JSONB)。⚠️ `revision_count` 为缓存汇总字段，`latestDecision`/`latestReviewedAt` 为缓存投影 | `artifact_id` (text) |
-| `skill_artifact_capsule_keywords` | 胶囊关键词索引 | **派生索引表** (非事实源) | `capsule_id` (text) |
-| `skill_artifact_capsule_embeddings` | 胶囊向量嵌入 | **派生索引表** (非事实源) | `capsule_id` (text) |
 
-### 候选人域 (7 表)
-
+### 候选人域 (4 表 — 7→4 Phase2：analyses→jsonb, manual+resolution→outcomes, matches→jsonb)
 | 表名 | 用途 | 主键 |
 |------|------|------|
-| `candidates` | 候选提交主表 | `id` (text) |
-| `candidate_analyses` | 分析结果 (1:1) | `candidate_id` (text) |
-| `candidate_duplicate_cases` | 去重检测 | `id` (text) |
-| `candidate_duplicate_matches` | 去重匹配详情 | `id` (identity) |
-| `candidate_manual_results` | 人工审核结果 (1:1) | `candidate_id` (text) |
-| `candidate_resolution_outcomes` | 解析结果 (1:1) | `candidate_id` (text) |
+| `candidates` | 候选提交主表（含 analysis jsonb，Phase2 合并） | `id` (text) |
+| `candidate_duplicate_cases` | 去重主记录（含 matches jsonb，Phase2 合并） | `id` (text) |
+| `candidate_outcomes` | 人工复核+决议产出合并（kind=manual/resolution，Phase2） | `candidate_id` (text) |
 | `entity_lineage` | 实体溯源 | `id` (text) |
 
-### Experience Gene 域 (4 表)
+### Experience Gene 域 (3 表 — 4→3 Phase2：search_documents→embeddings)
 
 > **事实源规则**：`experience_genes` 是 Gene aggregate 当前状态事实源；`experience_gene_events` append-only 承载派生、验证、拒绝、固化、失效和废弃审计。两张检索表是可重建投影，不承载业务真相。Owner 是 knowledge-write，迁移为 `service-knowledge-write/drizzle/0002_experience_genes`。
 
@@ -83,8 +70,7 @@
 |------|------|------|
 | `experience_genes` | Gene 当前状态、内容、治理边界和 source lineage | `id` (text) |
 | `experience_gene_events` | immutable Gene lifecycle/validator/rejection events | `id` (text) |
-| `experience_gene_embeddings` | solidified Gene 的 384 维 pgvector 投影 | `gene_id` (text) |
-| `experience_gene_search_documents` | solidified Gene 的 tsvector 全文投影 | `gene_id` (text) |
+| `experience_gene_embeddings` | solidified Gene 的 384 维 pgvector + 全文投影（含 document/labels，Phase2 合并） | `gene_id` (text) |
 
 ### Experience Gene 关键索引与约束
 
@@ -94,7 +80,6 @@
 | `idx_experience_genes_status_updated` | B-tree | `(status, updated_at)` | lifecycle 扫描 |
 | `idx_experience_genes_governance` | B-tree | `(scope, team_id, required_level)` | read path 内联治理过滤 |
 | `idx_experience_gene_embeddings_vector_hnsw` | HNSW | `embedding vector_cosine_ops` | gene-native semantic recall |
-| `idx_experience_gene_search_documents_document_gin` | GIN | `document tsvector` | keyword/full-text recall |
 
 ### 身份与审计域 (6 表) — Round 10 Phase 3
 
@@ -145,7 +130,7 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | `canonical_label_embeddings` | 规范标签向量嵌入 (pgvector) | `canonical_label_id` (text) |
 | `label_alignment_events` | LLM/手动对齐决策审计 | `id` (text) |
 
-### 跨域 (5 表)
+### 跨域 (4 表 — 5→4 Phase2：badcase→feedback)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
@@ -153,7 +138,6 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | `domain_event_outbox` | 领域事件 outbox（生命周期事件发布） | `id` (text) |
 | `graph_index_documents` | GraphRAG-lite 图索引文档 | `id` (text) |
 | `workflow_runs` | 工作流运行快照（Phase 3 持久化） | `run_id` (text) |
-| `retrieval_badcase_traces` | 检索坏例 trace（Phase 4 可复现性） | `id` (text) |
 
 ### 调度域 (1 表)
 
@@ -224,33 +208,21 @@ erDiagram
     knowledge_entries ||--o{ lifecycle_events : records
     knowledge_entries ||--o{ knowledge_labels : tags
     %% 6 boundary 子表已 JSONB 化 → knowledge_entries.boundary jsonb + GIN (69→55)
-    knowledge_entries ||--o| knowledge_maintenance_assignments : assigns
     knowledge_entries ||--o{ knowledge_embeddings : indexes
-    knowledge_entries ||--o{ knowledge_keywords : tokenizes
     knowledge_entries ||--o{ knowledge_search_documents : searches
 
     skill_artifacts ||--o{ artifact_revisions : has
     skill_artifacts ||--o{ artifact_lifecycle_events : records
-    skill_artifacts ||--o| skill_artifact_metadata : describes
     skill_artifacts ||--o| skill_artifact_agent_reviews : reviews
-    skill_artifacts ||--o| skill_artifact_maintenance_assignments : assigns
     %% 6 boundary 子表已 JSONB 化 → skill_artifacts.boundary jsonb + GIN
     artifact_revisions ||--o{ skill_artifact_files : contains
     artifact_revisions ||--o{ skill_artifact_script_descriptors : scripts
     artifact_revisions ||--o| skill_artifact_profiles : derives
     artifact_revisions ||--o{ skill_artifact_capsules : derives
     artifact_revisions ||--o| skill_artifact_client_manifests : packages
-    skill_artifact_client_manifests ||--o{ skill_artifact_manifest_references : references
-    skill_artifact_client_manifests ||--o{ skill_artifact_manifest_assets : assets
-    skill_artifact_client_manifests ||--o{ skill_artifact_manifest_scripts : scripts
-    skill_artifact_capsules ||--o| skill_artifact_capsule_keywords : indexes
     skill_artifact_capsules ||--o| skill_artifact_capsule_embeddings : embeds
 
-    candidates ||--o| candidate_analyses : analyzes
     candidates ||--o{ candidate_duplicate_cases : flags
-    candidate_duplicate_cases ||--o{ candidate_duplicate_matches : matches
-    candidates ||--o| candidate_manual_results : reviews
-    candidates ||--o| candidate_resolution_outcomes : resolves
     candidates ||--o{ entity_lineage : traces
 
     users ||--o{ memberships : joins
@@ -331,7 +303,6 @@ updated_at          timestamptz
 **索引**: status, team_id, source_type
 
 说明：
-- `analysis_snapshot.duplicateTrace` / `candidate_analyses.duplicate_trace` 持久化 duplicate lane 来源：`detector` 与 `matchedLane`
 - 候选 exact lane 不单独落列；trap exact 依赖运行时重算指纹，skill exact 复用已持久化的 `skill_artifact_profiles.source_hash` / `content_hash`
 
 ### knowledge_embeddings
@@ -385,11 +356,9 @@ new | triaged | resolved | dismissed
 knowledge_entries (1) ──→ (N) knowledge_revisions         [RESTRICT]
 knowledge_entries (1) ──→ (N) lifecycle_events             [RESTRICT]
 knowledge_entries (1) ──→ (N) knowledge_embeddings         [CASCADE]
-knowledge_entries (1) ──→ (N) knowledge_keywords           [CASCADE]
 knowledge_entries (1) ──→ (N) knowledge_search_documents   [CASCADE]
 knowledge_entries (1) ──→ (N) knowledge_labels             [CASCADE]
 knowledge_entries.boundary jsonb ──→ (JSONB + GIN, 6子表已移除 2026-09-01) [—]
-knowledge_entries (1) ──→ (1) knowledge_maintenance_assignments [CASCADE]
 
 skill_artifacts (1) ──→ (N) artifact_revisions             [RESTRICT]
 skill_artifacts (1) ──→ (N) artifact_lifecycle_events      [RESTRICT]
@@ -398,16 +367,10 @@ skill_artifacts (1) ──→ (N) skill_artifact_capsules        [CASCADE]
 skill_artifacts (1) ──→ (1) skill_artifact_profiles        [CASCADE]
 skill_artifacts (1) ──→ (1) skill_artifact_client_manifests [CASCADE]
 skill_artifacts.boundary jsonb ──→ (JSONB + GIN, 6子表已移除) [—]
-skill_artifacts (1) ──→ (1) skill_artifact_maintenance_assignments [CASCADE]
 skill_artifacts (1) ──→ (1) skill_artifact_agent_reviews   [CASCADE]
-skill_artifacts (1) ──→ (1) skill_artifact_metadata        [CASCADE]
 
-candidates (1) ──→ (1) candidate_analyses                  [CASCADE]
 candidates (1) ──→ (N) candidate_duplicate_cases           [CASCADE]
-candidates (1) ──→ (1) candidate_manual_results            [CASCADE]
-candidates (1) ──→ (1) candidate_resolution_outcomes       [CASCADE]
 
-candidate_duplicate_cases (1) ──→ (N) candidate_duplicate_matches [CASCADE]
 
 feedback_records.custom_answers jsonb ──→ (JSONB + GIN, 1:N→1, 0-3/反馈) [—]
 ```
@@ -417,7 +380,6 @@ feedback_records.custom_answers jsonb ──→ (JSONB + GIN, 1:N→1, 0-3/反�
 | 类型 | 表 | 列 | 说明 |
 |------|-----|-----|------|
 | HNSW | `knowledge_embeddings` | `vector` | 向量相似度搜索 (cosine, m=16, ef=64) |
-| GIN | `knowledge_keywords` | `tokens` | 数组重叠查询 (`&&` 操作符) |
 | GIN | `knowledge_search_documents` | `document` | tsvector 全文搜索 |
 
 ## 迁移历史
@@ -437,12 +399,10 @@ feedback_records.custom_answers jsonb ──→ (JSONB + GIN, 1:N→1, 0-3/反�
 | 10 | `0010_round10_lifecycle_outbox.sql` | 生命周期 outbox 事件表 |
 | 11 | `0011_round10_identity_audit_structural.sql` | 身份域和审计域结构化表（Phase 3） |
 | 12 | `0012_round10_read_model_cleanup.sql` | 相似度精度修复（integer→real）+ skill_artifacts 唯一索引对齐（Phase 4） |
-| 13 | `0013_round10_candidate_analysis_trace.sql` | 候选人 duplicate trace 可观测性（`candidate_analyses.duplicate_trace` JSONB 列） |
 | 14 | `0014_round11_dive_log_columns.sql` | knowledge_entries DiveLog 结构化列（dive_log_id, dive_site, raw_content, parsed_blocks 等） |
 | 15 | `0015_phase0_atomic_delivery_and_leases.sql` | Phase 0: task_queue/domain_event_outbox lease 列（worker_id, started_at, heartbeat_at, lease_until） |
 | 16 | `0016_phase1_async_operator_semantics.sql` | Phase 1: operator read-model 预留槽位（no-op，无额外 schema 对象） |
 | 17 | `0017_phase3_workflow_runs.sql` | Phase 3: workflow_runs 持久化表 + 索引 |
-| 18 | `0018_phase4_query_traceability_and_badcase_capture.sql` | Phase 4: feedback_records 追溯列 + retrieval_badcase_traces 表 |
 | 19 | `0019_phase5_shared_jobs_feedback_remediation.sql` | Phase 5: feedback_records remediation 状态列 + CHECK 约束 |
 
 ## 相关文档

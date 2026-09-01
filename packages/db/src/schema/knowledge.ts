@@ -24,7 +24,7 @@ import type { Boundary, LifecycleState } from '@trapmap/contracts';
 import {
   auditTimestamps,
   lifecycleEventColumns,
-  maintenanceAssignmentColumns,
+
   revisionColumns,
 } from './column-factories.js';
 
@@ -96,49 +96,7 @@ export const knowledgeEmbeddings = pgTable(
   ],
 );
 
-/**
- * Knowledge entry keyword tokens for PostgreSQL text search.
- * Stores tokenized content for lexical matching with field-level weights.
- */
-export const knowledgeKeywords = pgTable(
-  'knowledge_keywords',
-  {
-    /** Composite key: entry_{entryId}_rev{revisionNo} */
-    id: text('id').primaryKey(),
-    /** Foreign key reference to knowledge entry */
-    entryId: text('entry_id').notNull(),
-    /** Entry revision number for idempotency checks */
-    revisionNo: integer('revision_no').notNull(),
-    /** SHA-256 hash of canonical text for change detection */
-    contentHash: text('content_hash').notNull(),
-    /** Normalized tokens (lowercase, deduplicated) — native text[] for GIN array overlap */
-    tokens: text('tokens').array().notNull().default([]),
-    /** Per-field token sets: shortcut field tokens */
-    fieldTokensShortcut: text('field_tokens_shortcut').array().notNull().default([]),
-    /** Per-field token sets: detail field tokens */
-    fieldTokensDetail: text('field_tokens_detail').array().notNull().default([]),
-    /** Per-field token sets: label field tokens */
-    fieldTokensLabels: text('field_tokens_labels').array().notNull().default([]),
-    /** Team ID (null for global entries) */
-    teamId: text('team_id'),
-    /** Scope: 'global' or 'project' */
-    scope: text('scope').notNull(),
-    /** Required security level for access control */
-    requiredLevel: integer('required_level').notNull().default(0),
-    /** Sync status: 'synced' | 'failed' */
-    status: text('status').notNull().default('synced'),
-    /** Last error message if sync failed */
-    lastError: text('last_error'),
-    /** Record creation timestamp */
-    ...auditTimestamps(),
-  },
-  (table) => [
-    uniqueIndex('knowledge_keywords_entry_revision_no_idx').on(table.entryId, table.revisionNo),
-    // GIN index for fast text[] overlap queries using && operator
-    index('idx_knowledge_keywords_tokens_gin').using('gin', table.tokens),
-    index('idx_knowledge_keywords_status').on(table.status),
-  ],
-);
+
 
 /**
  * Knowledge search documents for PostgreSQL full-text search using tsvector.
@@ -153,7 +111,16 @@ export const knowledgeSearchDocuments = pgTable(
     /** Revision number for idempotent sync */
     revisionNo: integer('revision_no').notNull(),
     /** tsvector document for full-text search */
-    document: text('document').notNull(), // stored as tsvector via raw SQL
+    document: text('document').notNull(),
+    /** Consolidated keyword tokens (was knowledge_keywords.tokens GIN) */
+    tokens: text('tokens').array().notNull().default([]),
+    fieldTokensShortcut: text('field_tokens_shortcut').array().notNull().default([]),
+    fieldTokensDetail: text('field_tokens_detail').array().notNull().default([]),
+    fieldTokensLabels: text('field_tokens_labels').array().notNull().default([]),
+    contentHash: text('content_hash').notNull().default(''),
+    teamId: text('team_id'),
+    scope: text('scope').notNull().default('project'),
+    requiredLevel: integer('required_level').notNull().default(0),
     /** Lightweight label copy for array filtering */
     labels: text('labels').array().notNull().default([]),
     /** Sync status: 'synced' | 'stale' | 'failed' */
@@ -167,9 +134,7 @@ export const knowledgeSearchDocuments = pgTable(
     primaryKey({ columns: [table.entryId, table.revisionNo] }),
     index('idx_knowledge_search_documents_entry').on(table.entryId),
     index('idx_knowledge_search_documents_status').on(table.status),
-    // GIN index on tsvector document is created in migration 0005.
-    // Cannot be declared here because Drizzle schema uses text() for the column
-    // (tsvector has no native Drizzle type) and GIN on text is invalid.
+    index('idx_knowledge_search_documents_tokens_gin').using('gin', table.tokens),
   ],
 );
 
@@ -338,27 +303,7 @@ export const knowledgeSubmissions = pgTable(
   ],
 );
 
-/** Reviewer decisions are retained independently from the current lifecycle state. */
-export const knowledgeReviewDecisions = pgTable(
-  'knowledge_review_decisions',
-  {
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-    entryId: text('entry_id').notNull(),
-    decidedAt: timestamp('decided_at', { withTimezone: true }).notNull(),
-    decidedByUserId: text('decided_by_user_id').notNull(),
-    decision: text('decision').notNull(),
-    notes: text('notes').notNull(),
-    ...auditTimestamps(),
-  },
-  (table) => [
-    index('idx_knowledge_review_decisions_entry').on(table.entryId),
-    index('idx_knowledge_review_decisions_decided_at').on(table.decidedAt),
-    check(
-      'ck_knowledge_review_decisions_decision',
-      sql`${table.decision} IN ('approve', 'reject')`,
-    ),
-  ],
-);
+
 
 /**
  * Lifecycle events table for audit trail of state transitions.
@@ -435,22 +380,7 @@ export const knowledgeLabels = pgTable(
  * Stores links to external sources that validate the boundary.
  */
 
-/**
- * Structured maintenance assignments for knowledge entries.
- * Replaces JSONB maintenance_meta for queryable ownership and review tracking.
- */
-export const knowledgeMaintenanceAssignments = pgTable(
-  'knowledge_maintenance_assignments',
-  {
-    /** Reference to parent knowledge entry (1:1 relationship) */
-    entryId: text('entry_id').primaryKey(),
-    ...maintenanceAssignmentColumns(),
-  },
-  (table) => [
-    index('idx_knowledge_maintenance_assignments_maintainer').on(table.maintainerUserId),
-    index('idx_knowledge_maintenance_assignments_review_by').on(table.reviewBy),
-  ],
-);
+
 
 // =============================================================================
 // Feedback Tables (Round 6: Structural Refactoring)
