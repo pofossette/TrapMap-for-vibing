@@ -192,6 +192,79 @@ export function registerGatewayRoutes(
     },
   );
 
+  // ---- Knowledge-Read-Go strangler (off/shadow/dual/go) ----
+  const readGoCfgForProxy = getKnowledgeReadGoConfig();
+  app.post('/v1/knowledge/read', async (request: FastifyRequest, reply: FastifyReply) => {
+    const impl = readGoCfgForProxy.impl;
+    const url = `${readGoCfgForProxy.url.replace(/\/$/, '')}/v1/knowledge/read`;
+    const body = request.body as unknown;
+    const headers: Record<string, string> = {};
+    if (request.headers.authorization)
+      headers['authorization'] = request.headers.authorization as string;
+    const forwardGo = async () => {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(readGoCfgForProxy.timeoutMs),
+      });
+      const data = await res.text();
+      return { status: res.status, data, headers: res.headers };
+    };
+    const forwardNode = async () => {
+      try {
+        const nodeUrl = `${process.env['TRAPMAP_KNOWLEDGE_READ_URL'] ?? 'http://localhost:4002'}/v1/knowledge/read`;
+        const res = await fetch(nodeUrl, {
+          method: 'POST',
+          headers: { ...headers, 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(3000),
+        });
+        const data = await res.text();
+        return { status: res.status, data };
+      } catch (e) {
+        return { status: 503, data: JSON.stringify({ error: String(e) }) };
+      }
+    };
+    if (impl === 'go') {
+      try {
+        const goRes = await forwardGo();
+        if (goRes.status >= 200 && goRes.status < 300) {
+          return reply
+            .status(goRes.status)
+            .headers(Object.fromEntries(goRes.headers.entries()))
+            .send(goRes.data);
+        }
+        const nodeRes = await forwardNode();
+        return reply.status(nodeRes.status).send(nodeRes.data);
+      } catch {
+        const nodeRes = await forwardNode();
+        return reply.status(nodeRes.status).send(nodeRes.data);
+      }
+    }
+    if (impl === 'shadow') {
+      forwardGo()
+        .catch(() => {})
+        .then((r: any) => {
+          if (r && r.status >= 400) console.warn('shadow go error', r.status);
+        });
+      const nodeRes = await forwardNode();
+      return reply.status(nodeRes.status).send(nodeRes.data);
+    }
+    if (impl === 'dual') {
+      const [goRes, nodeRes] = await Promise.allSettled([forwardGo(), forwardNode()]);
+      if (nodeRes.status === 'fulfilled') {
+        return reply.status((nodeRes.value as any).status).send((nodeRes.value as any).data);
+      }
+      if (goRes.status === 'fulfilled') {
+        return reply.status((goRes.value as any).status).send((goRes.value as any).data);
+      }
+      return reply.status(503).send({ error: 'both backends failed' });
+    }
+    const nodeRes = await forwardNode();
+    return reply.status(nodeRes.status).send(nodeRes.data);
+  });
+
   // ---- Health ----
 
   app.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
