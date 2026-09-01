@@ -3,12 +3,21 @@
     {
       "file": "docs/guides/CODE_GUIDE.md",
       "mustContain": [],
-      "mustNotContain": ["createApp()"]
+      "mustNotContain": [
+        "createApp()"
+      ]
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md", "127.0.0.1", "gpt-4o-mini"],
-      "mustNotContain": ["| `HOST` | `0.0.0.0` |", "| `AI_CHAT_MODEL` | `gpt-4o` |"]
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md",
+        "127.0.0.1",
+        "gpt-4o-mini"
+      ],
+      "mustNotContain": [
+        "| `HOST` | `0.0.0.0` |",
+        "| `AI_CHAT_MODEL` | `gpt-4o` |"
+      ]
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
@@ -145,7 +154,9 @@
         "SESSION_SECRET",
         "\u5f53\u524d\u672a\u5185\u7f6e `/metrics` \u7aef\u70b9"
       ],
-      "mustNotContainRegex": ["gpt-4o(?!-)"],
+      "mustNotContainRegex": [
+        "gpt-4o(?!-)"
+      ],
       "mustContainCount": {
         "pattern": "PostgreSQL",
         "minOccurrences": 3
@@ -153,12 +164,19 @@
     },
     {
       "file": "docs/operations/REGRESSION-COMMANDS.md",
-      "mustContain": ["pnpm test:observability-benchmark", "grep -i traceparent"],
-      "mustNotContain": ["grep X-Trace-Id"]
+      "mustContain": [
+        "pnpm test:observability-benchmark",
+        "grep -i traceparent"
+      ],
+      "mustNotContain": [
+        "grep X-Trace-Id"
+      ]
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["69 \u5f20\u8868"],
+      "mustContain": [
+        "69 \u5f20\u8868"
+      ],
       "mustNotContain": [
         "48 \u5f20\u8868",
         "54 \u5f20\u8868",
@@ -203,7 +221,11 @@
         "gateway -> governance-review -> knowledge-write",
         "gateway -> candidate-ingestion -> knowledge-write"
       ],
-      "mustNotContain": [".data/trapmap.json", "\u9ed8\u8ba4 openai", "Phase 1 \u8bd5\u70b9"]
+      "mustNotContain": [
+        ".data/trapmap.json",
+        "\u9ed8\u8ba4 openai",
+        "Phase 1 \u8bd5\u70b9"
+      ]
     },
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
@@ -215,7 +237,10 @@
         "fallback \u5df2\u7ecf\u4ece\u8fd0\u884c\u6001\u6d88\u5931",
         "\u4e0d\u518d\u63a5\u7eb3\u65b0\u7684 production \u4e3b\u8def\u5f84"
       ],
-      "mustNotContain": ["48 \u5f20\u8868", "56 \u5f20\u8868"]
+      "mustNotContain": [
+        "48 \u5f20\u8868",
+        "56 \u5f20\u8868"
+      ]
     },
     {
       "file": "docs/guides/CONTRIBUTING.md",
@@ -223,7 +248,10 @@
         "packages/service-*/drizzle/",
         "\u5df2\u6709\u5f00\u53d1\u6570\u636e\u5e93\u9700\u91cd\u5efa"
       ],
-      "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
+      "mustNotContain": [
+        "pnpm run db:generate",
+        "pnpm run db:migrate"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
@@ -257,7 +285,9 @@
         "pnpm test:deployment-smoke",
         "pnpm eval:smoke"
       ],
-      "mustNotContain": ["TIER=core pnpm eval:ci"]
+      "mustNotContain": [
+        "TIER=core pnpm eval:ci"
+      ]
     },
     {
       "file": "docs/operations/OBSERVABILITY-OPERATIONS.md",
@@ -265,7 +295,9 @@
         "NestJS: `not-ready` \u548c `unhealthy` \u8fd4\u56de `503`\uff1b`degraded` \u548c `ready` \u8fd4\u56de `200`",
         "pnpm test:observability-closeout"
       ],
-      "mustNotContain": ["NestJS: \u5f53\u524d\u59cb\u7ec8\u8fd4\u56de 200"]
+      "mustNotContain": [
+        "NestJS: \u5f53\u524d\u59cb\u7ec8\u8fd4\u56de 200"
+      ]
     },
     {
       "file": "plan.md",
@@ -397,12 +429,22 @@
         "doc-guardrails",
         "`pnpm eval:smoke`"
       ],
-      "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
+      "mustNotContain": [
+        "Node.js 20 + pnpm 10.33.0"
+      ]
     },
     {
       "file": "docs/architecture/components/EVALUATION.md",
-      "mustContain": ["pnpm eval:smoke", "pnpm eval:core", "datasets/", "scenarios/"],
-      "mustNotContain": ["pnpm eval:governance", "cases/"]
+      "mustContain": [
+        "pnpm eval:smoke",
+        "pnpm eval:core",
+        "datasets/",
+        "scenarios/"
+      ],
+      "mustNotContain": [
+        "pnpm eval:governance",
+        "cases/"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
@@ -412,23 +454,45 @@
         "GEMINI_API_KEY",
         "\u672a\u66b4\u9732\u4e3a\u7a33\u5b9a CLI \u547d\u4ee4"
       ],
-      "mustNotContain": ["\u9ed8\u8ba4 openai"]
+      "mustNotContain": [
+        "\u9ed8\u8ba4 openai"
+      ]
     },
     {
       "file": "docs/architecture/components/AI_PROVIDER.md",
-      "mustContain": ["fallback", "google-genai", "gpt-4o-mini", "llama3"],
-      "mustNotContain": ["\u9ed8\u8ba4 openai", "llama2"]
+      "mustContain": [
+        "fallback",
+        "google-genai",
+        "gpt-4o-mini",
+        "llama3"
+      ],
+      "mustNotContain": [
+        "\u9ed8\u8ba4 openai",
+        "llama2"
+      ]
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["pgvector/pgvector:pg16", "wget"],
-      "mustNotContain": ["image: postgres:16"],
-      "mustNotContainRegex": ["curl.*-f.*health"]
+      "mustContain": [
+        "pgvector/pgvector:pg16",
+        "wget"
+      ],
+      "mustNotContain": [
+        "image: postgres:16"
+      ],
+      "mustNotContainRegex": [
+        "curl.*-f.*health"
+      ]
     },
     {
       "file": "docs/architecture/components/ARTIFACTS.md",
-      "mustContain": ["agent-pass", "SkillArtifactRecord"],
-      "mustNotContain": ["interface SkillArtifact {"]
+      "mustContain": [
+        "agent-pass",
+        "SkillArtifactRecord"
+      ],
+      "mustNotContain": [
+        "interface SkillArtifact {"
+      ]
     },
     {
       "file": "evals/README.md",
@@ -513,16 +577,24 @@
         "service-autonomous remote cache",
         "adaptive backpressure"
       ],
-      "mustNotContain": ["packages/host-distributed \u662f compatibility shell"]
+      "mustNotContain": [
+        "packages/host-distributed \u662f compatibility shell"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["\u9ed8\u8ba4 `light` \u4e3b\u7ebf"],
-      "mustNotContain": ["Phase 1 \u8bd5\u70b9"]
+      "mustContain": [
+        "\u9ed8\u8ba4 `light` \u4e3b\u7ebf"
+      ],
+      "mustNotContain": [
+        "Phase 1 \u8bd5\u70b9"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
-      "mustContain": ["Phase 4 \u9a8c\u8bc1\u5f52\u5c5e\u77e9\u9635"]
+      "mustContain": [
+        "Phase 4 \u9a8c\u8bc1\u5f52\u5c5e\u77e9\u9635"
+      ]
     },
     {
       "file": "docs/architecture/components/ASYNC_MODEL.md",
@@ -537,7 +609,9 @@
     },
     {
       "file": "README.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md",
@@ -550,7 +624,10 @@
         "pnpm check:docs-drift",
         "pnpm check:structure"
       ],
-      "mustNotContain": ["\u7b2c\u4e8c\u4e2a URL", "\u7b2c\u56db\u79cd deployment profile"]
+      "mustNotContain": [
+        "\u7b2c\u4e8c\u4e2a URL",
+        "\u7b2c\u56db\u79cd deployment profile"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/badcase-feedback-loop.md",
@@ -628,10 +705,6 @@
     {
       "file": "services/knowledge-read-go/cmd/server/main.go",
       "maxLines": 150
-    },
-    {
-      "file": "services/go-accelerator/internal/service/ranking/ranking.go",
-      "maxLines": 400
     }
   ]
 }
