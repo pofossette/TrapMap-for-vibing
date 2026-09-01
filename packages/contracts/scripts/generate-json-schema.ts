@@ -111,7 +111,16 @@ async function main(): Promise<void> {
         }
         continue;
       }
-      if (existing !== content) {
+      try {
+        const ep = JSON.parse(existing);
+        const gp = JSON.parse(content);
+        if (JSON.stringify(ep) !== JSON.stringify(gp)) {
+          console.error(
+            `[generate:contracts] drift in knowledge-read-go/${name}.json — run pnpm generate:contracts to regenerate`,
+          );
+          drift = true;
+        }
+      } catch {
         console.error(
           `[generate:contracts] drift in knowledge-read-go/${name}.json — run pnpm generate:contracts to regenerate`,
         );
@@ -141,21 +150,30 @@ async function main(): Promise<void> {
         }
         continue;
       }
-      if (existing !== content) {
+      try {
+        const ep = JSON.parse(existing);
+        const gp = JSON.parse(content);
+        if (JSON.stringify(ep) !== JSON.stringify(gp)) {
+          console.error(
+            `[generate:contracts] drift in ${name}.json — run pnpm generate:contracts to regenerate`,
+          );
+          // Show first diff line
+          const eLines = existing.split('\n');
+          const gLines = content.split('\n');
+          for (let i = 0; i < Math.min(eLines.length, gLines.length); i++) {
+            if (eLines[i] !== gLines[i]) {
+              console.error(
+                `  line ${i + 1}: expected ${JSON.stringify(gLines[i])} got ${JSON.stringify(eLines[i])}`,
+              );
+              break;
+            }
+          }
+          drift = true;
+        }
+      } catch {
         console.error(
           `[generate:contracts] drift in ${name}.json — run pnpm generate:contracts to regenerate`,
         );
-        // Show first diff line
-        const eLines = existing.split('\n');
-        const gLines = content.split('\n');
-        for (let i = 0; i < Math.min(eLines.length, gLines.length); i++) {
-          if (eLines[i] !== gLines[i]) {
-            console.error(
-              `  line ${i + 1}: expected ${JSON.stringify(gLines[i])} got ${JSON.stringify(eLines[i])}`,
-            );
-            break;
-          }
-        }
         drift = true;
       }
     }
