@@ -142,13 +142,6 @@ CREATE TABLE IF NOT EXISTS "cron_jobs" (
 CREATE INDEX IF NOT EXISTS "cron_jobs_next_run_enabled_idx" ON "cron_jobs" USING btree ("next_run_at") WHERE "cron_jobs"."enabled";
 
 -- Source: packages/service-governance-review/drizzle/0000_shiny_swarm.sql
-CREATE TABLE IF NOT EXISTS "feedback_custom_answers" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "feedback_custom_answers_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"feedback_id" text NOT NULL,
-	"question_key" text NOT NULL,
-	"answer_text" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "conflict_relations" (
 	"id" text PRIMARY KEY NOT NULL,
@@ -189,6 +182,7 @@ CREATE TABLE IF NOT EXISTS "feedback_records" (
 	"remediation_opened_by_user_id" text,
 	"remediation_resolved_at" timestamp with time zone,
 	"remediation_resolved_by_user_id" text,
+	"custom_answers" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "ck_feedback_records_entry_type" CHECK ("feedback_records"."entry_type" IN ('trap', 'skill')),
@@ -208,19 +202,7 @@ CREATE TABLE IF NOT EXISTS "usage_events" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "usage_events_daily_rollup" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "usage_events_daily_rollup_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"day" timestamp with time zone NOT NULL,
-	"team_id" text,
-	"entry_type" text NOT NULL,
-	"entry_id" text NOT NULL,
-	"hit_count" integer NOT NULL,
-	"unique_queries" integer NOT NULL,
-	"unique_accounts" integer NOT NULL,
-	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_feedback_custom_answers_feedback" ON "feedback_custom_answers" USING btree ("feedback_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_conflict_relations_entry_pair" ON "conflict_relations" USING btree ("entry_id_a","entry_id_b");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_conflict_relations_entry_a" ON "conflict_relations" USING btree ("entry_id_a");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_conflict_relations_entry_b" ON "conflict_relations" USING btree ("entry_id_b");--> statement-breakpoint
@@ -228,14 +210,14 @@ CREATE INDEX IF NOT EXISTS "idx_feedback_records_entry" ON "feedback_records" US
 CREATE INDEX IF NOT EXISTS "idx_feedback_records_entry_type" ON "feedback_records" USING btree ("entry_type");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_feedback_records_status" ON "feedback_records" USING btree ("status");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_feedback_records_problem_type" ON "feedback_records" USING btree ("problem_type");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_feedback_records_submitted_by" ON "feedback_records" USING btree ("submitted_by_user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_feedback_records_submitted_by" ON "feedback_records" USING btree ("submitted_by_user_id");
+CREATE INDEX IF NOT EXISTS "idx_feedback_records_custom_answers_gin" ON "feedback_records" USING gin ("custom_answers");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_knowledge_entries_boundary_gin" ON "knowledge_entries" USING gin ("boundary");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_skill_artifacts_boundary_gin" ON "skill_artifacts" USING gin ("boundary");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_usage_events_team_created" ON "usage_events" USING btree ("team_id","created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_usage_events_account_created" ON "usage_events" USING btree ("account_id","created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_usage_events_entry_type_created" ON "usage_events" USING btree ("entry_type","created_at");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_usage_events_entry_id_created" ON "usage_events" USING btree ("entry_id","created_at");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "idx_usage_rollup_day_team_entry" ON "usage_events_daily_rollup" USING btree ("day","team_id","entry_type","entry_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_usage_rollup_entry_type_day" ON "usage_events_daily_rollup" USING btree ("entry_type","day");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_usage_rollup_entry_id_day" ON "usage_events_daily_rollup" USING btree ("entry_id","day");
 
 -- Source: packages/service-identity-access/drizzle/0000_identity_access_baseline.sql
 CREATE SEQUENCE IF NOT EXISTS "public"."access_key_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 9223372036854775807 START WITH 1 CACHE 1;--> statement-breakpoint
@@ -597,57 +579,11 @@ CREATE TABLE IF NOT EXISTS "canonical_labels" (
 	CONSTRAINT "ck_canonical_labels_status" CHECK ("canonical_labels"."status" IN ('active', 'merged', 'disabled'))
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "knowledge_boundary_contexts" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "knowledge_boundary_contexts_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"entry_id" text NOT NULL,
-	"context_value" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "knowledge_boundary_evidence" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "knowledge_boundary_evidence_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"entry_id" text NOT NULL,
-	"kind" text NOT NULL,
-	"identifier" text NOT NULL,
-	"url" text,
-	"note" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "knowledge_boundary_exclusions" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "knowledge_boundary_exclusions_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"entry_id" text NOT NULL,
-	"description" text NOT NULL,
-	"kind" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "knowledge_boundary_prerequisites" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "knowledge_boundary_prerequisites_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"entry_id" text NOT NULL,
-	"description" text NOT NULL,
-	"kind" text,
-	"required" integer DEFAULT 1 NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "knowledge_boundary_signals" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "knowledge_boundary_signals_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"entry_id" text NOT NULL,
-	"pattern" text NOT NULL,
-	"kind" text DEFAULT 'keyword' NOT NULL,
-	"description" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "knowledge_boundary_versions" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "knowledge_boundary_versions_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"entry_id" text NOT NULL,
-	"package_name" text NOT NULL,
-	"range_value" text NOT NULL,
-	"note" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "knowledge_entries" (
 	"id" text PRIMARY KEY NOT NULL,
@@ -795,57 +731,11 @@ CREATE TABLE IF NOT EXISTS "skill_artifact_agent_reviews" (
 	CONSTRAINT "ck_skill_artifact_agent_reviews_completeness_risk" CHECK ("skill_artifact_agent_reviews"."completeness_risk" IN ('low', 'medium', 'high'))
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "skill_artifact_boundary_contexts" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "skill_artifact_boundary_contexts_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"artifact_id" text NOT NULL,
-	"context_value" text NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "skill_artifact_boundary_evidence" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "skill_artifact_boundary_evidence_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"artifact_id" text NOT NULL,
-	"kind" text NOT NULL,
-	"identifier" text NOT NULL,
-	"url" text,
-	"note" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "skill_artifact_boundary_exclusions" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "skill_artifact_boundary_exclusions_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"artifact_id" text NOT NULL,
-	"description" text NOT NULL,
-	"kind" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "skill_artifact_boundary_prerequisites" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "skill_artifact_boundary_prerequisites_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"artifact_id" text NOT NULL,
-	"description" text NOT NULL,
-	"kind" text,
-	"required" integer DEFAULT 1 NOT NULL,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "skill_artifact_boundary_signals" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "skill_artifact_boundary_signals_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"artifact_id" text NOT NULL,
-	"pattern" text NOT NULL,
-	"kind" text DEFAULT 'keyword' NOT NULL,
-	"description" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "skill_artifact_boundary_versions" (
-	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "skill_artifact_boundary_versions_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"artifact_id" text NOT NULL,
-	"package_name" text NOT NULL,
-	"range_value" text NOT NULL,
-	"note" text,
-	"created_at" timestamp with time zone DEFAULT now() NOT NULL
-);
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "skill_artifact_capsules" (
 	"capsule_id" text PRIMARY KEY NOT NULL,
@@ -1003,13 +893,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS "idx_canonical_labels_normalized_kind" ON "can
 CREATE INDEX IF NOT EXISTS "idx_canonical_labels_kind" ON "canonical_labels" USING btree ("kind");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_canonical_labels_status" ON "canonical_labels" USING btree ("status");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_canonical_labels_merged_into" ON "canonical_labels" USING btree ("merged_into_label_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_knowledge_boundary_contexts_entry" ON "knowledge_boundary_contexts" USING btree ("entry_id");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "idx_knowledge_boundary_contexts_entry_value" ON "knowledge_boundary_contexts" USING btree ("entry_id","context_value");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_knowledge_boundary_evidence_entry" ON "knowledge_boundary_evidence" USING btree ("entry_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_knowledge_boundary_exclusions_entry" ON "knowledge_boundary_exclusions" USING btree ("entry_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_knowledge_boundary_prerequisites_entry" ON "knowledge_boundary_prerequisites" USING btree ("entry_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_knowledge_boundary_signals_entry" ON "knowledge_boundary_signals" USING btree ("entry_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_knowledge_boundary_versions_entry" ON "knowledge_boundary_versions" USING btree ("entry_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_knowledge_entries_lifecycle_state" ON "knowledge_entries" USING btree ("lifecycle_state");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_knowledge_entries_team" ON "knowledge_entries" USING btree ("team_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_knowledge_entries_scope_level" ON "knowledge_entries" USING btree ("scope","required_level");--> statement-breakpoint
@@ -1032,13 +915,6 @@ CREATE INDEX IF NOT EXISTS "idx_label_alignment_events_decision" ON "label_align
 CREATE INDEX IF NOT EXISTS "idx_label_alignment_events_canonical" ON "label_alignment_events" USING btree ("canonical_label_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_lifecycle_events_entry" ON "lifecycle_events" USING btree ("entry_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_skill_artifact_agent_reviews_status" ON "skill_artifact_agent_reviews" USING btree ("status");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_skill_artifact_boundary_contexts_artifact" ON "skill_artifact_boundary_contexts" USING btree ("artifact_id");--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "idx_skill_artifact_boundary_contexts_artifact_value" ON "skill_artifact_boundary_contexts" USING btree ("artifact_id","context_value");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_skill_artifact_boundary_evidence_artifact" ON "skill_artifact_boundary_evidence" USING btree ("artifact_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_skill_artifact_boundary_exclusions_artifact" ON "skill_artifact_boundary_exclusions" USING btree ("artifact_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_skill_artifact_boundary_prerequisites_artifact" ON "skill_artifact_boundary_prerequisites" USING btree ("artifact_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_skill_artifact_boundary_signals_artifact" ON "skill_artifact_boundary_signals" USING btree ("artifact_id");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_skill_artifact_boundary_versions_artifact" ON "skill_artifact_boundary_versions" USING btree ("artifact_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_skill_artifact_capsules_revision" ON "skill_artifact_capsules" USING btree ("artifact_revision_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_skill_artifact_capsules_artifact" ON "skill_artifact_capsules" USING btree ("artifact_id","revision_no");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_skill_artifact_client_manifests_artifact" ON "skill_artifact_client_manifests" USING btree ("artifact_id","revision_no");--> statement-breakpoint

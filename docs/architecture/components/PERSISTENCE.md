@@ -252,8 +252,8 @@ Schema 按业务域组织为六大模块：
 
 | 域 | 根表 | 子表数量 | 说明 |
 |----|------|----------|------|
-| 知识 | `knowledge_entries` | 14 | 含修订、生命周期、边界、维护、嵌入、关键词、搜索文档、反馈、使用事件 |
-| 技能工件 | `skill_artifacts` | 22 | 含修订、文件、脚本、配置、胶囊、清单、边界、维护、审核、元数据、索引表 |
+| 知识 | `knowledge_entries` | 10 | 含修订、生命周期、维护、嵌入、关键词、搜索文档、反馈、使用事件（**6 boundary 子表已 JSONB 化，80-90%性能保底，GIN**） |
+| 技能工件 | `skill_artifacts` | 16 | 含修订、文件、脚本、配置、胶囊、清单、维护、审核、元数据、索引表（**6 boundary 子表已 JSONB 化**） |
 | 候选人 | `candidates` | 7 | 含分析、去重、人工审核、解析结果、溯源 |
 | 身份与审计 | `users` / `teams` | 6 | Phase 3：含 users、teams、memberships、sessions、access_keys、audit_events |
 | 反馈分析 | `feedback_records` | 4 | 含自定义问答、使用事件、日聚合 |

@@ -26,11 +26,6 @@ import {
   artifactRevisionItemColumns,
   artifactScriptDetailsColumns,
   auditTimestamps,
-  boundaryEvidenceColumns,
-  boundaryExclusionsColumns,
-  boundaryPrerequisitesColumns,
-  boundarySignalsColumns,
-  boundaryVersionsColumns,
   capsuleIndexColumns,
   lifecycleEventColumns,
   maintenanceAssignmentColumns,
@@ -116,6 +111,7 @@ export const skillArtifacts = pgTable(
     index('idx_skill_artifacts_lifecycle_state').on(table.lifecycleState),
     index('idx_skill_artifacts_team').on(table.teamId),
     index('idx_skill_artifacts_slug').on(table.slug),
+    index('idx_skill_artifacts_boundary_gin').using('gin', table.boundary),
     uniqueIndex('idx_skill_artifacts_scope_team_slug').on(
       sql`COALESCE(${table.teamId}, '__global__')`,
       table.scope,
@@ -443,68 +439,6 @@ export const skillArtifactManifestScripts = pgTable(
       table.path,
     ),
   ],
-);
-
-export const skillArtifactBoundaryContexts = pgTable(
-  'skill_artifact_boundary_contexts',
-  {
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-    artifactId: text('artifact_id').notNull(),
-    contextValue: text('context_value').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    index('idx_skill_artifact_boundary_contexts_artifact').on(table.artifactId),
-    uniqueIndex('idx_skill_artifact_boundary_contexts_artifact_value').on(
-      table.artifactId,
-      table.contextValue,
-    ),
-  ],
-);
-
-export const skillArtifactBoundaryVersions = pgTable(
-  'skill_artifact_boundary_versions',
-  {
-    artifactId: text('artifact_id').notNull(),
-    ...boundaryVersionsColumns(),
-  },
-  (table) => [index('idx_skill_artifact_boundary_versions_artifact').on(table.artifactId)],
-);
-
-export const skillArtifactBoundaryPrerequisites = pgTable(
-  'skill_artifact_boundary_prerequisites',
-  {
-    artifactId: text('artifact_id').notNull(),
-    ...boundaryPrerequisitesColumns(),
-  },
-  (table) => [index('idx_skill_artifact_boundary_prerequisites_artifact').on(table.artifactId)],
-);
-
-export const skillArtifactBoundarySignals = pgTable(
-  'skill_artifact_boundary_signals',
-  {
-    artifactId: text('artifact_id').notNull(),
-    ...boundarySignalsColumns(),
-  },
-  (table) => [index('idx_skill_artifact_boundary_signals_artifact').on(table.artifactId)],
-);
-
-export const skillArtifactBoundaryExclusions = pgTable(
-  'skill_artifact_boundary_exclusions',
-  {
-    artifactId: text('artifact_id').notNull(),
-    ...boundaryExclusionsColumns(),
-  },
-  (table) => [index('idx_skill_artifact_boundary_exclusions_artifact').on(table.artifactId)],
-);
-
-export const skillArtifactBoundaryEvidence = pgTable(
-  'skill_artifact_boundary_evidence',
-  {
-    artifactId: text('artifact_id').notNull(),
-    ...boundaryEvidenceColumns(),
-  },
-  (table) => [index('idx_skill_artifact_boundary_evidence_artifact').on(table.artifactId)],
 );
 
 export const skillArtifactMaintenanceAssignments = pgTable(

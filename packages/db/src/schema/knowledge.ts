@@ -23,11 +23,6 @@ import {
 import type { Boundary, LifecycleState } from '@trapmap/contracts';
 import {
   auditTimestamps,
-  boundaryEvidenceColumns,
-  boundaryExclusionsColumns,
-  boundaryPrerequisitesColumns,
-  boundarySignalsColumns,
-  boundaryVersionsColumns,
   lifecycleEventColumns,
   maintenanceAssignmentColumns,
   revisionColumns,
@@ -265,6 +260,7 @@ export const knowledgeEntries = pgTable(
     index('idx_knowledge_entries_scope_level').on(table.scope, table.requiredLevel),
     index('idx_knowledge_entries_owner').on(table.ownerUserId),
     index('idx_knowledge_entries_dive_log_id').on(table.diveLogId),
+    index('idx_knowledge_entries_boundary_gin').using('gin', table.boundary),
     check('ck_knowledge_entries_scope', sql`${table.scope} IN ('global', 'project')`),
     check(
       'ck_knowledge_entries_lifecycle_state',
@@ -413,91 +409,31 @@ export const knowledgeLabels = pgTable(
  * Boundary context labels for knowledge entries.
  * Stores the situational context labels (e.g., 'frontend', 'production').
  */
-export const knowledgeBoundaryContexts = pgTable(
-  'knowledge_boundary_contexts',
-  {
-    /** Internal primary key */
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-    /** Reference to parent knowledge entry */
-    entryId: text('entry_id').notNull(),
-    /** Context label value */
-    contextValue: text('context_value').notNull(),
-    /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    index('idx_knowledge_boundary_contexts_entry').on(table.entryId),
-    uniqueIndex('idx_knowledge_boundary_contexts_entry_value').on(
-      table.entryId,
-      table.contextValue,
-    ),
-  ],
-);
 
 /**
  * Boundary version constraints for knowledge entries.
  * Stores semver-compatible version ranges for tools and libraries.
  */
-export const knowledgeBoundaryVersions = pgTable(
-  'knowledge_boundary_versions',
-  {
-    entryId: text('entry_id').notNull(),
-    ...boundaryVersionsColumns(),
-  },
-  (table) => [index('idx_knowledge_boundary_versions_entry').on(table.entryId)],
-);
 
 /**
  * Boundary prerequisites for knowledge entries.
  * Stores conditions that must be satisfied before applying knowledge.
  */
-export const knowledgeBoundaryPrerequisites = pgTable(
-  'knowledge_boundary_prerequisites',
-  {
-    entryId: text('entry_id').notNull(),
-    ...boundaryPrerequisitesColumns(),
-  },
-  (table) => [index('idx_knowledge_boundary_prerequisites_entry').on(table.entryId)],
-);
 
 /**
  * Boundary signal matchers for knowledge entries.
  * Stores patterns indicating knowledge relevance.
  */
-export const knowledgeBoundarySignals = pgTable(
-  'knowledge_boundary_signals',
-  {
-    entryId: text('entry_id').notNull(),
-    ...boundarySignalsColumns(),
-  },
-  (table) => [index('idx_knowledge_boundary_signals_entry').on(table.entryId)],
-);
 
 /**
  * Boundary exclusion rules for knowledge entries.
  * Stores conditions that make knowledge NOT applicable.
  */
-export const knowledgeBoundaryExclusions = pgTable(
-  'knowledge_boundary_exclusions',
-  {
-    entryId: text('entry_id').notNull(),
-    ...boundaryExclusionsColumns(),
-  },
-  (table) => [index('idx_knowledge_boundary_exclusions_entry').on(table.entryId)],
-);
 
 /**
  * Boundary evidence references for knowledge entries.
  * Stores links to external sources that validate the boundary.
  */
-export const knowledgeBoundaryEvidence = pgTable(
-  'knowledge_boundary_evidence',
-  {
-    entryId: text('entry_id').notNull(),
-    ...boundaryEvidenceColumns(),
-  },
-  (table) => [index('idx_knowledge_boundary_evidence_entry').on(table.entryId)],
-);
 
 /**
  * Structured maintenance assignments for knowledge entries.
@@ -578,6 +514,10 @@ export const feedbackRecords = pgTable(
     remediationResolvedAt: timestamp('remediation_resolved_at', { withTimezone: true }),
     /** Who resolved remediation */
     remediationResolvedByUserId: text('remediation_resolved_by_user_id'),
+    /** Low-freq custom Q&A consolidated to JSONB (was feedback_custom_answers table) */
+    customAnswers: jsonb('custom_answers')
+      .$type<Array<{ prompt: string; answer: string }> | null>()
+      .default(null),
     ...auditTimestamps(),
   },
   (table) => [
@@ -586,6 +526,7 @@ export const feedbackRecords = pgTable(
     index('idx_feedback_records_status').on(table.status),
     index('idx_feedback_records_problem_type').on(table.problemType),
     index('idx_feedback_records_submitted_by').on(table.submittedByUserId),
+    index('idx_feedback_records_custom_answers_gin').using('gin', table.customAnswers),
     check('ck_feedback_records_entry_type', sql`${table.entryType} IN ('trap', 'skill')`),
     check(
       'ck_feedback_records_problem_type',
@@ -606,22 +547,6 @@ export const feedbackRecords = pgTable(
  * Custom Q&A answers attached to feedback records.
  * Stores user-provided answers to structured prompts during feedback submission.
  */
-export const feedbackCustomAnswers = pgTable(
-  'feedback_custom_answers',
-  {
-    /** Internal primary key */
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-    /** Reference to parent feedback record */
-    feedbackId: text('feedback_id').notNull(),
-    /** Prompt key identifying the question */
-    questionKey: text('question_key').notNull(),
-    /** User's answer text */
-    answerText: text('answer_text').notNull(),
-    /** Record creation timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [index('idx_feedback_custom_answers_feedback').on(table.feedbackId)],
-);
 
 // =============================================================================
 // Usage Analytics Tables (Phase 89)
@@ -670,39 +595,6 @@ export const usageEvents = pgTable(
  * Pre-aggregated counts per (day, team, entry_type, entry_id) to avoid
  * scanning the full usage_events table for common analytics queries.
  */
-export const usageEventsDailyRollup = pgTable(
-  'usage_events_daily_rollup',
-  {
-    /** Internal primary key */
-    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
-    /** Aggregation day (date only, no time) */
-    day: timestamp('day', { withTimezone: true }).notNull(),
-    /** Team ID (null for global) */
-    teamId: text('team_id'),
-    /** Entry type: 'skill' | 'trap' | 'knowledge' */
-    entryType: text('entry_type').notNull(),
-    /** The hit entry's ID */
-    entryId: text('entry_id').notNull(),
-    /** Number of hits on this day */
-    hitCount: integer('hit_count').notNull(),
-    /** Number of distinct queries */
-    uniqueQueries: integer('unique_queries').notNull(),
-    /** Number of distinct accounts */
-    uniqueAccounts: integer('unique_accounts').notNull(),
-    /** When this rollup was last updated */
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    uniqueIndex('idx_usage_rollup_day_team_entry').on(
-      table.day,
-      table.teamId,
-      table.entryType,
-      table.entryId,
-    ),
-    index('idx_usage_rollup_entry_type_day').on(table.entryType, table.day),
-    index('idx_usage_rollup_entry_id_day').on(table.entryId, table.day),
-  ],
-);
 
 // =============================================================================
 // Domain Event Outbox (Round 10 Phase 2)

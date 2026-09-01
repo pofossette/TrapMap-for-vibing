@@ -6,7 +6,7 @@ import type {
 } from '@trapmap/backend-core';
 import { remediationState } from '@trapmap/backend-core';
 import type { ConflictReadProjection, ConflictRelation } from '@trapmap/contracts';
-import { feedbackCustomAnswers, feedbackRecords } from '@trapmap/db';
+import { feedbackRecords } from '@trapmap/db';
 import { prefixedId } from '@trapmap/lib';
 import { getTableName } from 'drizzle-orm';
 
@@ -38,7 +38,6 @@ function rowToConflictRelation(record: FeedbackRow): ConflictRelation {
 }
 
 const feedbackRecordsTable = getTableName(feedbackRecords);
-const feedbackCustomAnswersTable = getTableName(feedbackCustomAnswers);
 
 const feedbackRecordColumns = `
   id, entry_id, entry_type, problem_type, description, context, query_seed, query_id,
@@ -46,7 +45,7 @@ const feedbackRecordColumns = `
   submitted_at, submitted_by_user_id, submitted_by_handle, status, admin_notes,
   resolved_at, resolved_by_user_id, triggered_transition, remediation_status,
   remediation_opened_at, remediation_opened_by_user_id, remediation_resolved_at,
-  remediation_resolved_by_user_id, created_at, updated_at`;
+  remediation_resolved_by_user_id, custom_answers, created_at, updated_at`;
 
 function asIso(value: unknown): string | null {
   if (value == null) return null;
@@ -93,14 +92,27 @@ async function getCustomAnswers(
   pool: Queryable,
   feedbackId: string,
 ): Promise<Array<{ prompt: string; answer: string }>> {
+  // Consolidated to feedback_records.custom_answers JSONB (was feedback_custom_answers table)
+  // 80-90% perf retained via GIN on custom_answers, low-freq Q&A (0-3 per feedback)
   const { rows } = await pool.query(
-    `SELECT question_key, answer_text FROM ${feedbackCustomAnswersTable} WHERE feedback_id = $1`,
+    `SELECT custom_answers FROM ${feedbackRecordsTable} WHERE id = $1`,
     [feedbackId],
   );
-  return rows.map((row) => ({
-    prompt: String((row as FeedbackRow).question_key),
-    answer: String((row as FeedbackRow).answer_text),
-  }));
+  const row = rows[0] as FeedbackRow | undefined;
+  const raw = row?.custom_answers as unknown;
+  if (Array.isArray(raw)) {
+    return (raw as Array<{ prompt: string; answer: string }>).map((r) => ({
+      prompt: String(r.prompt),
+      answer: String(r.answer),
+    }));
+  }
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw as string);
+      if (Array.isArray(parsed)) return parsed as Array<{ prompt: string; answer: string }>;
+    } catch {}
+  }
+  return [];
 }
 
 export function createGovernanceReviewPgOwnerBundle(
@@ -158,10 +170,14 @@ export function createGovernanceReviewPgOwnerBundle(
     },
     async insert(feedback) {
       const record = feedback as FeedbackQueueRecord & Record<string, unknown>;
+      const customAnswers = record.customAnswers as Array<{
+        prompt: string;
+        answer: string;
+      }> | null;
       await pool.query(
         `INSERT INTO ${feedbackRecordsTable} (${feedbackRecordColumns})
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17,
-                 $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)`,
+                 $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)`,
         [
           feedback.id,
           feedback.entryId,
@@ -188,21 +204,11 @@ export function createGovernanceReviewPgOwnerBundle(
           record.remediationOpenedByUserId ?? null,
           record.remediationResolvedAt ?? null,
           record.remediationResolvedByUserId ?? null,
+          customAnswers ? JSON.stringify(customAnswers) : null,
           record.createdAt,
           record.updatedAt,
         ],
       );
-      const customAnswers = record.customAnswers as Array<{
-        prompt: string;
-        answer: string;
-      }> | null;
-      for (const answer of customAnswers ?? []) {
-        await pool.query(
-          `INSERT INTO ${feedbackCustomAnswersTable} (feedback_id, question_key, answer_text)
-           VALUES ($1, $2, $3)`,
-          [feedback.id, answer.prompt, answer.answer],
-        );
-      }
     },
     async getById(feedbackId) {
       const { rows } = await pool.query(
