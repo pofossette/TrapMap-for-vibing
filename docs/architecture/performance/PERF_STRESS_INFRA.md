@@ -17,8 +17,8 @@
 
 ## 2. Stress（HTTP 并发压测，隔离）
 
-- **位置**：`benchmarks/stress/{README.md, autocannon-batch-cosine.js, k6/{batch-cosine,ranking-batch,dedup-flood,gene-derive}.js}`
-- **工具**：`autocannon` 主（零服务）+ `k6` 可选（Docker `grafana/k6`）
+- **位置**：`services/go-accelerator/cmd/stress`（Go 主）+ `benchmarks/stress/{README.md, autocannon-batch-cosine.js, k6/{...}}`（legacy 保留）
+- **工具**：`Go 原生` 主（`cmd/stress`，`net/http` + `sync.WaitGroup`，零依赖）+ `k6`/`autocannon` legacy 备选
 - **场景阈值**：
 
 | 端点 | 负载 | 阈值 |
@@ -28,7 +28,7 @@
 | `dedup/fingerprint` | 100VU 10s | p95 <10ms |
 | `gene/derive-batch` 200 | 10VU 10s | p95 <50ms |
 
-- **命令（按需）**：`pnpm stress:batch-cosine` / `stress:ranking` / `stress:dedup` / `stress:gene-derive` / `stress:all`；`k6 run benchmarks/stress/k6/*.js` 替代
+- **命令（按需，Go 主）**：`go run ./services/go-accelerator/cmd/stress -scenario all` / `pnpm stress:batch-cosine`（Go）/ `stress:go:batch-cosine`；legacy `k6 run benchmarks/stress/k6/*.js` / `stress:*:legacy`
 - **隔离**：`benchmarks/stress/*` 不入 `pnpm test`；Go 侧 `middleware.Timeout(10s)` + 建议 `RateLimit 100rps`（`RATE_LIMIT` 覆盖）；Node 侧 `p-limit(5)` 批请求上限
 
 ## 3. 可观测（足量设施）

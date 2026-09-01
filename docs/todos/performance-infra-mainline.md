@@ -1,7 +1,7 @@
 # 性能与压测基建主线（不运行，仅设施）
 
 > **角色**：并行主线，负责为核心计算链路（vector/ranking/dedup/gene-derive/hash）提供 bench、stress 与可观测设施（仅构建不自动运行），与 Go 化/类型对齐形成闭环。
-> **状态**：设施已建（2026-08-31 22:10），待随 Go 化批次演进化阈值。
+> **状态**：设施已建（2026-08-31 22:10），压测基建已重构为 Go（`cmd/stress`）于 2026-09-01，阈值与 k6 1:1，待随 Go 化批次演进化阈值。
 > **Owner**：infra + observability + bench
 
 ## 背景与不做
@@ -22,7 +22,7 @@
 |----|------|------|
 | bench | `benchmarks/harness/{compute.bench.ts,vitest.bench.config.ts,run-bench.ts,README.md}` | 覆盖 5 链路（vector 1k×384 / ranking merge/rerank/graph / tokenization 3/2/1 / dedup / gene-derive），`pnpm bench:compute` / `bench:compare` |
 | Go bench | `services/go-accelerator/internal/service/{vector,ranking,dedup,gene-derive}/` `*_test.go` + `bench` | `go test -bench` 对侧，统计口径与 `GO_ACCELERATOR_BENCH.md` 一致 |
-| stress | `benchmarks/stress/{README.md,autocannon-batch-cosine.js,k6/{batch-cosine,ranking-batch,dedup-flood,gene-derive}.js}` | 4 场景（50/30/100/10 VU 10s，p95 15/20/10/50ms，0% 5xx），`pnpm stress:*` / `k6 run` |
+| stress | `services/go-accelerator/cmd/stress`（Go 主，4 场景）+ `benchmarks/stress/{k6,autocannon}`（legacy） | 4 场景同阈值（Go `net/http` VU，p95 15/20/10/50ms，`pnpm stress:go:*` / `go run ./cmd/stress`） |
 | bench 结果 | `benchmarks/GO_ACCELERATOR_BENCH.md` + `benchmarks/results/`（ignored） | BatchCosine 2.5×、Ranking 2.3×、Dedup 0.04ms、GeneDerive 200 ~3.2ms |
 | Go 可观测 | `services/go-accelerator/internal/{observability/metrics.go,middleware/metrics.go,cache/lru.go}` + `cmd/server/main.go` `/metrics`+`Metrics` 中间件 | `trapmap_go_requests_total/fallback_total/duration_ms`，`CacheSize`，`pprof` 按需 |
 | Node 可观测 | 复用 `docs/architecture/OBSERVABILITY.md` OTEL | `OtelService`/`PrometheusService`/`LokiService` 已有 |
@@ -33,8 +33,8 @@
 pnpm bench:compute          # vitest bench 1k×384 等
 pnpm bench:compare          # jsVsGo 一致性
 (cd services/go-accelerator && go test -bench . -benchmem ./internal/service/vector ./internal/service/ranking ./internal/service/dedup ./internal/service/gene-derive -run=^$)
-pnpm stress:batch-cosine    # autocannon
-k6 run benchmarks/stress/k6/batch-cosine.js
+go run ./services/go-accelerator/cmd/stress -scenario batch-cosine  # Go 主
+go run ./services/go-accelerator/cmd/stress -scenario batch-cosine  # Go 主（k6 legacy 保留）  # legacy
 curl http://localhost:4100/metrics | grep trapmap_go
 ```
 
