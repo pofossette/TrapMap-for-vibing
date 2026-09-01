@@ -105,7 +105,7 @@ export async function rankingBatchWithFallback(
     maxCandidates?: number;
     boundaryContext?: { contexts: string[]; platform?: string };
   },
-  client: GoAcceleratorClient | null,
+  _client: GoAcceleratorClient | null,
   localFallback: () => typeof params.entries,
 ): Promise<typeof params.entries> {
   // Timely exit: go-accelerator ranking removed, prefer knowledge-read-go via gateway or local JS
@@ -118,7 +118,7 @@ export async function rankingBatchWithFallback(
 export async function keywordScoreWithFallback(
   queryTokens: string[],
   entryTokens: { shortcut: string[]; detail: string[]; labels: string[] },
-  client: GoAcceleratorClient | null,
+  _client: GoAcceleratorClient | null,
 ): Promise<{ score: number; tokenMatches: Array<{ token: string; fields: string[] }> }> {
   // Timely exit: bypass go-accelerator
   // local fallback mirrors tokenization.ts scoreKeywordEntry weights 3/2/1

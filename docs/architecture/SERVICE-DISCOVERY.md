@@ -137,11 +137,13 @@ packages/host-local/src/nest/service-discovery/
 
 - `gateway`
 - `identity-access`
-- `knowledge-read`
+- `knowledge-read` (Node, legacy) / `knowledge-read-go` (`:4101`, Go, strangler target)
 - `knowledge-write`
 - `candidate-ingestion`
 - `governance-review`
 - `job-runtime`
+- `go-accelerator` (`:4100`, compute-only, distributed-only)
+- `knowledge-read-go` (`:4101`, read owns PG 只读 + recall/ranking/assembly/cache, `TRAPMAP_READ_IMPL` 控制)
 
 当前已验证的 Docker DNS 默认名：
 
@@ -154,6 +156,8 @@ packages/host-local/src/nest/service-discovery/
 | `candidate-ingestion` | `candidate-worker` |
 | `governance-review` | `governance-worker` |
 | `job-runtime` | `outbox-worker` |
+| `go-accelerator` | `go-accelerator` |
+| `knowledge-read-go` | `knowledge-read-go` |
 
 ### 动态发现
 
@@ -172,6 +176,14 @@ packages/host-local/src/nest/service-discovery/
 - 单实例：直接命中唯一实例
 - 多实例：轮询
 - 动态发现失败：立即回退到静态 URL
+
+## Go 服务健康与发现契约（2026-09-01 新增）
+
+- `services/knowledge-read-go` 暴露 `GET /health` / `GET /ready` / `GET /v1/health` / `POST /v1/knowledge/read` / `GET /metrics`（`prometheus` + `slog`，`chi`，`pgx read-only` + `hashicorp/lru + singleflight`，`TRAPMAP_READ_IMPL=off|shadow|dual|go`）
+- `services/go-accelerator` 保留 `GET /health` / `GET /ready`，`retrieval/ranking` 已 `410 Gone + X-Deprecated`
+- 网关 `packages/host-distributed/src/gateway/routes.ts` 的 `GET /health` / `GET /ready` 聚合 `knowledge-read-go` 与 `go-accelerator` 的探活（800ms 超时，`breakerStatesSnapshot`），`distributed` 下缺失或 `warning/critical` 记为 `degraded`（503）
+- `docker-compose.yml` 中两者均为 `profiles: ["distributed"]`，`host-local` 零 Go 依赖（`fallow ignorePatterns`），Consul 可选注册同其余服务一致
+- 契约见 `packages/contracts/src/domain/knowledge-read-go.ts` → `contracts/json-schema/knowledge-read-go/*` → `services/knowledge-read-go/pkg/api/types.go`（`json.RawMessage` for `unknown`，`finite` 校验）
 
 ## 配置策略
 

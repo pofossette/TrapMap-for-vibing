@@ -25,8 +25,8 @@ When disabled (default, and always in host-local), all calls fallback to JS impl
 - `POST /v1/vector/cosine`, `POST /v1/vector/batch-cosine`, `POST /v1/vector/fallback`
 - `POST /v1/text/tokenize`
 - `POST /v1/retrieval/score`
-- `POST /v1/retrieval/ranking-batch` (merge/rerank/mergeWithGraph)
-- `POST /v1/retrieval/keyword-score` (weights 3/2/1)
+- `POST /v1/retrieval/ranking-batch` — **DEPRECATED 410** → `knowledge-read-go/internal/ranking` (merge/rerank/boundary)
+- `POST /v1/retrieval/keyword-score` — **DEPRECATED 410** → `knowledge-read-go/internal/recall/service/keyword.go`
 - `POST /v1/dedup/fingerprint`, `POST /v1/dedup/similarity`
 - `POST /v1/gene/select`
 
@@ -54,13 +54,24 @@ Phase 1 将以 `contracts/openapi/api.yaml` + `oapi-codegen + openapi-typescript
 - `POST /v1/vector/cosine`, `POST /v1/vector/batch-cosine`, `POST /v1/vector/fallback` (64-shard), `POST /v1/vector/fallback` (DeterministicFallbackVector 384d)
 - `POST /v1/text/tokenize` (chunk + overlap)
 - `POST /v1/retrieval/score`
-- `POST /v1/retrieval/ranking-batch` (merge/rerank/mergeWithGraph)
-- `POST /v1/retrieval/keyword-score` (weights 3/2/1)
+- `POST /v1/retrieval/ranking-batch` — **DEPRECATED 410** → `knowledge-read-go/internal/ranking` (merge/rerank/boundary)
+- `POST /v1/retrieval/keyword-score` — **DEPRECATED 410** → `knowledge-read-go/internal/recall/service/keyword.go`
 - `POST /v1/dedup/fingerprint`, `POST /v1/dedup/similarity`
 - `POST /v1/gene/select`
 
 Batch 接线：`service-knowledge-read/retrieval-semantic.ts: optimizedSemanticRecall` 在 `distributed` 且 `entries>1` 时走 `batchCosineWithFallback` (Go BatchCosine → fallback JS per-entry)，`host-local` 恒走 JS 零 Go 依赖。
 
+
+## Timely Exit — retrieval/ranking migrated (2026-09-01)
+
+> **2026-09-01 起 `retrieval/ranking` 已及时退出 go-accelerator，转由 `services/knowledge-read-go` 拥有**。见 `services/go-accelerator/DEPRECATED.md` 与 `docs/archived/GO_ACCELERATOR_FUNCTION_RETIREMENT.md`。
+>
+> - `POST /v1/retrieval/ranking-batch` → `410 Gone + X-Deprecated: use knowledge-read-go`（原 394 行大函数已拆为 `internal/ranking/domain/{merge,rerank,boundary}.go`）
+> - `POST /v1/retrieval/keyword-score` → `410 Gone`
+> - `POST /v1/retrieval/score` → `410 Gone`
+> - 保留：`hash/vector/tokenize/dedup/gene-select`（纯计算、无 DB）
+> - `packages/infra/src/go-accelerator/fallback.ts` 的 `rankingBatchWithFallback / keywordScoreWithFallback` 已改为直通本地 JS，不再经 HTTP；`knowledge-read-go` 通过网关绞杀器 `TRAPMAP_READ_IMPL=off|shadow|dual|go` 按需接管读路径 `query→recall→ranking→assembly` 同进程闭环
+> - 新读服务：`services/knowledge-read-go :4101`，契约见 `packages/contracts/src/domain/knowledge-read-go.ts` → `contracts/json-schema/knowledge-read-go/*` → `services/knowledge-read-go/pkg/api/types.go`
 
 ## Deployment
 - `services/go-accelerator/Dockerfile` multi-stage (golang:1.22 -> distroless)
@@ -69,7 +80,7 @@ Batch 接线：`service-knowledge-read/retrieval-semantic.ts: optimizedSemanticR
 
 ## Observability
 - Structured logging via middleware/logging.go
-- Gateway health aggregates go-accelerator /ready when enabled.
+- Gateway health aggregates `go-accelerator /ready` and `knowledge-read-go /health /ready` when enabled (`packages/host-distributed/src/gateway/routes.ts` → `getKnowledgeReadGoConfig()`, `TRAPMAP_READ_IMPL` off/shadow/dual/go, shadow 5% / dual 10% 比对落 metrics，超时回退 Node)。
 - Metrics: fallback count (when Go fails, JS used) via infra observability.
 
 ## Future / P2 (landed as proto, gated)
