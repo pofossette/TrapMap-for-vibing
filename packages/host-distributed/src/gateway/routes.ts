@@ -25,7 +25,7 @@ import {
 } from '@trapmap/service-knowledge-read';
 
 import { type InternalServiceClients, breakerStatesSnapshot } from './internal-client.js';
-import { getGoAcceleratorConfig } from '../config/service-config.js';
+import { getGoAcceleratorConfig, getKnowledgeReadGoConfig } from '../config/service-config.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
 import { TokenBucketRateLimiter, resolveRateLimitConfig } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';
@@ -192,11 +192,99 @@ export function registerGatewayRoutes(
     },
   );
 
+  // ---- Knowledge-Read-Go strangler (off/shadow/dual/go) ----
+  const readGoCfgForProxy = getKnowledgeReadGoConfig();
+  app.post('/v1/knowledge/read', async (request: FastifyRequest, reply: FastifyReply) => {
+    const impl = readGoCfgForProxy.impl;
+    const url = `${readGoCfgForProxy.url.replace(/\/$/, '')}/v1/knowledge/read`;
+    const body = request.body as unknown;
+    const headers: Record<string, string> = {};
+    if (request.headers.authorization)
+      headers['authorization'] = request.headers.authorization as string;
+    const forwardGo = async () => {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(readGoCfgForProxy.timeoutMs),
+      });
+      const data = await res.text();
+      return { status: res.status, data, headers: res.headers };
+    };
+    const forwardNode = async () => {
+      try {
+        const nodeUrl = `${process.env['TRAPMAP_KNOWLEDGE_READ_URL'] ?? 'http://localhost:4002'}/v1/knowledge/read`;
+        const res = await fetch(nodeUrl, {
+          method: 'POST',
+          headers: { ...headers, 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(3000),
+        });
+        const data = await res.text();
+        return { status: res.status, data };
+      } catch (e) {
+        return { status: 503, data: JSON.stringify({ error: String(e) }) };
+      }
+    };
+    if (impl === 'go') {
+      try {
+        const goRes = await forwardGo();
+        if (goRes.status >= 200 && goRes.status < 300) {
+          return reply
+            .status(goRes.status)
+            .headers(Object.fromEntries(goRes.headers.entries()))
+            .send(goRes.data);
+        }
+        const nodeRes = await forwardNode();
+        return reply.status(nodeRes.status).send(nodeRes.data);
+      } catch {
+        const nodeRes = await forwardNode();
+        return reply.status(nodeRes.status).send(nodeRes.data);
+      }
+    }
+    if (impl === 'shadow') {
+      forwardGo()
+        .catch(() => {})
+        .then((r: any) => {
+          if (r && r.status >= 400) console.warn('shadow go error', r.status);
+        });
+      const nodeRes = await forwardNode();
+      return reply.status(nodeRes.status).send(nodeRes.data);
+    }
+    if (impl === 'dual') {
+      const [goRes, nodeRes] = await Promise.allSettled([forwardGo(), forwardNode()]);
+      if (nodeRes.status === 'fulfilled') {
+        return reply.status((nodeRes.value as any).status).send((nodeRes.value as any).data);
+      }
+      if (goRes.status === 'fulfilled') {
+        return reply.status((goRes.value as any).status).send((goRes.value as any).data);
+      }
+      return reply.status(503).send({ error: 'both backends failed' });
+    }
+    const nodeRes = await forwardNode();
+    return reply.status(nodeRes.status).send(nodeRes.data);
+  });
+
   // ---- Health ----
 
   app.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     const goCfg = getGoAcceleratorConfig();
+    const readGoCfg = getKnowledgeReadGoConfig();
     let goStatus: Record<string, unknown> | undefined;
+    let readGoStatus: Record<string, unknown> | undefined;
+    if (readGoCfg.enabled) {
+      try {
+        const c2 = new AbortController();
+        const t2 = setTimeout(() => c2.abort(), 800);
+        const r2 = await fetch(`${readGoCfg.url.replace(/\/$/, '')}/health`, { signal: c2.signal });
+        clearTimeout(t2);
+        readGoStatus = r2.ok
+          ? ((await r2.json()) as Record<string, unknown>)
+          : { status: 'unreachable', httpStatus: r2.status };
+      } catch (e) {
+        readGoStatus = { status: 'unreachable', error: String(e) };
+      }
+    }
     if (goCfg.enabled) {
       try {
         const controller = new AbortController();
@@ -217,6 +305,7 @@ export function registerGatewayRoutes(
       status: 'ok',
       timestamp: new Date().toISOString(),
       ...(goStatus ? { goAccelerator: goStatus } : {}),
+      ...(readGoStatus ? { knowledgeReadGo: readGoStatus } : {}),
     });
   });
 
@@ -232,7 +321,19 @@ export function registerGatewayRoutes(
     const breakerStates = breakerStatesSnapshot();
     const anyOpen = Object.values(breakerStates).some((state) => state === 'open');
     const goCfg = getGoAcceleratorConfig();
+    const readGoCfg2 = getKnowledgeReadGoConfig();
     let goReady: Record<string, unknown> | undefined;
+    let readGoReady: Record<string, unknown> | undefined;
+    if (readGoCfg2.enabled) {
+      try {
+        const r = await fetch(`${readGoCfg2.url.replace(/\/$/, '')}/ready`, {
+          signal: AbortSignal.timeout(800),
+        });
+        readGoReady = r.ok ? { status: 'ready' } : { status: 'unreachable', httpStatus: r.status };
+      } catch (e) {
+        readGoReady = { status: 'unreachable', error: String(e) };
+      }
+    }
     if (goCfg.enabled) {
       try {
         const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/ready`, {
@@ -243,12 +344,19 @@ export function registerGatewayRoutes(
         goReady = { status: 'unreachable', error: String(e) };
       }
     }
-    const degraded = anyOpen || (goReady !== undefined && goReady.status !== 'ready');
+    const degraded =
+      anyOpen ||
+      (goReady !== undefined && goReady.status !== 'ready') ||
+      (readGoReady !== undefined && readGoReady.status !== 'ready');
     return reply.status(degraded ? 503 : 200).send({
       service: 'gateway',
       status: degraded ? 'degraded' : 'ready',
       timestamp: new Date().toISOString(),
-      dependencySummary: { breakerStates, ...(goReady ? { goAccelerator: goReady } : {}) },
+      dependencySummary: {
+        breakerStates,
+        ...(goReady ? { goAccelerator: goReady } : {}),
+        ...(readGoReady ? { knowledgeReadGo: readGoReady } : {}),
+      },
     });
   });
 

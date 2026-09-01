@@ -1,3 +1,4 @@
+/** @deprecated function-set center — prefer knowledge-read-go; see services/go-accelerator/DEPRECATED.md */
 import { canonicalJsonStringify } from '@trapmap/lib/canonical-json.js';
 import { sha256 } from '@trapmap/lib/hash.js';
 import {
@@ -76,6 +77,7 @@ export async function deterministicFallbackWithFallback(
   return createDeterministicFallbackVector(text, d);
 }
 
+/** @deprecated ranking via go-accelerator removed — use knowledge-read-go; see DEPRECATED.md */
 export async function rankingBatchWithFallback(
   params: {
     entries: Array<{
@@ -103,30 +105,22 @@ export async function rankingBatchWithFallback(
     maxCandidates?: number;
     boundaryContext?: { contexts: string[]; platform?: string };
   },
-  client: GoAcceleratorClient | null,
+  _client: GoAcceleratorClient | null,
   localFallback: () => typeof params.entries,
 ): Promise<typeof params.entries> {
-  if (client?.isEnabled) {
-    try {
-      const res = await client.rankingBatch(params as any);
-      return res.merged as any;
-    } catch {
-      // fallback
-    }
-  }
+  // Timely exit: go-accelerator ranking removed, prefer knowledge-read-go via gateway or local JS
+  // Keep client call for hash/vector only; ranking now uses local fallback to ensure consistency
+  // Future: call knowledge-read-go /v1/ranking/batch when available (TRAPMAP_READ_IMPL)
   return localFallback();
 }
 
+/** @deprecated keyword via go-accelerator removed — use knowledge-read-go */
 export async function keywordScoreWithFallback(
   queryTokens: string[],
   entryTokens: { shortcut: string[]; detail: string[]; labels: string[] },
-  client: GoAcceleratorClient | null,
+  _client: GoAcceleratorClient | null,
 ): Promise<{ score: number; tokenMatches: Array<{ token: string; fields: string[] }> }> {
-  if (client?.isEnabled) {
-    try {
-      return await client.keywordScore({ queryTokens, entryTokens });
-    } catch {}
-  }
+  // Timely exit: bypass go-accelerator
   // local fallback mirrors tokenization.ts scoreKeywordEntry weights 3/2/1
   const KEYWORD_LABEL_WEIGHT = 3.0;
   const KEYWORD_SHORTCUT_WEIGHT = 2.0;
