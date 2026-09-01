@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "semanticScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "keywordScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "graphScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "channelScores": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "combinedScore": {
+      "type": "number"
+    },
+    "tokenMatches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["token", "fields"],
+        "additionalProperties": false
+      }
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "preRerankScore": {
+      "type": "number"
+    },
+    "finalScore": {
+      "type": "number"
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope": {
+      "type": "string"
+    },
+    "shortcut": {
+      "type": "string"
+    },
+    "detail": {
+      "type": "string"
+    },
+    "decayState": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "semanticScore",
+    "keywordScore",
+    "channelScores",
+    "combinedScore",
+    "tokenMatches",
+    "channels",
+    "preRerankScore",
+    "finalScore",
+    "labels",
+    "scope",
+    "shortcut",
+    "detail"
+  ],
+  "additionalProperties": false,
+  "title": "rankingEntry"
+}
