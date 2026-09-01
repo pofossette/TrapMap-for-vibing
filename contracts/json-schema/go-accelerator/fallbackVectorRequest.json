@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string"
+    },
+    "dim": {
+      "default": 384,
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096
+    }
+  },
+  "required": ["text", "dim"],
+  "additionalProperties": false,
+  "title": "fallbackVectorRequest"
+}

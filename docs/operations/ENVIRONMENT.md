@@ -57,13 +57,14 @@ Use `pnpm build:light`, `pnpm build:heavy`, `pnpm test:light-target`, and
 | `TRAPMAP_DEPLOYMENT_PROFILE` | 目标部署形态：`local-agent`、`team-monolith`、`distributed`。这是产品/部署叙事层，不直接替代 runtime/preset | 未设置（按 `TRAPMAP_DEPLOYMENT_PRESET` 推断） |
 | `TRAPMAP_DEPLOYMENT_PRESET` | 部署预设：`monolith`、`api`、`candidate-worker`、`governance-worker`、`outbox-worker`；`cron-scheduler` 为已注册的分布式 cron 调度服务预设标记（capability 解析按 profile 推断） | `monolith` |
 | `TRAPMAP_GATEWAY_URL` | CLI 默认连接的单一 gateway URL；即使 `distributed` 也不改成多服务地址 | `http://127.0.0.1:4000` |
-| `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres` 或 `rabbitmq` | `postgres` |
+| `TRAPMAP_TASK_TRANSPORT` | 异步任务传输提供者：`postgres`（默认）或 `rabbitmq`/`amqp`；`amqp` 为 `host-distributed` 对 `rabbitmq` 的别名，`postgres` 仍为默认且 `domain_event_outbox` 在所有模式下保留 PostgreSQL | `postgres` |
 | `TRAPMAP_EXPERIENCE_GENE_MODE` | Experience Gene rollout gate：`off`、`shadow`、`serve`；`off` 不注册 Gene task consumer，后续 enqueue 接线也必须同样被此 gate 阻断 | `off` |
 | `TRAPMAP_EXPERIENCE_GENES_MODE` | Experience Gene retrieval rollout gate：`off`、`shadow`、`serve`；`shadow` 允许 internal search，external 返回 canonical disabled envelope | `off` |
-| `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必填 | 空 |
+| `TRAPMAP_RABBITMQ_URL` | RabbitMQ 连接串；仅在 `TRAPMAP_TASK_TRANSPORT=rabbitmq` 或 `amqp` 时必填 | 空 |
 | `TRAPMAP_RABBITMQ_TASK_EXCHANGE` | RabbitMQ task exchange 名称 | `trapmap.tasks` |
 | `TRAPMAP_RABBITMQ_TASK_QUEUE` | 当前 worker 绑定的 task queue 名称 | `trapmap.default` |
 | `TRAPMAP_RABBITMQ_PREFETCH` | RabbitMQ consumer prefetch | `1` |
+| `TRAPMAP_JOB_RUNTIME_DATABASE_URL` | job-runtime 可选隔离库；设置时 `job-runtime` 使用独立 PostgreSQL，缺省回退至 `TRAPMAP_DATABASE_URL`/`DATABASE_URL` 共享库；其余服务不读取该变量 | 空（回退共享库） |
 
 profile 兼容约定：
 
@@ -115,9 +116,10 @@ profile capability 语义：
 关键约束：
 
 - `domain_event_outbox` 在所有模式下都保留 PostgreSQL，不受 `TRAPMAP_TASK_TRANSPORT` 影响。
-- `TRAPMAP_TASK_TRANSPORT=rabbitmq` 只适用于 task-capable runtime。
-- 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`。
-- `TRAPMAP_TASK_TRANSPORT=rabbitmq` 且 `runtimeMode=api` 时，不应假设 API 进程自己拥有 shared-job backlog；应确保独立 worker preset 在运行，这类风险会通过 `configGovernance.conflictWarnings` 暴露。
+- `TRAPMAP_TASK_TRANSPORT=rabbitmq`/`amqp` 只适用于 task-capable runtime；`host-local` 经 Zod 校验 `postgres`/`rabbitmq`，`host-distributed` 将 `amqp` 归一为 `rabbitmq` 语义（`packages/host-distributed/src/job-runtime/server.ts`），默认值在所有宿主保持 `postgres`。
+- 没有明确 backlog / isolation 需求时，建议保持 `TRAPMAP_TASK_TRANSPORT=postgres`（显式不设该变量即为默认）；切到 `amqp`/`rabbitmq` 需同时提供 `TRAPMAP_RABBITMQ_URL` 等 RabbitMQ 配置，缺失时宿主启动期 fail-fast。
+- `TRAPMAP_TASK_TRANSPORT=rabbitmq`/`amqp` 且 `runtimeMode=api` 时，不应假设 API 进程自己拥有 shared-job backlog；应确保独立 worker preset 在运行，这类风险会通过 `configGovernance.conflictWarnings` 暴露。
+- `TRAPMAP_JOB_RUNTIME_DATABASE_URL` 仅影响 `job-runtime`（见 `packages/host-distributed/src/shared/database.ts`）；设置后 `job-runtime` 指向隔离库，缺省回退共享库，等价性与回滚需经双库双跑与回滚演练验证（见 `docs/architecture/DEPLOYMENT.md` L3 章节与 `scripts/verify-l3-platform.ts`）。
 
 ### Phase 4 freeze
 
@@ -829,6 +831,12 @@ TrapMap 的服务端 AI 提示词支持“插槽式”覆盖。你可以提供�
 | `CORS_ORIGINS` | 允许的 CORS 来源（逗号分隔，`*` 表示全部） | `*` |
 | `RATE_LIMIT_MAX_PER_MINUTE` | 每分钟最大请求数（0 = 无限制） | `0` |
 | `SESSION_TRANSPORT` | 会话传输方式：`bearer-header` 或 `cookie` | `bearer-header` |
+
+> **Gateway session / cookie 偏好（P4B，conditional）：**
+> - `SESSION_TRANSPORT` 是 `host-local` 侧的 gateway 会话传输开关（`bearer-header` 默认，`cookie` 预留）。当前 `packages/host-local/src/nest/runtime/auth-context.ts:15-24` 仅校验 `Authorization: Bearer` / `x-session-token`，`packages/host-distributed/src/gateway/routes.ts:50-103` 的 `registerAuthHook` 亦仅校验 `Bearer`；`cookie` 传输需要未来 `Set-Cookie: trapmap_session=...; HttpOnly; Secure; SameSite` + `Cookie: trapmap_session=` 的 gateway 契约扩展后才端到端生效。
+> - Web Panel 已实现条件偏好：`apps/web-panel/src/stores/session-store.ts:resolveSessionTransportPreference()` + `isCookieTransportPreferred()` 在 `VITE_ADMIN_PANEL_SESSION_MODE=cookie` 或 `document.cookie` 已含 `trapmap_session` 时返回 `cookie`，否则 `bearer`；`apps/web-panel/src/services/admin-panel-service-context.ts:browserSessionProvider.getFetchOptions()` 在该条件下返回 `{credentials:'include'}`（经 `packages/client-core/src/session/session-provider.ts:getFetchOptions` + `apps/web-panel/src/services/api/http-client.ts:createHttpClient` 的 `wrappedProvider.getFetchOptions()` 尊重显式 cookie 偏好，`--` 回退到 token-presence 启发的 `include`），与 `host-local` 的 `SESSION_TRANSPORT` 对齐。
+> - 当 gateway 尚未暴露 `Set-Cookie` / cookie 校验时，panel 保持 `browserSessionProvider.getSessionToken() → useSessionStore.request.payload.token` 的 bearer 回退，但该持久化被视为不安全（JS 可访问，XSS 可泄露），相较 `httpOnly` cookie 的安全级别应文档化并在启用 `cookie` 后优先使用 `credentials:'include'`。`VITE_ADMIN_PANEL_SESSION_MODE` 在 `apps/web-panel/src/vite-env.d.ts` 声明为 `'cookie'|'bearer'`，默认 `bearer`。
+> - 浏览器端 `VITE_ADMIN_PANEL_SESSION_MODE` 仅影响 `web-panel` 发起请求的 `fetch` `credentials`，不直接改变 `SESSION_TRANSPORT` 的服务端行为；两端需同时切 `cookie` 才形成真正 `httpOnly` 闭环。
 
 ## 日志配置
 

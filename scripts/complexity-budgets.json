@@ -51,7 +51,7 @@
         "TRAPMAP_TASK_TRANSPORT",
         "Phase 5 distributed baseline / runtime-isolation freeze",
         "docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md",
-        "packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts",
+        "packages/host-distributed/test/gateway/distributed-runtime-closeout.test.ts",
         "docker-compose.yml",
         "Phase 6 mature-capability / library-replacement freeze",
         "不是当前内置运行时默认值",
@@ -261,7 +261,7 @@
         "open-debt-and-compromises.md",
         "不承载 tranche checklist 或实施细节",
         "Dead Code and Architecture Order Cleanup",
-        "docs/todos/dead-code-and-architecture-order-cleanup.md",
+        "docs/archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md",
         "运行时语义不变是硬约束（检索行为升级除外）"
       ],
       "mustNotContain": [
@@ -578,7 +578,7 @@
       "maxLines": 300
     },
     {
-      "file": "packages/persistence-schema/src/knowledge.ts",
+      "file": "packages/db/src/schema/knowledge.ts",
       "maxLines": 800
     },
     {

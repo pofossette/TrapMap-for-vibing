@@ -30,8 +30,28 @@ const alias = [
     replacement: resolve(__dirname, './packages/contracts/src/index.ts'),
   },
   {
+    find: '@trapmap/lib/hash.js',
+    replacement: resolve(__dirname, './packages/lib/src/hash.ts'),
+  },
+  {
+    find: '@trapmap/lib/canonical-json.js',
+    replacement: resolve(__dirname, './packages/lib/src/canonical-json.ts'),
+  },
+  {
+    find: '@trapmap/lib/vector.js',
+    replacement: resolve(__dirname, './packages/lib/src/vector.ts'),
+  },
+  {
     find: '@trapmap/lib',
     replacement: resolve(__dirname, './packages/lib/src/index.ts'),
+  },
+  {
+    find: '@trapmap/skill-registry',
+    replacement: resolve(__dirname, './packages/skill-registry/src/index.ts'),
+  },
+  {
+    find: /^@trapmap\/infra\/(.+)\.js$/,
+    replacement: resolve(__dirname, './packages/infra/src/$1.ts'),
   },
   {
     find: '@trapmap/infra',
@@ -98,8 +118,8 @@ const alias = [
     replacement: resolve(__dirname, './packages/service-cron/src/index.ts'),
   },
   {
-    find: '@trapmap/persistence-schema',
-    replacement: resolve(__dirname, './packages/persistence-schema/src/index.ts'),
+    find: '@trapmap/db',
+    replacement: resolve(__dirname, './packages/db/src/index.ts'),
   },
   {
     find: '@trapmap/client-core',
@@ -115,7 +135,7 @@ const alias = [
   },
   { find: 'fastify', replacement: fastifyEntry },
 ];
-const project = (name: string, root: string, include = ['src/**/*.test.ts']) => ({
+const project = (name: string, root: string, include = ['test/**/*.test.ts']) => ({
   test: { name, root, include },
   resolve: { alias },
 });
@@ -126,7 +146,7 @@ export default defineConfig({
       project('ai-providers', './packages/ai-providers'),
       project('assembly', './packages/assembly'),
       {
-        ...project('scripts', './scripts', ['__tests__/**/*.test.ts']),
+        ...project('scripts', './scripts', ['__tests__/**/*.test.ts', 'test/**/*.test.ts']),
         resolve: {
           alias: [
             ...alias,
@@ -138,7 +158,7 @@ export default defineConfig({
         },
       },
       project('contracts', './packages/contracts'),
-      project('persistence-schema', './packages/persistence-schema'),
+      project('db', './packages/db'),
       project('lib', './packages/lib'),
       project('infra', './packages/infra'),
       project('backend-core', './packages/backend-core'),
@@ -153,11 +173,11 @@ export default defineConfig({
       project('host-local', './packages/host-local'),
       project('host-distributed', './packages/host-distributed'),
       {
-        ...project('web-panel', './apps/web-panel', ['src/**/*.test.ts', 'src/**/*.test.tsx']),
+        ...project('web-panel', './apps/web-panel', ['test/**/*.test.ts', 'test/**/*.test.tsx']),
         test: {
           name: 'web-panel',
           root: './apps/web-panel',
-          include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+          include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
           environment: 'jsdom',
         },
         resolve: {
@@ -179,6 +199,10 @@ export default defineConfig({
       project('app-light', './apps/light'),
       project('app-distributed', './apps/distributed'),
       project('app-migration', './apps/migration'),
+      project('skill-registry', './packages/skill-registry', [
+        'test/**/*.test.ts',
+        'src/**/*.test.ts',
+      ]),
       project('evals', './evals', ['**/*.test.ts']),
     ],
     pool: 'forks',

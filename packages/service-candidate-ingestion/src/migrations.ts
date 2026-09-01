@@ -1,19 +1,11 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { assertOwnerMigrationSet } from '@trapmap/backend-core';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { runMigrations } from '@trapmap/db';
 import type { Pool } from 'pg';
-const migrationsFolder = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../drizzle');
-export async function assertCandidateIngestionMigrationSet(
-  folder = migrationsFolder,
-): Promise<void> {
-  await assertOwnerMigrationSet('candidate-ingestion', folder, [
-    '0000_colorful_silk_fever',
-    '0001_drop_candidates_legacy_jsonb',
-  ]);
+
+/** @deprecated Per-owner 0000 versioned migrations removed. Delegates to @trapmap/db runMigrations. */
+export async function assertCandidateIngestionMigrationSet(): Promise<void> {
+  return;
 }
+
 export async function runCandidateIngestionMigrations(pool: Pool): Promise<void> {
-  await assertCandidateIngestionMigrationSet();
-  await migrate(drizzle(pool), { migrationsFolder });
+  await runMigrations(pool);
 }

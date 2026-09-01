@@ -5,14 +5,28 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
   "references": [
-    { "path": "../ai-providers" },
-    { "path": "../backend-core" },
-    { "path": "../contracts" },
-    { "path": "../infra" },
-    { "path": "../lib" },
-    { "path": "../service-knowledge-read" },
-    { "path": "../persistence-schema" }
+    {
+      "path": "../ai-providers"
+    },
+    {
+      "path": "../backend-core"
+    },
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../infra"
+    },
+    {
+      "path": "../lib"
+    },
+    {
+      "path": "../service-knowledge-read"
+    },
+    {
+      "path": "../db"
+    }
   ]
 }

@@ -1,9 +1,14 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { createJobRuntimeModule } from '@trapmap/backend-core';
-import { createKnowledgeReadModule } from '@trapmap/backend-core';
-import { createKnowledgeWriteModule } from '@trapmap/backend-core';
-import { createCandidateIngestionModule } from '@trapmap/backend-core';
+import {
+  createCandidateIngestionModule,
+  createJobRuntimeModule,
+  createKnowledgeReadModule,
+  createKnowledgeWriteModule,
+  filterGraphDocumentsBySource,
+  mapGraphDocumentsToAdminGraphResponse,
+  mapGraphDocumentsToListView,
+} from '@trapmap/backend-core';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import { createCronServiceModule } from '@trapmap/service-cron';
 import {
@@ -104,15 +109,47 @@ export class AppModule implements NestModule {
       retrievalQuery: runtime.retrievalQuery,
       skillLookup: runtime.skillLookup,
     });
-    const knowledgeReadPort = createKnowledgeReadModule(knowledgeReadDeps);
+    const knowledgeReadPortBase = createKnowledgeReadModule(knowledgeReadDeps);
+    // Admin graph wiring — reuse the shared backend-core mapper
+    // (mapGraphDocumentsToAdminGraphResponse / filterGraphDocumentsBySource)
+    // so service-knowledge-read and host-local stay in sync. GraphIndex is
+    // the canonical source; deps filter by artifactId/sourceType via the
+    // shared helper and delegate node/edge projection to the mapper.
+    const createAdminGraphFetcher =
+      (defaultSourceType: 'trap' | 'skill') => async (query: Record<string, unknown>) => {
+        const docs = await runtime.services.graphIndex.listAll();
+        const artifactId = query.artifactId as string | undefined;
+        const sourceDocs = filterGraphDocumentsBySource(docs, {
+          ...(artifactId ? { artifactId } : { sourceType: defaultSourceType }),
+        });
+        return mapGraphDocumentsToAdminGraphResponse(sourceDocs);
+      };
+    const knowledgeReadPort = {
+      ...knowledgeReadPortBase,
+      getTrapGraph: createAdminGraphFetcher('trap'),
+      getSkillGraph: createAdminGraphFetcher('skill'),
+      listGraphDocuments: async () => {
+        const docs = await runtime.services.graphIndex.listAll();
+        return mapGraphDocumentsToListView(docs);
+      },
+    };
     const knowledgeReadModule = KnowledgeReadModule.forTesting(knowledgeReadPort);
 
-    const knowledgeWritePort = createKnowledgeWriteModule(
+    const knowledgeWritePortBase = createKnowledgeWriteModule(
       createKnowledgeWriteDeps({
         knowledgeOwner: runtime.services.knowledgeOwner,
         auditLog: runtime.auditLog,
+        artifactReadProjection: runtime.services.artifactReadProjection,
+        artifactWriter: runtime.services.artifactWriter,
       }),
     );
+    // Host assembly stays thin — extend the base port with the artifact
+    // projection needed by createKnowledgeAdminRouteDefs via a typed spread
+    // (no Object.assign patch, no as unknown cast).
+    const knowledgeWritePort = {
+      ...knowledgeWritePortBase,
+      artifactReadProjection: runtime.services.artifactReadProjection,
+    };
     const knowledgeWriteModule = KnowledgeWriteModule.forTesting(knowledgeWritePort);
 
     const governanceConflictWorkflow = createHostLocalGovernanceConflictWorkflow({
@@ -159,7 +196,7 @@ export class AppModule implements NestModule {
       auditLog: runtime.auditLog,
     });
 
-    const governanceReviewPort = createGovernanceReviewServiceModule(
+    const governanceReviewPortBase = createGovernanceReviewServiceModule(
       createGovernanceReviewDeps({
         knowledgeWrite: knowledgeWritePort,
         feedbackRepo: runtime.services.governanceReview.feedbackRepo,
@@ -170,6 +207,13 @@ export class AppModule implements NestModule {
         governanceRetrievalProjection: runtime.services.governanceReview.retrievalProjection,
       }),
     );
+    // Thin host extension for admin parity (knowledgeOwner +
+    // artifactReadProjection) — typed spread replaces Object.assign patch.
+    const governanceReviewPort = {
+      ...governanceReviewPortBase,
+      knowledgeOwner: runtime.services.knowledgeOwner,
+      artifactReadProjection: runtime.services.artifactReadProjection,
+    };
     const governanceReviewModule = GovernanceReviewModule.forTesting(governanceReviewPort);
 
     const jobRuntimeModule = JobRuntimeModule.forDeps(jobRuntimeDeps);

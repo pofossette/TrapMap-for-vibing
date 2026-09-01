@@ -5,6 +5,10 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
-  "references": [{ "path": "../../packages/host-distributed" }]
+  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
+  "references": [
+    {
+      "path": "../../packages/host-distributed"
+    }
+  ]
 }

@@ -9,3 +9,8 @@ data:
   TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS: "3"
   TRAPMAP_INTERNAL_BREAKER_THRESHOLD: "5"
   TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS: "30000"
+  # L3 verification — defaults remain pg; amqp is opt-in via overlay/patch.
+  # TRAPMAP_TASK_TRANSPORT: "postgres"  # default; set to "amqp" + TRAPMAP_RABBITMQ_URL for amqp smoke
+  # TRAPMAP_RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  # TRAPMAP_RABBITMQ_TASK_EXCHANGE: "trapmap.tasks"
+  # TRAPMAP_JOB_RUNTIME_DATABASE_URL: "postgres://trapmap:trapmap@postgres-jr:5432/trapmap"  # job-runtime only; unset => shared DB fallback

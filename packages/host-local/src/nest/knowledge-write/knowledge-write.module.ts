@@ -1,8 +1,15 @@
 import { Module } from '@nestjs/common';
 
-import type { KnowledgeWriteDeps, KnowledgeWritePort } from '@trapmap/backend-core';
+import {
+  type KnowledgeWriteDeps,
+  type KnowledgeWritePort,
+  createNestAdapter,
+} from '@trapmap/backend-core';
 import { createKnowledgeWriteModule } from '@trapmap/backend-core';
+import { createKnowledgeWriteRouteDefs } from '@trapmap/service-knowledge-write';
 
+import { AuthGuard } from '../runtime/auth.guard.js';
+import { serviceRouteDefsForMonolith } from '../runtime/monolith-route-defs.js';
 import { KNOWLEDGE_WRITE_PORT } from './knowledge-write.tokens.js';
 
 /**
@@ -18,23 +25,29 @@ import { KNOWLEDGE_WRITE_PORT } from './knowledge-write.tokens.js';
 export class KnowledgeWriteModule {
   static forDeps(deps: KnowledgeWriteDeps) {
     const port: KnowledgeWritePort = createKnowledgeWriteModule(deps);
-
-    return {
-      module: KnowledgeWriteModule,
-      providers: [
-        {
-          provide: KNOWLEDGE_WRITE_PORT,
-          useValue: port,
-        },
-      ],
-      exports: [KNOWLEDGE_WRITE_PORT],
-      global: true,
-    };
+    return KnowledgeWriteModule.options(port);
   }
 
   static forTesting(port: KnowledgeWritePort) {
+    return KnowledgeWriteModule.options(port);
+  }
+
+  private static options(port: KnowledgeWritePort) {
     return {
       module: KnowledgeWriteModule,
+      controllers: [
+        createNestAdapter(
+          serviceRouteDefsForMonolith(
+            createKnowledgeWriteRouteDefs(
+              port as unknown as Parameters<typeof createKnowledgeWriteRouteDefs>[0], // lib type gap: dynamic admin port probe
+            ),
+          ),
+          port as unknown as Parameters<typeof createKnowledgeWriteRouteDefs>[0], // lib type gap: dynamic admin port probe
+          {
+            guards: [AuthGuard],
+          },
+        ),
+      ],
       providers: [
         {
           provide: KNOWLEDGE_WRITE_PORT,

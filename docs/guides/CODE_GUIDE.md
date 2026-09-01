@@ -150,7 +150,7 @@ lib/persistence/
 - owner-local PostgreSQL 实现：`packages/service-knowledge-write/src/artifact-ports.ts` → `createArtifactReadProjection()`
 - owner-local 写入组合：`packages/service-knowledge-write/src/pg-ports.ts` → `createKnowledgeWritePgPorts()`
 - 读取模型组合：`packages/service-knowledge-read/src/read-model.ts` → `createOwnerReadModelProjection()`
-- Schema 定义：`packages/persistence-schema/src/artifacts.ts` — 所有 `skill_artifact_*` 表定义
+- Schema 定义：`packages/db/src/schema/artifacts.ts` — 所有 `skill_artifact_*` 表定义
 - 事实源/投影规则的权威实现由上述 contracts 与 owner ports 共同定义；server compatibility shell 不保留 artifact serializer 或 repository。
 
 #### 检索管道 — `lib/retrieval/`

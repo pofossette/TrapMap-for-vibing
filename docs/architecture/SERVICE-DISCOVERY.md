@@ -207,6 +207,17 @@ dynamic discovery 只改变“目标地址如何获得”，不会改变：
 - `InvocationError` 分类
 - auth / header / timeout 语义
 
+## 成熟度与 L3 entry criteria
+
+当前 `distributed` 的服务发现成熟度与 `docs/architecture/DEPLOYMENT.md` 保持一致：`Level 2 / transitional-microservice + L3 verification pending`。
+
+- **Level 2 已交付**：显式 `TRAPMAP_*_URL` 覆盖 + Docker DNS 默认值（`packages/host-distributed/src/config/service-config.ts`）+ 可选 `DiscoveryResolver` 动态发现叠加 + 静态回退；Consul 仅为可选注册/注销层（`packages/host-local/src/nest/service-discovery/`）。
+- **Level 3 entry criteria（CLI-gated，待 live 验证）**：
+  1. **kind smoke**：`k8s/base/*.yaml` 的 Kubernetes Service（gateway/identity-access/knowledge-* 等）经 `kubectl apply --dry-run=client --validate=true` 校验，`kind` 集群内 `kubectl wait --for=condition=Ready pod --all -n trapmap --timeout=180s` 通过，且各 Deployment `/ready` 200（验证 plumbing：`pnpm exec tsx scripts/verify-l3-platform.ts --check k8s-probes`）。
+  2. **Service 网格验证**：无需引入 Service Mesh 作为 L3 前提；L3 仅要求当前 Docker DNS ↔ k8s Service 名映射一致性在 kind 内可达（`DISTRIBUTED_INTERNAL_HOSTS` → k8s Service 名等价），证据见 `scripts/verify-l3-platform.ts --check service-discovery`。
+  3. **回退不变性**：dynamic discovery 不可用时 gateway 仍回退到静态 URL 的语义在 L3 下保持（`DiscoveryResolver` fail-open），由 `pnpm test:discovery-closeout` 覆盖，live kind 下复核。
+- **晋升规则**：仅在上述 kind smoke 与回退不变性均获 live 证据后，方可将本文件与 `DEPLOYMENT.md` 的成熟度同步晋升至 `Level 3 / operationally-verified`，否则保持 Level 2 + pending 并保留 `scripts/verify-l3-platform.ts` 的离线 plumbing。
+
 ## 非目标
 
 当前阶段明确不做：
@@ -215,3 +226,4 @@ dynamic discovery 只改变“目标地址如何获得”，不会改变：
 - 不把 Consul 写成 distributed 运行的唯一前提
 - 不把 Kubernetes Service、Service Mesh 或跨数据中心发现写成当前事实
 - 不替代 `TRAPMAP_*_URL` + Docker DNS 这条已验证基线
+- 不以 L3 文档晋升替代 live kind 验证；`kubectl wait --for=condition=Ready` 的 Ready 证据为必要门槛

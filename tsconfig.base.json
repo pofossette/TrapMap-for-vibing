@@ -32,8 +32,6 @@
       "@trapmap/contracts/*": ["./packages/contracts/src/*"],
       "@trapmap/infra": ["./packages/infra/src/index.ts"],
       "@trapmap/infra/*": ["./packages/infra/src/*"],
-      "@trapmap/persistence-schema": ["./packages/persistence-schema/src/index.ts"],
-      "@trapmap/persistence-schema/*": ["./packages/persistence-schema/src/*"],
       "@trapmap/service-identity-access": ["./packages/service-identity-access/src/index.ts"],
       "@trapmap/service-candidate-ingestion": [
         "./packages/service-candidate-ingestion/src/index.ts"
@@ -55,7 +53,10 @@
       "@trapmap/app-distributed": ["./apps/distributed/src/index.ts"],
       "@trapmap/app-distributed/*": ["./apps/distributed/src/*"],
       "@trapmap/app-migration": ["./apps/migration/src/index.ts"],
-      "@trapmap/app-migration/*": ["./apps/migration/src/*"]
+      "@trapmap/app-migration/*": ["./apps/migration/src/*"],
+      "@trapmap/db": ["./packages/db/src/index.ts"],
+      "@trapmap/db/*": ["./packages/db/src/*"]
     }
-  }
+  },
+  "exclude": ["**/dist", "**/test", "**/__tests__", "coverage", "node_modules"]
 }

@@ -104,7 +104,7 @@ describe('closeout surface guardrails', () => {
     expect(rule?.mustContain ?? []).toEqual(
       expect.arrayContaining([
         'Dead Code and Architecture Order Cleanup',
-        'docs/todos/dead-code-and-architecture-order-cleanup.md',
+        'docs/archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md',
         'open-debt-and-compromises.md',
       ]),
     );

@@ -6,7 +6,8 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前状态
 
-当前 active mainline 是 Experience Gene Infrastructure and Pipeline，入口见根 [plan.md](../plan.md) 和 [todos/experience-gene-program-mainline.md](todos/experience-gene-program-mainline.md)。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品，继续承担治理流程中的人工审核保障；其功能扩展主线已暂停，等待 Gene 主线 closeout 后恢复。
+当前 active mainline 是 Experience Gene Infrastructure and Pipeline，入口见根 [plan.md](../plan.md) 和 [todos/experience-gene-program-mainline.md](todos/experience-gene-program-mainline.md)。
+并行双轨（已合入 `pre@a9b413b5`）：类型对齐见 [todos/type-alignment-mainline.md](todos/type-alignment-mainline.md)（Zod→JSON Schema→Go 三期）与 Go 计算中枢见 [todos/go-compute-hub-mainline.md](todos/go-compute-hub-mainline.md)（批余弦/回退向量/哈希接线），架构见 [architecture/GO-ACCELERATOR.md](architecture/GO-ACCELERATOR.md)；Skill 版本管理器见 [todos/skill-registry-mainline.md](todos/skill-registry-mainline.md) 与 [architecture/SKILL-REGISTRY.md](architecture/SKILL-REGISTRY.md)。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品，继续承担治理流程中的人工审核保障；其功能扩展主线已暂停，等待 Gene 主线 closeout 后恢复。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 

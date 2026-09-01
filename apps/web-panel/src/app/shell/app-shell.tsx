@@ -17,6 +17,7 @@ import {
   type AdminPanelApiMode,
   getAdminPanelApi,
   getAdminPanelApiMode,
+  isUnauthorizedError,
 } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { SkeletonBlock } from '@trapmap/web-panel/shared/ui/skeleton-block';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
@@ -382,7 +383,24 @@ export function AppShell(): ReactElement {
             setDisplayNameInput(data.user.displayName);
           }
         })
-        .catch((err: Error) => setError(err.message));
+        .catch((err: unknown) => {
+          if (isUnauthorizedError(err)) {
+            // Map 401 to an explicit unauthenticated session so that
+            // RequireAuth's success branch can redirect to /login without
+            // relying solely on the error branch. Also set error for
+            // observability.
+            setSession({
+              authenticated: false,
+              activeAccountId: null,
+              accounts: [],
+              availableRoles: [],
+              token: null,
+              user: null,
+            });
+          }
+          const message = err instanceof Error ? err.message : 'Failed to load session';
+          setError(message);
+        });
     } else if (sessionRequest.payload?.user && !displayNameInput) {
       setDisplayNameInput(sessionRequest.payload.user.displayName);
     }

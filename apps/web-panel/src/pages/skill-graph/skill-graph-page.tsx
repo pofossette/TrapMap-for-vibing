@@ -3,7 +3,10 @@ import { type ReactElement, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import type { SkillArtifact } from '@trapmap/contracts';
-import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
+import {
+  getAdminPanelApi,
+  getAdminPanelApiMode,
+} from '@trapmap/web-panel/services/admin-panel-service-context';
 import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import {
@@ -19,7 +22,8 @@ import {
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 type GraphViewMode = 'derivation' | 'semantic';
-const SKILL_GRAPH_ARTIFACT_SNAPSHOT_LIMIT = 100;
+const SKILL_GRAPH_ARTIFACT_MOCK_SNAPSHOT_LIMIT = 100;
+const SKILL_GRAPH_ARTIFACT_REAL_PAGE_LIMIT = 20;
 
 function SkillGraphToolbar({
   artifacts,
@@ -249,12 +253,19 @@ export function SkillGraphPage(): ReactElement {
   // Search keyword
   const [searchKeyword, setSearchKeyword] = useState('');
 
-  // Load all artifacts for selector
+  // Load artifacts for selector — keep 100 snapshot for mock (tiny deterministic
+  // dataset) and use a bounded page for real where pagination exists via
+  // `items/filteredTotal/total/nextCursor`. The selector shows the first page;
+  // real users can paginate via the artifacts page if needed.
   useEffect(() => {
     const loadList = async () => {
       try {
+        const limit =
+          getAdminPanelApiMode() === 'mock'
+            ? SKILL_GRAPH_ARTIFACT_MOCK_SNAPSHOT_LIMIT
+            : SKILL_GRAPH_ARTIFACT_REAL_PAGE_LIMIT;
         const res = await getAdminPanelApi().loadArtifacts({
-          limit: SKILL_GRAPH_ARTIFACT_SNAPSHOT_LIMIT,
+          limit,
         });
         setArtifacts(res.items);
 

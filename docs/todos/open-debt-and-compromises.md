@@ -11,14 +11,6 @@
 
 ## 长期问题池
 
-### Dead Code and Architecture Order Cleanup closeout 延后（2026-08-22 补登记）
-
-- 来源：主线实现已于 2026-08-16 提交，但 Task 11-13 的正式 closeout、debt-register 回写核对与归档仍未完成；挂起的历史实现细节保留在 [`dead-code-and-architecture-order-cleanup.md`](dead-code-and-architecture-order-cleanup.md)。
-- 影响：实现事实与主线档案状态不一致，读者可能把挂起的历史 checklist 误认作仍开放的主线；closeout 证据也没有统一归档。
-- 当前边界：这是文档与 closeout 债务，不是重新实施信号；不得把该文件恢复为第二条 active mainline。
-- 进入条件：owner 启动专门的 closeout tranche 并确认无需补充实现工作。
-- 后续落点：完成 Task 11-13，核对本册条目后用 `git mv` 归档细则，并同步根计划、todo 与归档索引。
-
 ### web-panel real admin 路径不可运行（刷新于 2026-08-22）
 
 - 来源/影响/边界：同原登记（5 个 `/api/admin/*` 无后端实现，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
@@ -31,18 +23,26 @@
 - 进入条件：需要真实管理控制台时。
 - 后续落点：Gene 主线 closeout 后恢复 [`../plans/web-panel-feature-and-ui-optimization-paused.md`](../plans/web-panel-feature-and-ui-optimization-paused.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
 
-### eval:smoke CI 完整补跑（环境门控，刷新于 2026-08-22）
+### eval:smoke / Experience Gene 活证据 CI 完整补跑（环境门控，刷新于 2026-08-30）
 
-- 来源：本机无 docker daemon；A4 端到端、A15 镜像重建与 compose replicas 演示均需 docker/kind。
+- 来源：本机无 docker daemon；A4 端到端、A15 镜像重建与 compose replicas 演示均需 docker/kind。`pnpm eval:smoke` 与 `pnpm eval:experience-gene --tier core --mode serve` 的 live baseline/shadow/serve task-quality comparison 亦需 PostgreSQL/Docker runtime。
 - 2026-08-22 增补：Skill Lookup 主线的 retrieval 单测已绿；完整 `pnpm eval:smoke` 继续受同一环境门控约束。
-- 进入条件：CI 或具备 docker 的本地环境。
-- 后续落点：CI 跑 `pnpm eval:smoke` 全量 + `docker compose build candidate-worker outbox-worker` + replicas 演示，结果回填本条并关闭。
+- 2026-08-30 增补（Experience Gene 活证据，本机离线已验证）：
+  - `pnpm exec fallow audit --base HEAD --no-cache` 本机通过：`Audit scope: 1 changed file vs HEAD (cfa2c477..HEAD) / ✓ No issues in 1 changed file`；对照 `pnpm exec fallow audit --base main --no-cache` 为 `8 changed files vs main` 的 31 clone groups / 9 high-complexity / 1 unused export（均为 `apps/cli` 既有债，与 2026-08-25 登记的 145 文件量级同源，已于 `experience-gene-infrastructure-foundation.md` 第四检查点冻结为 activation-commit `5cbb2f93bdc895056446d43da1fc6de515b0a967` 等价于 PR merge-base，不再阻断 Gene closeout）。
+  - `pnpm eval:experience-gene --tier smoke --mode shadow` 本机通过：`total 3 / selected 1 / empty 2 / precision 1.0 / avoidance 1.0 / safety 0`（pre `cfa2c477` 基准，满足 T1 Test plan）。
+  - `pnpm eval:experience-gene --tier core --mode serve` 本机通过：`total 10 / selected 9 / empty 1 / precision 1.0 / avoidance 1.0 / safety 0 / supplementary avoid 7 / token cost ratio 0.90 / promotion eligible true`。
+  - `pnpm eval:smoke` 本机仍失败：`failed to connect to the docker API at unix:///var/run/docker.sock`（已知环境门控，非代码回归），已登记为 CI 必跑；live task-quality comparison、 governance 20-Gene sampling 的在线部分与 deployment smoke 的真实 runtime 校验亦需 CI/具备 Docker 的环境补跑。
+- 当前边界：deterministic offline 已满足，`fallow --base HEAD` 已绿，`typecheck`/`check:docs`/`check:structure` 已绿；剩余仅 `pnpm eval:smoke` 全量与 live Gene promotion comparison 需 CI 门控。
+- 进入条件：CI 或具备 docker 的本地环境（且 `DATABASE_URL`/`TRAPMAP_DATABASE_URL` 指向可响应 pgvector 实例）。
+- 后续落点：CI 跑 `pnpm eval:smoke` 全量 + `docker compose build candidate-worker outbox-worker` + replicas 演示 + `pnpm eval:experience-gene --tier core --mode serve` 的 live comparison，结果回填本条并关闭；`fallow --base main` legacy 债务转工程维护信号跟踪。
 
-### 安全候选 CI advisory 补跑（2026-08-22 新拆）
+### 安全候选 CI advisory 补跑（2026-08-22 新拆，2026-08-30 已在线基线）
 
-- 来源：A13 reachability 人工矩阵 reachable=0（见 docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md）；pnpm audit 因离线未执行。
-- 进入条件：联网 CI 环境。
-- 后续落点：CI 执行 audit 并回填矩阵行。
+- 来源：A13 人工矩阵 historical 3 候选 reachable=0 已关闭（见 docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md）；2026-08-30 本地在线补跑 `pnpm audit --prod --registry=https://registry.npmjs.org`（pnpm 10.33.0 / node v24.16.0，因 `.npmrc` 默认 `registry.npmmirror.com` 不支持 audit，需 `--registry` 覆盖）。
+- 基线结果：`22 advisories` / `23 instances` / `650 prod deps` => `8 moderate` / `15 high` / `0 critical`；分包见报告分包可达性矩阵（js-yaml 3、brace-expansion 3、langsmith 2、uuid 1、protobufjs 1、@opentelemetry/propagator-jaeger 1、fast-uri 5、find-my-way 1、ip-address 3、react-router 1、@opentelemetry/core 1）。historical 仍 reachable=0；新增 direct reachable 4（fastify find-my-way 1 + ip-address 3）、条件可达 12+、打包绑定/不可达其余，无 critical。
+- 当前边界：矩阵已回填 `docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md`（含可达性四档与处置列）；本机 JSON 已落 `/tmp/pnpm-audit-prod.json`。CI 仍需必跑 `pnpm audit --prod --registry=https://registry.npmjs.org` 作回归门控（建议在 `.github/workflows/ci.yml` 新增 audit job，见报告 CI 建议；本 tranche 按分区约束仅文档化不改 CI）。
+- 进入条件：已满足（本地在线）；CI 持久化校验为常态。
+- 后续落点：按报告处置分批升级（P0 fastify/ip-address 直达面、P1 react-router/js-yaml/langsmith 小补丁、P2 fast-uri/OTEL/sentry 联动），每次重跑 audit 回填矩阵并核销；direct high 归零且 CI 持久化后可关闭或转常态跟踪。
 
 ### 平台化 L3 运营验证批（C6-C8 残余，2026-08-22 新立）
 

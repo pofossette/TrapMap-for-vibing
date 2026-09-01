@@ -1,23 +1,10 @@
 import pg from 'pg';
 
-import { runCandidateIngestionMigrations } from '@trapmap/service-candidate-ingestion';
-import { runCronMigrations } from '@trapmap/service-cron';
-import { runGovernanceReviewMigrations } from '@trapmap/service-governance-review';
-import { runIdentityAccessMigrations } from '@trapmap/service-identity-access';
-import { runJobRuntimeMigrations } from '@trapmap/service-job-runtime';
-import { runKnowledgeReadMigrations } from '@trapmap/service-knowledge-read';
-import { runKnowledgeWriteMigrations } from '@trapmap/service-knowledge-write';
+import { runMigrations } from '@trapmap/db';
+
 import { loadServiceConfig } from './config/index.js';
 
-export const distributedMigrationRunners = [
-  runIdentityAccessMigrations,
-  runKnowledgeWriteMigrations,
-  runCandidateIngestionMigrations,
-  runGovernanceReviewMigrations,
-  runJobRuntimeMigrations,
-  runKnowledgeReadMigrations,
-  runCronMigrations,
-] as const;
+export const distributedMigrationRunners = [runMigrations] as const;
 
 type MigrationRunner = (pool: pg.Pool) => Promise<void>;
 type MigrationPool = Pick<pg.Pool, 'end' | 'query'>;

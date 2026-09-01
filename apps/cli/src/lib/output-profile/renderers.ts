@@ -172,6 +172,7 @@ function renderOpenCodeGraphPlan(envelope: RenderEnvelope<RenderPayload>): strin
   const activationHints = Array.isArray(codexObject.activation_hints)
     ? codexObject.activation_hints
     : [];
+  const planEdges = Array.isArray(codexObject.plan_edges) ? codexObject.plan_edges : [];
 
   const lines = [
     '# Goal',
@@ -188,10 +189,29 @@ function renderOpenCodeGraphPlan(envelope: RenderEnvelope<RenderPayload>): strin
     lines.push('');
   }
 
+  // Traps/skills already carry `num` from summarizers — surface them as JSON for machine readability
+  // and keep markdown list for human scan.
   lines.push(
     ...buildMarkdownListSection('## Recommended Skills', skills, '- None'),
     ...buildMarkdownListSection('## Blocking Traps', traps, '- None'),
     ...buildMarkdownListSection('## Activation Hints', activationHints, '- None'),
+  );
+
+  if (planEdges.length > 0) {
+    const edgeLines = planEdges.map((edge) => {
+      const e = edge as Record<string, unknown>;
+      const edgeNum = String(e.edgeNum ?? e.id ?? '?');
+      const src = String(e.sourceNum ?? '?');
+      const tgt = String(e.targetNum ?? '?');
+      const arrow = String(e.arrow ?? `--${String(e.type)}[${String(e.strength)}]-->`);
+      const sLabel = String(e.sourceLabel ?? e.sourceNodeId ?? '');
+      const tLabel = String(e.targetLabel ?? e.targetNodeId ?? '');
+      return `- [${edgeNum}] [${src}] ${arrow} [${tgt}] : "${sLabel}" → "${tLabel}"`;
+    });
+    lines.push(...buildMarkdownListSection('## Edges', edgeLines, '- None'));
+  }
+
+  lines.push(
     '## Suggested Execution Order',
     ...(steps.length > 0 ? steps.map((step) => `1. ${String(step)}`) : ['1. No suggested steps']),
   );

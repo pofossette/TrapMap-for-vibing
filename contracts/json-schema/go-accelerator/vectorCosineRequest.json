@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "b": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    }
+  },
+  "required": ["a", "b"],
+  "additionalProperties": false,
+  "title": "vectorCosineRequest"
+}

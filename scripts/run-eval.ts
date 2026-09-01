@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { exitWithResolveError, spawnPnpmAndExit } from './lib/spawn-pnpm.js';
 
 type EvalTier = 'smoke' | 'core';
-type EvalMode = 'live' | 'dry-run';
+type EvalMode = 'live' | 'dry-run' | 'baseline' | 'shadow' | 'serve';
 
 export type EvalSuite =
   | 'smoke'
@@ -14,7 +14,8 @@ export type EvalSuite =
   | 'agent-planning'
   | 'label-alignment'
   | 'graph-extraction'
-  | 'ingestion';
+  | 'ingestion'
+  | 'experience-gene';
 
 export interface ResolvedEvalTarget {
   scriptPath: string;
@@ -45,16 +46,31 @@ const EVAL_USAGE = [
   '  label-alignment',
   '  graph-extraction',
   '  ingestion',
+  '  experience-gene',
   '',
   'Options:',
-  '  --tier <smoke|core>',
-  '  --mode <live|dry-run>',
+  '  --tier <smoke|core>                              (default: smoke)',
+  '  --mode <live|dry-run>                            (retrieval/summary/label-alignment)',
+  '  --mode <baseline|shadow|serve>                   (experience-gene; default: shadow)',
   '  --runner <native|promptfoo> (default: promptfoo)',
   '  --dry-run',
   '  --json',
   '  --json-path <path>',
   '  --platform <noop|json-archive|langfuse>',
   '  --platform-output-dir <path>',
+  '  --help, -h                                       (show this help)',
+  '',
+  'Examples:',
+  '  pnpm eval -- smoke --help                         (self-check)',
+  '  pnpm eval -- smoke --tier smoke',
+  '  pnpm eval -- experience-gene --tier smoke --mode shadow',
+  '  pnpm eval -- experience-gene --tier core --mode serve',
+  '  pnpm eval:experience-gene --tier smoke --mode shadow  (direct script)',
+  '  pnpm eval:smoke                               (postgres-coordinated, requires Docker daemon)',
+  '',
+  'Notes:',
+  '  Local pnpm eval:smoke requires Docker daemon (pgvector via postgres-coordinated).',
+  '  CI (eval.yml) runs full pnpm eval:smoke + docker compose build candidate-worker outbox-worker + replicas=2 smoke wiring.',
 ].join('\n');
 
 const SUITE_SCRIPTS = {
@@ -65,6 +81,7 @@ const SUITE_SCRIPTS = {
   'label-alignment': 'evals/label-alignment/run.ts',
   'graph-extraction': 'evals/graph-extraction/run.ts',
   ingestion: 'evals/ingestion/run.ts',
+  'experience-gene': 'evals/experience-gene/run.ts',
 } as const;
 
 function assertEvalSuite(value: string): asserts value is EvalSuite {
@@ -77,7 +94,8 @@ function assertEvalSuite(value: string): asserts value is EvalSuite {
     value !== 'agent-planning' &&
     value !== 'label-alignment' &&
     value !== 'graph-extraction' &&
-    value !== 'ingestion'
+    value !== 'ingestion' &&
+    value !== 'experience-gene'
   ) {
     throw new Error(`Unknown eval suite: ${value}\n\n${EVAL_USAGE}`);
   }
@@ -134,7 +152,13 @@ const EVAL_OPTION_SPECS: readonly OptionSpec[] = [
     flag: '--mode',
     takesValue: true,
     apply: (options, value) => {
-      options.mode = assertChoice('--mode', value, ['live', 'dry-run'] as const);
+      options.mode = assertChoice('--mode', value, [
+        'live',
+        'dry-run',
+        'baseline',
+        'shadow',
+        'serve',
+      ] as const);
     },
   },
   {
@@ -233,6 +257,18 @@ function buildSuiteArgs(
     return args;
   }
 
+  if (suite === 'experience-gene') {
+    // Gene runner uses --tier smoke|core and --mode baseline|shadow|serve (default shadow).
+    args.push('--tier', options.tier ?? 'smoke');
+    if (options.mode) {
+      args.push('--mode', options.mode);
+    }
+    if (options.dryRun) {
+      args.push('--dry-run');
+    }
+    return args;
+  }
+
   args.push('--tier', options.tier ?? 'smoke');
 
   if (options.mode) {
@@ -261,6 +297,11 @@ export function resolveEvalTarget(argv: readonly string[]): ResolvedEvalTarget {
   const [suiteName, ...optionArgs] = normalizedArgv;
 
   if (!suiteName || suiteName === '--help' || suiteName === '-h') {
+    throw new Error(EVAL_USAGE);
+  }
+
+  // `pnpm eval -- smoke --help` self-check: suite + help flag must render usage (exit 0).
+  if (optionArgs.includes('--help') || optionArgs.includes('-h')) {
     throw new Error(EVAL_USAGE);
   }
 

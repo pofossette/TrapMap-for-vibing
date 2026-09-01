@@ -248,6 +248,28 @@ Grafana alert rules 的具体 JSON/YAML 定义可在后续迭代中补充到 `in
 | Trace 数据缺失 | 检查 `OTEL_DISABLED`、`OTEL_SAMPLE_RATE` 和 `OTEL_EXPORTER_OTLP_ENDPOINT` | OTel 被禁用、采样率过低或 OTLP 端点不可达 |
 | Loki 无日志 | 检查 `LOKI_HOST` | Loki 未配置或 Loki 不可达 |
 
+### L3 probes 与 closeout 验证 plumbing
+
+所有 `k8s/base/*.yaml` Deployments 已声明 `readinessProbe: { path: /ready }` 与 `livenessProbe: { path: /live }`（见 `k8s/base/gateway.deploy.yaml` 等 8 个 manifests）；离线 plumbing 可经以下方式校验，无需 live 集群：
+
+```bash
+pnpm exec tsx scripts/verify-l3-platform.ts --check k8s-probes
+kubectl apply --dry-run=client --validate=true -f k8s/base/   # 语法/字段校验
+pnpm exec tsx scripts/verify-l3-platform.ts --check compose-replicas  # 校验 docker-compose.closeout.yml replicas
+```
+
+Live kind 需额外验证：
+
+```bash
+kind create cluster --name trapmap-l3 && kubectl apply -f k8s/base/
+kubectl wait --for=condition=Ready pod --all -n trapmap --timeout=180s
+kubectl get pods -n trapmap -o wide
+# readyz 等价 /ready，需 200
+kubectl port-forward svc/gateway 4000:4000 -n trapmap & curl -f http://127.0.0.1:4000/ready && kill %1
+```
+
+该验证为 `docs/architecture/DEPLOYMENT.md` L3 entry criteria 的第一项，未获 live 证据前成熟度保持 Level 2 + pending。
+
 ### Closeout 命令
 
 当前主线收口固定使用以下入口：
@@ -255,3 +277,4 @@ Grafana alert rules 的具体 JSON/YAML 定义可在后续迭代中补充到 `in
 - `pnpm test:observability-closeout`：host-local 健康探针、request/trace/metrics/structured log 关联链路
 - `pnpm test:discovery-closeout`：Consul adapter、resolver、缓存与 round-robin fallback
 - `pnpm test:distributed-closeout`：distributed acceptance + runtime closeout 聚合入口
+- `pnpm exec tsx scripts/verify-l3-platform.ts --check all`：L3 离线 plumbing（k8s probes / compose replicas / transport 默认值 / dual-DB fallback 语义），live gates 标记 `CI_REQUIRED` 而非本地失败

@@ -9,7 +9,7 @@
 - 架构/命令/目录等事实冲突时：以 [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](docs/reference/SYSTEM_TRUTH_SOURCES.md) 为准
 - 目录归属和允许的文档落点：以 [`docs/reference/REPO_STRUCTURE.md`](docs/reference/REPO_STRUCTURE.md) 为准
 - 什么时候必须更新文档、索引、测试或 badcase：看 [`docs/guides/DOCUMENTATION_GOVERNANCE.md`](docs/guides/DOCUMENTATION_GOVERNANCE.md)
-- 在本仓库执行 shell 命令时直接使用 `pnpm`，例如 `pnpm test:file -- packages/host-local/src/nest/app.test.ts`
+- 在本仓库执行 shell 命令时直接使用 `pnpm`，例如 `pnpm test:file -- packages/host-local/test/nest/app.test.ts`
 
 ## 计划与待办目录规则
 
@@ -36,7 +36,7 @@
 - 默认 `pnpm test` 是一次性执行；需要 watch 时必须显式调用 `pnpm exec vitest`
 - 禁止使用根级全量测试再接 `grep`、`tail`、`head` 的方式查看失败列表，例如 `pnpm test 2>&1 | tail ...`
 - 单文件测试优先使用 `pnpm test:file -- <repo-root-relative-test-path>`
-- 只跑某个包时，使用包级命令，例如 `pnpm --filter @trapmap/service-knowledge-write test --run src/pg-ports.test.ts`
+- 只跑某个包时，使用包级命令，例如 `pnpm --filter @trapmap/service-knowledge-write test --run test/pg-ports.test.ts`
 
 ## 任务分流
 

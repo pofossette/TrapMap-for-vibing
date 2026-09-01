@@ -13,7 +13,7 @@ afterEach(() => {
 function writeSchemaTable(root: string, file: string, tableName: string): void {
   write(
     root,
-    `packages/persistence-schema/src/${file}`,
+    `packages/db/src/schema/${file}`,
     [
       "import { pgTable, text } from 'drizzle-orm/pg-core';",
       '',

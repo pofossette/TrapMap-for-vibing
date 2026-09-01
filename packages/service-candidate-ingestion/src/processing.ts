@@ -17,6 +17,8 @@ import {
 import type { CandidateCorpusReadPort, CandidateProcessingPayload } from '@trapmap/contracts';
 
 import { createRuleDedupStrategy } from './dedup-strategy/rule-dedup-strategy.js';
+import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
+import { dedupFingerprintWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
 
 export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing' as const;
 
@@ -68,7 +70,34 @@ export async function processCandidate(
     await deps.candidateRepo.updateStatus(candidateId, 'queued');
     await deps.candidateRepo.updateStatus(candidateId, 'analyzing');
 
-    const normalized = buildNormalizedDuplicateInput(candidate);
+    let normalized = buildNormalizedDuplicateInput(candidate);
+    // Go-accelerated fingerprint (distributed only): try Go for sha256 parts, fallback to JS pure.
+    // Host-local stays JS (client disabled) → zero Go dependency.
+    const goClient = getGoAcceleratorClient();
+    if (goClient.isEnabled) {
+      try {
+        const parts =
+          candidate.sourceType === 'trap' && candidate.originalPayload.trap
+            ? [
+                candidate.originalPayload.trap.shortcut.trim(),
+                candidate.originalPayload.trap.detail.trim(),
+                ...[...candidate.originalPayload.trap.labels].sort(),
+              ]
+            : candidate.originalPayload.skill
+              ? [...candidate.originalPayload.skill.files]
+                  .sort((a, b) => a.path.localeCompare(b.path))
+                  .map((file) => file.sha256)
+              : [];
+        if (parts.length > 0) {
+          const fp = await dedupFingerprintWithFallback(parts, goClient);
+          if (fp && fp !== normalized.fingerprint) {
+            normalized = { ...normalized, fingerprint: fp };
+          }
+        }
+      } catch {
+        // fallback already handled
+      }
+    }
     // D8 dedup-strategy call-site migration: duplicate detection goes through
     // the judgment port. The rule default wraps the pre-contract detector with
     // the caller's now/createId, so the outcome is unchanged; an llm/hybrid

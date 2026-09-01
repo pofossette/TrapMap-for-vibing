@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "leftTokens": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rightTokensList": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "required": ["leftTokens", "rightTokensList"],
+  "additionalProperties": false,
+  "title": "dedupBatchSimilarityRequest"
+}

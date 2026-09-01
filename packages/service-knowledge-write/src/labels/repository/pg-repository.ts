@@ -15,7 +15,7 @@ import {
   canonicalLabels,
   labelAliases,
   labelAlignmentEvents,
-} from '@trapmap/persistence-schema';
+} from '@trapmap/db';
 
 import type {
   CanonicalLabelRecord,

@@ -5,10 +5,16 @@
     "outDir": "dist"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "test/**/*.test.ts", "test/**/*.test.tsx"],
   "references": [
-    { "path": "../../packages/contracts" },
-    { "path": "../../packages/lib" },
-    { "path": "../../packages/client-core" }
+    {
+      "path": "../../packages/contracts"
+    },
+    {
+      "path": "../../packages/lib"
+    },
+    {
+      "path": "../../packages/client-core"
+    }
   ]
 }

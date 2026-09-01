@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "traps": {
+      "minItems": 1,
+      "maxItems": 200,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "trapId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "trapText": {
+            "type": "string",
+            "minLength": 1
+          },
+          "derivationUnitId": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": ["trapId", "trapText", "derivationUnitId"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["traps"],
+  "additionalProperties": false,
+  "title": "geneDeriveBatchRequest"
+}

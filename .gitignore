@@ -59,6 +59,10 @@ opencode.jsonc
 coverage/
 *.lcov
 .nyc_output/
+playwright-report/
+test-results/
+apps/web-panel/playwright-report/
+apps/web-panel/test-results/
 
 # Package manager locks (optional - uncomment if needed)
 # pnpm-lock.yaml
@@ -99,3 +103,8 @@ data/
 graphify-out/
 .fallow/
 .superpowers/
+
+# go-accelerator
+services/go-accelerator/bin/
+services/go-accelerator/vendor/
+benchmarks/results/

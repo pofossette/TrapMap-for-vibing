@@ -20,7 +20,14 @@ import {
   type RouteDef,
   routeResponse,
 } from '@trapmap/backend-core';
-import { type SkillLookupQuery, skillLookupQuerySchema } from '@trapmap/contracts';
+import {
+  type SkillLookupQuery,
+  adminActivityQuerySchema,
+  adminArtifactQuerySchema,
+  adminGraphQuerySchema,
+  adminReviewQueueQuerySchema,
+  skillLookupQuerySchema,
+} from '@trapmap/contracts';
 
 import type { InternalServiceClients } from './internal-client.js';
 
@@ -132,6 +139,19 @@ function trustedArtifactImportOptions(ctx: GatewayRouteContext): {
   headers?: Record<string, string>;
 } {
   const headers = trustedArtifactImportHeaders(ctx);
+  return headers ? { headers } : {};
+}
+
+function trustedAdminHeaders(ctx: GatewayRouteContext): Record<string, string> | undefined {
+  const headers = trustedArtifactImportHeaders(ctx) ?? {};
+  if (ctx.actor?.handle === 'system-admin' || ctx.actor?.id === 'system-admin') {
+    headers['x-trapmap-subject-type'] = 'system-admin';
+  }
+  return Object.keys(headers).length > 0 ? headers : undefined;
+}
+
+function trustedAdminOptions(ctx: GatewayRouteContext): { headers?: Record<string, string> } {
+  const headers = trustedAdminHeaders(ctx);
   return headers ? { headers } : {};
 }
 
@@ -466,6 +486,91 @@ const artifactReviewBodySchema = z.object({
     actorId: z.string(),
     note: z.string().optional(),
   }),
+});
+
+const adminReviewQueueSchema = z.object({
+  params: emptyRecord,
+  query: adminReviewQueueQuerySchema,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const adminReviewDetailSchema = z.object({
+  params: z.object({ id: z.string().min(1).max(128) }),
+  query: emptyRecord,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const adminActivitySchema = z.object({
+  params: emptyRecord,
+  query: adminActivityQuerySchema,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const adminReviewDecisionSchema = z.object({
+  params: z.object({ id: z.string().min(1).max(128) }),
+  query: emptyRecord,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.object({
+    decision: z.enum(['approve', 'reject', 'return-for-correction']),
+    notes: z.string().min(1).max(2000).optional(),
+    note: z.string().min(1).max(2000).optional(),
+    evidence: z.record(z.string(), z.unknown()).optional(),
+  }),
+});
+
+const adminArtifactListSchema = z.object({
+  params: emptyRecord,
+  query: adminArtifactQuerySchema,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const adminArtifactDetailSchema = z.object({
+  params: z.object({ id: z.string().min(1).max(128) }),
+  query: emptyRecord,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const adminTrapGraphSchema = z.object({
+  params: emptyRecord,
+  query: adminGraphQuerySchema,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const adminSkillGraphSchema = z.object({
+  params: emptyRecord,
+  query: adminGraphQuerySchema,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const adminSkillGraphByIdSchema = z.object({
+  params: z.object({ artifactId: z.string().min(1).max(128) }),
+  query: adminGraphQuerySchema,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+const reviewQueueSchema = z.object({
+  params: emptyRecord,
+  query: z.record(z.string(), z.unknown()),
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
 });
 
 const scheduleJobSchema = z.object({
@@ -1056,6 +1161,149 @@ export function createGatewayRouteDefs(_clients: InternalServiceClients): RouteD
             actorId: ctx.body.actorId,
             ...(ctx.body.note !== undefined ? { note: ctx.body.note } : {}),
           }),
+        );
+      },
+    }),
+
+    // ---- Review queue parity (host-local parity) ----
+
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/v1/knowledge/review-queue',
+      schema: reviewQueueSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.reviewQueue.list(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+
+    // ---- Admin routes (governance-review / knowledge-write / knowledge-read) ----
+
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/reviews',
+      schema: adminReviewQueueSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminReview.listReviews(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/reviews/:id',
+      schema: adminReviewDetailSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(clients.adminReview.getReview(ctx.params.id, trustedAdminOptions(ctx)));
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/activity',
+      schema: adminActivitySchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminReview.listActivity(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'POST',
+      path: '/api/admin/reviews/:id/decision',
+      schema: adminReviewDecisionSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminReview.decideReview(
+            ctx.params.id,
+            bodyWithoutActor(ctx.body) as Record<string, unknown>,
+            trustedAdminOptions(ctx),
+          ),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/artifacts',
+      schema: adminArtifactListSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminArtifacts.list(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/artifacts/:id',
+      schema: adminArtifactDetailSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(clients.adminArtifacts.getById(ctx.params.id, trustedAdminOptions(ctx)));
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/graph/traps',
+      schema: adminTrapGraphSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminGraph.getTrapGraph(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/graph/skills',
+      schema: adminSkillGraphSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminGraph.getSkillGraph(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/graphs/trap',
+      schema: adminTrapGraphSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminGraph.getTrapGraph(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/graphs/skill',
+      schema: adminSkillGraphSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminGraph.getSkillGraph(queryStringValues(ctx.query), trustedAdminOptions(ctx)),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/graphs/skill/:artifactId',
+      schema: adminSkillGraphByIdSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        const query = { ...queryStringValues(ctx.query), artifactId: ctx.params.artifactId };
+        return forward(
+          clients.adminGraph.getSkillGraphById(
+            ctx.params.artifactId,
+            query,
+            trustedAdminOptions(ctx),
+          ),
         );
       },
     }),

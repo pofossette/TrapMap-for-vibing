@@ -2,14 +2,14 @@
  * pgTable Single-Source Guard (check:pgtable-single-source).
  *
  * Prevents the dual table-definition source problem from coming back:
- * `packages/persistence-schema/src/` is the only place that may define
+ * `packages/db/src/schema/` is the only place that may define
  * `pgTable(...)` tables, and service schema.ts files must re-export them
  * instead of redefining them.
  *
  * Two checks:
  *
  *   1. Every service schema.ts file (under the packages/service-* src trees)
- *      must contain an `export * from '@trapmap/persistence-schema'`
+ *      must contain an `export * from '@trapmap/db'`
  *      re-export and must NOT call `pgTable(`.
  *   2. Sweep: no `pgTable(` call may appear anywhere in a service package's
  *      src tree (a definition sneaked into another file would reintroduce the
@@ -29,7 +29,7 @@ export interface CheckResult {
   messages: string[];
 }
 
-const PERSISTENCE_SCHEMA_RE = /export\s+\*\s+from\s+['"]@trapmap\/persistence-schema['"]/;
+const PERSISTENCE_SCHEMA_RE = /export\s+\*\s+from\s+['"]@trapmap\/db['"]/;
 const PGTABLE_CALL_RE = /pgTable\s*\(/;
 
 // ── Checking logic (testable) ────────────────────────────────────────
@@ -39,12 +39,12 @@ export function checkSchemaFile(relPath: string, content: string): string[] {
   const messages: string[] = [];
   if (PGTABLE_CALL_RE.test(content)) {
     messages.push(
-      `[pgtable-single-source] ${relPath} defines pgTable(...) directly — tables must live only in @trapmap/persistence-schema`,
+      `[pgtable-single-source] ${relPath} defines pgTable(...) directly — tables must live only in @trapmap/db`,
     );
   }
   if (!PERSISTENCE_SCHEMA_RE.test(content)) {
     messages.push(
-      `[pgtable-single-source] ${relPath} does not re-export '@trapmap/persistence-schema' — schema.ts files must be pure re-exports`,
+      `[pgtable-single-source] ${relPath} does not re-export '@trapmap/db' — schema.ts files must be pure re-exports`,
     );
   }
   return messages;
@@ -62,7 +62,7 @@ export function checkNoPgTableCall(relPath: string, content: string): string[] {
     if (isCommentLine(line.trimStart())) continue;
     if (PGTABLE_CALL_RE.test(line)) {
       messages.push(
-        `[pgtable-single-source] ${relPath}:${i + 1} calls pgTable(...) — table definitions belong in @trapmap/persistence-schema only`,
+        `[pgtable-single-source] ${relPath}:${i + 1} calls pgTable(...) — table definitions belong in @trapmap/db only`,
       );
       break;
     }
@@ -116,10 +116,9 @@ function main(): void {
   finishCheckRun({
     name: '[pgtable-single-source]',
     result: checkPgTableSingleSource(ROOT),
-    remedy:
-      'Move table definitions into @trapmap/persistence-schema and re-export from the service schema.ts.',
+    remedy: 'Move table definitions into @trapmap/db and re-export from the service schema.ts.',
     passedMessage:
-      '[pgtable-single-source] all service schema.ts files are pure re-exports of @trapmap/persistence-schema.',
+      '[pgtable-single-source] all service schema.ts files are pure re-exports of @trapmap/db.',
   });
 }
 

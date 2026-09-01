@@ -45,11 +45,25 @@ const LoginPage = lazy(() =>
   })),
 );
 
+export function isUnauthorizedSession(
+  request: ReturnType<typeof useSessionStore.getState>['request'],
+): boolean {
+  if (request.status === 'success' && !request.payload?.authenticated) return true;
+  if (request.status === 'error') return true;
+  return false;
+}
+
 function RequireAuth({ children }: { children: ReactElement }): ReactElement {
   const request = useSessionStore((state) => state.request);
   // While session is still resolving, render the shell's loading state via children
-  // The AppShell itself initiates loadSession; we only guard after success.
+  // The AppShell itself initiates loadSession; we only guard after success or
+  // after a 401 has been mapped to an error state (see admin-panel-service-context
+  // withAuthRedirect and AppShell's 401 catch). This ensures real 401s redirect
+  // to /login even before a success payload is stored.
   if (request.status === 'success' && !request.payload?.authenticated) {
+    return <Navigate replace to="/login" />;
+  }
+  if (request.status === 'error') {
     return <Navigate replace to="/login" />;
   }
   return children;

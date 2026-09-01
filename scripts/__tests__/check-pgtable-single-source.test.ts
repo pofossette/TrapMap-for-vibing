@@ -13,10 +13,7 @@ afterEach(() => {
 describe('checkSchemaFile', () => {
   it('passes on a pure re-export schema.ts', () => {
     expect(
-      checkSchemaFile(
-        'packages/service-a/src/schema.ts',
-        "export * from '@trapmap/persistence-schema';\n",
-      ),
+      checkSchemaFile('packages/service-a/src/schema.ts', "export * from '@trapmap/db';\n"),
     ).toEqual([]);
   });
 
@@ -60,28 +57,16 @@ describe('checkNoPgTableCall', () => {
 describe('scanServicePackages', () => {
   it('passes when all schema.ts files are pure re-exports', () => {
     const root = makeTempRepo('trapmap-pgtable-');
-    write(
-      root,
-      'packages/service-a/src/schema.ts',
-      "export * from '@trapmap/persistence-schema';\n",
-    );
+    write(root, 'packages/service-a/src/schema.ts', "export * from '@trapmap/db';\n");
     write(root, 'packages/service-a/src/pg-ports.ts', 'export const a = 1;\n');
-    write(
-      root,
-      'packages/service-b/src/schema.ts',
-      "export * from '@trapmap/persistence-schema';\n",
-    );
+    write(root, 'packages/service-b/src/schema.ts', "export * from '@trapmap/db';\n");
 
     expect(scanServicePackages(root)).toEqual([]);
   });
 
   it('fails on a direct pgTable definition inside a service package', () => {
     const root = makeTempRepo('trapmap-pgtable-');
-    write(
-      root,
-      'packages/service-a/src/schema.ts',
-      "export * from '@trapmap/persistence-schema';\n",
-    );
+    write(root, 'packages/service-a/src/schema.ts', "export * from '@trapmap/db';\n");
     write(
       root,
       'packages/service-a/src/local-tables.ts',

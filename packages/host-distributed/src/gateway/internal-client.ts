@@ -553,6 +553,44 @@ export interface InternalServiceClients {
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
   };
+  adminReview: {
+    listReviews(
+      query: Record<string, string>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    getReview(reviewId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    listActivity(
+      query: Record<string, string>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    decideReview(
+      reviewId: string,
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+  };
+  adminArtifacts: {
+    list(query: Record<string, string>, options?: InternalRequestOptions): Promise<ServiceResponse>;
+    getById(artifactId: string, options?: InternalRequestOptions): Promise<ServiceResponse>;
+  };
+  adminGraph: {
+    getTrapGraph(
+      query: Record<string, string>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    getSkillGraph(
+      query: Record<string, string>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+    getSkillGraphById(
+      artifactId: string,
+      query: Record<string, string>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
+  };
+  reviewQueue: {
+    list(query: Record<string, string>, options?: InternalRequestOptions): Promise<ServiceResponse>;
+  };
   jobRuntime: {
     schedule(body: {
       type: string;
@@ -1098,6 +1136,94 @@ export function createInternalServiceClients(
           'POST',
           body,
           undefined,
+          options,
+        ),
+    },
+    adminReview: {
+      listReviews: async (query, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/api/admin/reviews`,
+          'GET',
+          undefined,
+          query,
+          options,
+        ),
+      getReview: async (reviewId, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/api/admin/reviews/${reviewId}`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      listActivity: async (query, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/api/admin/activity`,
+          'GET',
+          undefined,
+          query,
+          options,
+        ),
+      decideReview: async (reviewId, body, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/api/admin/reviews/${reviewId}/decision`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
+    },
+    adminArtifacts: {
+      list: async (query, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/api/admin/artifacts`,
+          'GET',
+          undefined,
+          query,
+          options,
+        ),
+      getById: async (artifactId, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-write', urls.knowledgeWrite)}/api/admin/artifacts/${artifactId}`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+    },
+    adminGraph: {
+      getTrapGraph: async (query, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/api/admin/graph/traps`,
+          'GET',
+          undefined,
+          query,
+          options,
+        ),
+      getSkillGraph: async (query, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/api/admin/graph/skills`,
+          'GET',
+          undefined,
+          query,
+          options,
+        ),
+      getSkillGraphById: async (artifactId, query, options) =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/api/admin/graphs/skill/${artifactId}`,
+          'GET',
+          undefined,
+          query,
+          options,
+        ),
+    },
+    reviewQueue: {
+      list: async (query, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/api/admin/reviews`,
+          'GET',
+          undefined,
+          query,
           options,
         ),
     },

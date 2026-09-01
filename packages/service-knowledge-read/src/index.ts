@@ -6,6 +6,7 @@ export {
 } from './deps.js';
 export { assertKnowledgeReadMigrationSet, runKnowledgeReadMigrations } from './migrations.js';
 export {
+  createKnowledgeAdminGraphRouteDefs,
   createKnowledgeReadRouteDefs,
   knowledgeReadMineSchema,
   knowledgeReadSearchSchema,
@@ -13,6 +14,7 @@ export {
   registerKnowledgeReadRoutes,
   toKnowledgeReadSearchArgs,
   toKnowledgeReadSkillLookupArgs,
+  type KnowledgeReadRouteDeps,
 } from './routes.js';
 export {
   createKnowledgeReadServer,

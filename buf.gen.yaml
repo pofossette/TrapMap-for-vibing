@@ -1,0 +1,16 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package
+      value: trapmap-go-accelerator/proto/compute/v1
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: services/go-accelerator/proto
+    opt: paths=source_relative
+  - remote: buf.build/connectrpc/go
+    out: services/go-accelerator/proto
+    opt: paths=source_relative
+  - remote: buf.build/protocolbuffers/js
+    out: packages/infra/src/go-accelerator/proto
+    opt: import_style=commonjs

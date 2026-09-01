@@ -50,8 +50,8 @@
 
 以下守卫已接入 CI（`doc-guardrails` job 与 `scripts/run-ci.ts`），新增表、修改表清单、或改动 evals/服务包导入关系时必须保持其通过：
 
-- `pnpm check:table-schema`：表清单守卫。以 `packages/persistence-schema/src/` 的 `pgTable` 为权威，diff `docs/reference/DATABASE_SCHEMA.md` 表清单（缺表 / 幽灵表 / 分节计数 / 总表数不一致即失败）。新增表必须同步更新文档；迁移 SQL 里的历史残留表（如 `store_snapshot`）不在守卫范围内。
-- `pnpm check:pgtable-single-source`：pgTable 单源守卫。`packages/service-*` src 内禁止直接 `pgTable(...)` 定义；schema.ts 只允许 `export * from '@trapmap/persistence-schema'` re-export。
+- `pnpm check:table-schema`：表清单守卫。以 `packages/db/src/schema/` 的 `pgTable` 为权威，diff `docs/reference/DATABASE_SCHEMA.md` 表清单（缺表 / 幽灵表 / 分节计数 / 总表数不一致即失败）。新增表必须同步更新文档；迁移 SQL 里的历史残留表（如 `store_snapshot`）不在守卫范围内。
+- `pnpm check:pgtable-single-source`：pgTable 单源守卫。`packages/service-*` src 内禁止直接 `pgTable(...)` 定义；schema.ts 只允许 `export * from '@trapmap/db'` re-export。
 - `pnpm check:eval-imports`：eval import 边界守卫。evals 只能经 `@trapmap/*` 包名、`packages/contracts/**`、host-local eval allowlist 或带 `@eval-only` 标记的模块接入 packages；其余深路径直连即失败。新增 evals→packages 导入前先确认是否属于上述四类表面。
 - `pnpm check:eval-only`：`@eval-only` 标记守卫。仅被 evals 引用、无产品消费者且不经包 index 导出的模块必须带 `@eval-only` 头注释；新增此类模块必须同步加标记。
 

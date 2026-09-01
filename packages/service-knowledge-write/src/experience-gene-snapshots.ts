@@ -2,7 +2,8 @@ import {
   type ExperienceGeneSourceSnapshot,
   experienceGeneSourceSnapshotSchema,
 } from '@trapmap/contracts';
-import { sha256CanonicalJson } from '@trapmap/lib';
+import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
+import { canonicalHashWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
 
 type Queryable = {
   query<T extends Record<string, unknown>>(
@@ -58,7 +59,12 @@ async function loadTrap(
     kind: 'trap',
     sourceId: String(row.id),
     revision: number(row.revision_no),
-    sourceHash: sha256CanonicalJson({ title, text, labels: snapshotLabels }),
+    sourceHash: (
+      await canonicalHashWithFallback(
+        { title, text, labels: snapshotLabels },
+        getGoAcceleratorClient(),
+      )
+    ).hash,
     derivationUnitId: `trap:${String(row.id)}:v${number(row.revision_no)}`,
     title,
     labels: snapshotLabels,
@@ -149,7 +155,7 @@ async function loadSkillCapsule(
     kind: 'skill-capsule',
     sourceId: provenance.capsuleId,
     revision: number(row.revision_no),
-    sourceHash: sha256CanonicalJson(provenance),
+    sourceHash: (await canonicalHashWithFallback(provenance, getGoAcceleratorClient())).hash,
     artifactId: String(row.artifact_id),
     artifactRevision: number(row.revision_no),
     capsuleId: provenance.capsuleId,

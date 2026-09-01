@@ -65,13 +65,65 @@ function summarizeGraphPlan(payload: GraphPlanSearchResponse): string {
   return 'No plan available';
 }
 
-function buildExecutionOrder(payload: GraphPlanSearchResponse): string[] {
+function padNumber(value: number, width: number): string {
+  return String(value).padStart(width, '0');
+}
+
+function buildExecutionOrder(
+  payload: GraphPlanSearchResponse,
+  nodeIdToNum?: Map<string, string>,
+): string[] {
   const executionPlan = payload.plan?.executionPlan ?? [];
   if (executionPlan.length === 0) {
     return [];
   }
 
-  return executionPlan.map((step) => step.label);
+  return executionPlan.map((step) => {
+    if (nodeIdToNum) {
+      const num = nodeIdToNum.get(step.nodeId) ?? '?';
+      const blocked =
+        step.blockedBy.length === 0
+          ? '-'
+          : step.blockedBy.map((id) => `[${nodeIdToNum.get(id) ?? '?'}]`).join(', ');
+      return `[${num}] ${step.label} (rank ${step.rank}, blockedBy: ${blocked})`;
+    }
+    return step.label;
+  });
+}
+
+function buildNodeNumberMap(payload: GraphPlanSearchResponse): Map<string, string> {
+  const plan = payload.plan;
+  if (!plan) return new Map();
+  const rawIds: string[] = [];
+  const graphNodes = (plan.graph?.nodes ?? []).filter((n): n is NonNullable<typeof n> => n != null);
+  if (graphNodes.length > 0) {
+    for (const n of graphNodes) {
+      if (n?.nodeId) rawIds.push(n.nodeId);
+    }
+  } else {
+    for (const t of plan.blockingTraps ?? []) {
+      if (t?.nodeId) rawIds.push(t.nodeId);
+    }
+    for (const s of plan.recommendedSkills ?? []) {
+      if (s?.nodeId) rawIds.push(s.nodeId);
+    }
+  }
+  const rankById = new Map<string, number>();
+  for (const s of plan.executionPlan ?? []) {
+    if (s?.nodeId) rankById.set(s.nodeId, s.rank);
+  }
+  rawIds.sort((a, b) => {
+    const ra = rankById.get(a);
+    const rb = rankById.get(b);
+    if (ra !== undefined && rb !== undefined) return ra - rb;
+    if (ra !== undefined) return -1;
+    if (rb !== undefined) return 1;
+    return 0;
+  });
+  const width = Math.max(3, String(rawIds.length).length);
+  const map = new Map<string, string>();
+  rawIds.forEach((id, idx) => map.set(id, padNumber(idx + 1, width)));
+  return map;
 }
 
 export function buildGraphPlanSummaryView(
@@ -92,11 +144,15 @@ export function buildGraphPlanSummaryView(
       ? 'capsule-fallback'
       : 'entry-fallback';
 
+  const nodeIdToNum = buildNodeNumberMap(payload);
+
   const blockingTraps =
     plan?.blockingTraps
       .filter((t) => t != null)
       .slice(0, trapLimit)
       .map((trap) => ({
+        num: nodeIdToNum.get(trap.nodeId) ?? '?',
+        nodeId: trap.nodeId,
         label: trap.label,
         severity: trap.severity,
         sourceId: trap.sourceId,
@@ -108,6 +164,8 @@ export function buildGraphPlanSummaryView(
       .filter((s) => s != null)
       .slice(0, skillLimit)
       .map((skill) => ({
+        num: nodeIdToNum.get(skill.nodeId) ?? '?',
+        nodeId: skill.nodeId,
         artifactId: skill.artifactId,
         label: skill.label,
         score: skill.score,
@@ -115,6 +173,8 @@ export function buildGraphPlanSummaryView(
       })) ??
     (payload.fallback?.routeFamily === 'capsule'
       ? payload.fallback.response.capsules.slice(0, skillLimit).map((capsule) => ({
+          num: '?',
+          nodeId: capsule.artifactId,
           artifactId: capsule.artifactId,
           label: capsule.goal,
           score: capsule.score,
@@ -128,10 +188,19 @@ export function buildGraphPlanSummaryView(
       .slice(0, skillLimit)
       .map((skill) => ({
         artifactId: skill.artifactId,
+        num: nodeIdToNum.get(skill.nodeId) ?? '?',
         references: skill.activationRefs.references.slice(0, referenceLimit).map((ref) => ref.path),
         assets: skill.activationRefs.assets.slice(0, assetLimit).map((asset) => asset.path),
         scripts: skill.activationRefs.scripts.slice(0, 1).map((script) => script.path),
       })) ?? [];
+
+  const labelById = new Map<string, string>();
+  for (const t of plan?.blockingTraps ?? []) if (t?.nodeId) labelById.set(t.nodeId, t.label);
+  for (const s of plan?.recommendedSkills ?? []) if (s?.nodeId) labelById.set(s.nodeId, s.label);
+  for (const g of plan?.graph?.nodes ?? [])
+    if ((g as any)?.nodeId) labelById.set((g as any).nodeId, (g as any).label);
+
+  const planEdgesWidth = Math.max(3, String(plan?.edges.length ?? 0).length);
 
   return {
     summary: summarizeGraphPlan(payload),
@@ -150,18 +219,26 @@ export function buildGraphPlanSummaryView(
     recommendedSkills,
     executionOrder:
       selectedPath === 'graph-plan'
-        ? buildExecutionOrder(payload).slice(0, skillLimit)
+        ? buildExecutionOrder(payload, nodeIdToNum).slice(0, skillLimit)
         : recommendedSkills.map((skill) => String(skill.label)),
     activationHints,
     planEdges:
       detailed || context.graphPlanMode === 'full'
-        ? (plan?.edges ?? []).map((edge) => ({
-            id: edge.id,
-            sourceNodeId: edge.sourceNodeId,
-            targetNodeId: edge.targetNodeId,
-            type: edge.type,
-            strength: edge.strength,
-          }))
+        ? (plan?.edges ?? [])
+            .filter((e): e is NonNullable<typeof e> => e != null)
+            .map((edge, idx) => ({
+              edgeNum: `E${padNumber(idx + 1, planEdgesWidth)}`,
+              id: edge.id,
+              sourceNodeId: edge.sourceNodeId,
+              targetNodeId: edge.targetNodeId,
+              sourceNum: nodeIdToNum.get(edge.sourceNodeId) ?? '?',
+              targetNum: nodeIdToNum.get(edge.targetNodeId) ?? '?',
+              sourceLabel: labelById.get(edge.sourceNodeId) ?? edge.sourceNodeId,
+              targetLabel: labelById.get(edge.targetNodeId) ?? edge.targetNodeId,
+              type: edge.type,
+              strength: edge.strength,
+              arrow: `--${edge.type}[${edge.strength}]-->`,
+            }))
         : [],
   };
 }

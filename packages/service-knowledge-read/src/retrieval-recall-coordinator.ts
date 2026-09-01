@@ -21,6 +21,7 @@ import { getRetrievalInfra } from './retrieval-infra.js';
 import { keywordRecall, normalizeQuery } from './retrieval-keyword.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from './retrieval-semantic.js';
 import type { KnowledgeRecord } from './store.js';
+import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
 
 export { inferChannelsFromMerged };
 interface RetrievalStrategyLike {
@@ -121,18 +122,177 @@ function toScoredEntry(
   return scoredEntry;
 }
 
-function rerankRecallResults(
+function toGoRankingEntries(candidates: MergedCandidate[]): Array<{
+  id: string;
+  semanticScore: number;
+  keywordScore: number;
+  graphScore?: number;
+  channelScores: Record<string, number>;
+  combinedScore: number;
+  tokenMatches: Array<{ token: string; fields: string[] }>;
+  channels: string[];
+  preRerankScore: number;
+  finalScore: number;
+  labels: string[];
+  scope: string;
+  shortcut: string;
+  detail: string;
+  decayState?: string;
+  boundary?: { context?: string[]; exclusions?: Array<{ kind: string; description: string }> };
+}> {
+  return candidates.map((c) => ({
+    id: c.entry.id,
+    semanticScore: c.semanticScore,
+    keywordScore: c.keywordScore,
+    ...(c.graphScore !== undefined ? { graphScore: c.graphScore } : {}),
+    channelScores: { ...c.channelScores },
+    combinedScore: c.combinedScore,
+    tokenMatches: c.tokenMatches.map((tm) => ({ token: tm.token, fields: [...tm.fields] })),
+    channels: [...c.channels],
+    preRerankScore: c.preRerankScore,
+    finalScore: c.finalScore,
+    labels: [...c.entry.labels],
+    scope: c.entry.scope,
+    shortcut: c.entry.shortcut,
+    detail: c.entry.detail,
+    ...(c.entry.boundary
+      ? {
+          boundary: {
+            ...(c.entry.boundary.context ? { context: [...c.entry.boundary.context] } : {}),
+            ...(c.entry.boundary.exclusions
+              ? {
+                  exclusions: c.entry.boundary.exclusions.map((e) => ({
+                    kind: e.kind ?? 'other',
+                    description: e.description,
+                  })),
+                }
+              : {}),
+          },
+        }
+      : {}),
+    ...(c.entry.decayMeta?.freshnessType ? { decayState: c.entry.decayMeta.freshnessType } : {}),
+  }));
+}
+
+function fromGoRankingEntries(
+  goEntries: Array<{
+    id: string;
+    semanticScore: number;
+    keywordScore: number;
+    graphScore?: number;
+    channelScores: Record<string, number>;
+    combinedScore: number;
+    tokenMatches: Array<{ token: string; fields: string[] }>;
+    channels: string[];
+    preRerankScore: number;
+    finalScore: number;
+    boundaryScoreDelta?: number;
+    decayMultiplier?: number;
+  }>,
+  entryMap: Map<string, KnowledgeRecord>,
+  originalMap: Map<string, MergedCandidate>,
+): MergedCandidate[] {
+  const out: MergedCandidate[] = [];
+  for (const ge of goEntries) {
+    const entry = entryMap.get(ge.id);
+    const orig = originalMap.get(ge.id);
+    if (!entry || !orig) continue;
+    out.push({
+      entry,
+      semanticScore: ge.semanticScore,
+      keywordScore: ge.keywordScore,
+      ...(ge.graphScore !== undefined ? { graphScore: ge.graphScore } : {}),
+      channelScores: ge.channelScores,
+      combinedScore: ge.combinedScore,
+      tokenMatches: ge.tokenMatches as MergedCandidate['tokenMatches'],
+      channels: ge.channels,
+      preRerankScore: ge.preRerankScore,
+      finalScore: ge.finalScore,
+      ...(ge.boundaryScoreDelta !== undefined ? { boundaryScoreDelta: ge.boundaryScoreDelta } : {}),
+      ...(ge.decayMultiplier !== undefined ? { decayMultiplier: ge.decayMultiplier } : {}),
+      ...(orig.version !== undefined ? { version: orig.version } : {}),
+      ...(orig.revision !== undefined ? { revision: orig.revision } : {}),
+      ...(orig.boundaryExplanation !== undefined
+        ? { boundaryExplanation: orig.boundaryExplanation }
+        : {}),
+    });
+  }
+  return out;
+}
+
+async function rerankRecallResults(
   infra: NonNullable<ReturnType<typeof getRetrievalInfra>>,
   mergedCandidates: MergedCandidate[],
   queryTokens: ReturnType<typeof normalizeQuery>,
   parsed: ReturnType<typeof retrievalQuerySchema.parse>,
-): RecallExecutionResult {
-  const rerankedCandidates = infra.scoring.rerankCandidates(mergedCandidates, queryTokens, {
-    maxCandidates: parsed.maxResults,
-    ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
-    freshnessConfig: infra.scoring.freshnessConfig,
-    earlyTerminationThreshold: 0.3,
-  });
+): Promise<RecallExecutionResult> {
+  const localFallback = (): MergedCandidate[] =>
+    infra.scoring.rerankCandidates(mergedCandidates, queryTokens, {
+      maxCandidates: parsed.maxResults,
+      ...(parsed.boundaryContext !== undefined && { boundaryContext: parsed.boundaryContext }),
+      freshnessConfig: infra.scoring.freshnessConfig,
+      earlyTerminationThreshold: 0.3,
+    });
+
+  if (mergedCandidates.length === 0) {
+    const reranked = localFallback();
+    return {
+      scoredEntries: infra.scoring.toScoredEntriesFromReranked(reranked),
+      mergedCandidates: reranked,
+    };
+  }
+
+  const goClient = getGoAcceleratorClient();
+  if (goClient.isEnabled) {
+    try {
+      const entryMap = new Map<string, KnowledgeRecord>();
+      const originalMap = new Map<string, MergedCandidate>();
+      for (const c of mergedCandidates) {
+        entryMap.set(c.entry.id, c.entry);
+        originalMap.set(c.entry.id, c);
+      }
+      const goEntries = toGoRankingEntries(mergedCandidates);
+      let rerankedCandidates: MergedCandidate[] | null = null;
+      try {
+        const res = await goClient.rankingBatch({
+          entries: goEntries,
+          queryTokens,
+          maxCandidates: parsed.maxResults,
+          ...(parsed.boundaryContext
+            ? {
+                boundaryContext: {
+                  contexts: parsed.boundaryContext.contexts ?? [],
+                  ...(parsed.boundaryContext.platform
+                    ? { platform: parsed.boundaryContext.platform }
+                    : {}),
+                },
+              }
+            : {}),
+        });
+        const merged = (res as any).merged as typeof goEntries;
+        if (Array.isArray(merged) && merged.length > 0) {
+          const mapped = fromGoRankingEntries(merged as any, entryMap, originalMap);
+          if (mapped.length > 0) rerankedCandidates = mapped;
+        } else if (Array.isArray(merged)) {
+          // Go returned empty (possible), treat as filtered result
+          rerankedCandidates = fromGoRankingEntries(merged as any, entryMap, originalMap);
+        }
+      } catch {
+        // Go failed, fall through to local
+      }
+      if (rerankedCandidates === null) {
+        rerankedCandidates = localFallback();
+      }
+      return {
+        scoredEntries: infra.scoring.toScoredEntriesFromReranked(rerankedCandidates),
+        mergedCandidates: rerankedCandidates,
+      };
+    } catch {
+      // fall through to local
+    }
+  }
+
+  const rerankedCandidates = localFallback();
   return {
     scoredEntries: infra.scoring.toScoredEntriesFromReranked(rerankedCandidates),
     mergedCandidates: rerankedCandidates,
@@ -311,7 +471,7 @@ export async function hybridRecall(
         semanticCandidates,
         keywordCandidates,
       );
-      return rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
+      return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
     } catch (error) {
       console.error('[hybridRecall] DB search failed, falling back to in-memory:', error);
     }
@@ -329,7 +489,7 @@ export async function hybridRecall(
   ]);
 
   const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
-  return rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
+  return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
 }
 
 async function computeSemanticCandidates(
@@ -413,7 +573,7 @@ export async function graphAssistedHybridRecall(
     graphCandidates: governedGraphCandidates,
   });
 
-  const reranked = rerankRecallResults(infra!, finalMerged, queryTokens, parsed);
+  const reranked = await rerankRecallResults(infra!, finalMerged, queryTokens, parsed);
   return {
     ...reranked,
     trace: {

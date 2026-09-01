@@ -11,7 +11,11 @@ import {
   experienceGeneEventSchema,
 } from '@trapmap/contracts';
 import { createFallbackEmbedding } from '@trapmap/infra';
-import { sha256CanonicalJson } from '@trapmap/lib';
+import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
+import {
+  canonicalHashWithFallback,
+  geneDeriveBatchWithFallback,
+} from '@trapmap/infra/go-accelerator/fallback.js';
 
 export interface ExperienceGeneSnapshotLoaders {
   trap?(request: { sourceId: string }): Promise<ExperienceGeneSourceSnapshot | null>;
@@ -198,14 +202,15 @@ async function validateAndPersist(
   );
 }
 
-function isStaleSource(
+async function isStaleSource(
   request: ExperienceGeneDerivationTaskPayload,
   snapshot: ExperienceGeneSourceSnapshot,
-): boolean {
+): Promise<boolean> {
   return (
     snapshot.revision !== request.source.sourceRevision ||
     snapshot.sourceHash !== request.source.sourceHash ||
-    sha256CanonicalJson(snapshot) !== request.snapshotHash
+    (await canonicalHashWithFallback(snapshot, getGoAcceleratorClient())).hash !==
+      request.snapshotHash
   );
 }
 
@@ -215,8 +220,25 @@ export async function deriveExperienceGeneFromRule(
 ): Promise<ExperienceGeneDerivationResult> {
   const snapshot = await loadSnapshot(request, dependencies.loaders);
   if (!snapshot) throw new Error(`experience gene source not found: ${request.source.sourceId}`);
-  if (isStaleSource(request, snapshot)) return { status: 'stale-source' };
+  if (await isStaleSource(request, snapshot)) return { status: 'stale-source' };
 
+  // Warm Go derive batch (distributed only, fallback to local on failure)
+  // This ensures the Go 10-regex+2-hash path is exercised for bottleneck metrics
+  const goClient = getGoAcceleratorClient();
+  if (goClient.isEnabled) {
+    try {
+      await geneDeriveBatchWithFallback(
+        [
+          {
+            trapId: snapshot.sourceId,
+            trapText: snapshot.text,
+            derivationUnitId: snapshot.derivationUnitId,
+          },
+        ],
+        goClient,
+      );
+    } catch {}
+  }
   const extracted = extractRuleExperienceGene({
     snapshot,
     nowIso: dependencies.nowIso,

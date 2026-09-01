@@ -1,9 +1,9 @@
 # 数据库表结构快速参考
 
-> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。表定义现由 `packages/persistence-schema/src/` 统一持有。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。表定义现由 `packages/db/src/` 统一持有。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
-> **源码真实来源**: `packages/persistence-schema/src/`
-> **表定义目录**: `packages/persistence-schema/src/`
+> **源码真实来源**: `packages/db/src/`
+> **表定义目录**: `packages/db/src/`
 > **数据模型详情**: `docs/reference/DATA_MODEL.md`
 > **迁移基线**: 六个 `packages/service-*/drizzle/` 目录各自拥有一个空库 baseline；distributed host 按 `identity-access → knowledge-write → candidate-ingestion → governance-review → job-runtime → knowledge-read` 协调执行。
 
@@ -22,7 +22,7 @@
 
 ## 表总览 (69 张表)
 
-> 表清单以 `packages/persistence-schema/src/` 实测 69 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
+> 表清单以 `packages/db/src/` 实测 69 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
 
 ### 知识域 (16 表)
 
@@ -146,7 +146,7 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | `usage_events` | 使用事件 | `id` (text) |
 | `usage_events_daily_rollup` | 日聚合分析 | `id` (identity) |
 
-> ⚠️ `conflict_relations`（治理冲突关系）**仅存在于 `service-governance-review/drizzle/0000_shiny_swarm.sql` 迁移 SQL 与其原始 SQL 查询（`pg-ports.ts`）中，未在 `packages/persistence-schema` 建模**。这是迁移 SQL 与 schema 源码双份表定义源的实例；Task 11 裁决为保持现状 + 文档标注（最小改动），是否迁入 persistence-schema 或删除留待后续任务评估。
+> ⚠️ `conflict_relations`（治理冲突关系）**仅存在于 `service-governance-review/drizzle/0000_shiny_swarm.sql` 迁移 SQL 与其原始 SQL 查询（`pg-ports.ts`）中，未在 `packages/db` 建模**。这是迁移 SQL 与 schema 源码双份表定义源的实例；Task 11 裁决为保持现状 + 文档标注（最小改动），是否迁入 db 或删除留待后续任务评估。
 
 ### 标签目录域 (4 表) — 规范标签 catalog
 
@@ -183,7 +183,7 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 
 ### task_queue 关键索引
 
-> 以 `packages/persistence-schema/src/queue.ts` 与 `service-job-runtime/drizzle/0000_sharp_old_lace.sql` 为准。历史迁移 0009 中的 `task_queue_pending_dequeue_idx`（出队谓词索引）当前 schema 已不存在，仅保留在 queue.ts 注释中；SKIP LOCKED 出队谓词（`status='pending' AND process_after<=NOW() ORDER BY priority DESC, created_at ASC`）目前无专门索引支撑。
+> 以 `packages/db/src/schema/queue.ts` 与 `service-job-runtime/drizzle/0000_sharp_old_lace.sql` 为准。历史迁移 0009 中的 `task_queue_pending_dequeue_idx`（出队谓词索引）当前 schema 已不存在，仅保留在 queue.ts 注释中；SKIP LOCKED 出队谓词（`status='pending' AND process_after<=NOW() ORDER BY priority DESC, created_at ASC`）目前无专门索引支撑。
 
 | 索引名 | 类型 | 列 | 条件 | 用途 |
 |--------|------|-----|------|------|
@@ -479,5 +479,5 @@ feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
 ## A7 迁移窗口批处理（2026-08-22）
 
 - `candidates` 三个 legacy JSONB 列（analysis_snapshot/duplicate_case/manual_result）经 `service-candidate-ingestion/drizzle/0001` 退役。
-- `task_queue_type_dedupe_idx` 冗余索引退役：persistence-schema 单源移除定义 + `drizzle/0001 DROP INDEX IF EXISTS`；dedupe 回查由部分唯一索引覆盖。
+- `task_queue_type_dedupe_idx` 冗余索引退役：db 单源移除定义 + `drizzle/0001 DROP INDEX IF EXISTS`；dedupe 回查由部分唯一索引覆盖。
 - identity-access 基线移除 `store_snapshot` 幽灵表 CREATE TABLE（Wave-9 残留）；`conflict_relations` 裁决：有意不建模，归属 governance-review 独立 baseline，随该服务演进处理。

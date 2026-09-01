@@ -36,7 +36,7 @@ export interface NormalizedDuplicateInput {
   tokens: string[];
 }
 
-function tokens(text: string): string[] {
+export function dedupTokens(text: string): string[] {
   return [
     ...new Set(
       text
@@ -65,7 +65,7 @@ export function buildNormalizedDuplicateInput(
       title: trap.shortcut,
       detail: trap.detail,
       keywords: [...new Set(trap.labels)],
-      tokens: tokens(`${trap.shortcut}\n${trap.detail}`),
+      tokens: dedupTokens(`${trap.shortcut}\n${trap.detail}`),
     };
   }
 
@@ -78,7 +78,7 @@ export function buildNormalizedDuplicateInput(
     title,
     detail: files.map((file) => file.path).join('\n'),
     keywords: [],
-    tokens: tokens(files.map((file) => file.path).join('\n')),
+    tokens: dedupTokens(files.map((file) => file.path).join('\n')),
   };
 }
 
@@ -87,7 +87,7 @@ function overlap(left: string[], right: string[]): string[] {
   return left.filter((term) => rightTerms.has(term.toLowerCase()));
 }
 
-function similarity(left: string[], right: string[]): number {
+export function dedupSimilarity(left: string[], right: string[]): number {
   const leftSet = new Set(left);
   const rightSet = new Set(right);
   if (leftSet.size === 0 || rightSet.size === 0) return 0;
@@ -104,8 +104,8 @@ function buildMatch(
   keywords: string[],
   exact: boolean,
 ): DuplicateMatch | null {
-  const corpusTokens = tokens(corpusText);
-  const score = exact ? 1 : similarity(candidate.tokens, corpusTokens);
+  const corpusTokens = dedupTokens(corpusText);
+  const score = exact ? 1 : dedupSimilarity(candidate.tokens, corpusTokens);
   if (!exact && score < SEMANTIC_MATCH_CUTOFF) return null;
   return {
     entityType,
@@ -123,6 +123,10 @@ function buildMatch(
       textOverlapPercent: exact ? 100 : Math.round(score * 1000) / 10,
     },
   };
+}
+
+export function dedupBatchSimilarities(left: string[], rights: string[][]): number[] {
+  return rights.map((right) => dedupSimilarity(left, right));
 }
 
 export function createCandidateDuplicateDetector(

@@ -23,6 +23,14 @@ export interface RequestOptions {
    * Takes precedence over the provider's `getBaseUrl()`.
    */
   baseUrl?: string;
+  /**
+   * Fetch credentials mode for this request.
+   * When `include`, the browser will send cookies even cross-site.
+   * Defaults to `same-origin` (omit the option). The gateway cookie
+   * preference branch uses `include` when no bearer token is present,
+   * without mutating global fetch, so concurrent requests remain isolated.
+   */
+  credentials?: RequestCredentials;
 }
 
 /** Wrapper returned by {@link apiRequest} on success. */

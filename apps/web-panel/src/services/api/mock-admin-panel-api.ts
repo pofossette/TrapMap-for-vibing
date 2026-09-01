@@ -5,6 +5,8 @@ import type {
   SkillArtifact,
 } from '@trapmap/contracts';
 
+import { ApiError } from '@trapmap/client-core';
+
 import type {
   ActivityFeedResponse,
   AdminPanelApiContract,
@@ -790,8 +792,19 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
       return buildReviewDetailResponse(reviewId);
     },
     async submitReviewDecision(input: ReviewDecisionRequest) {
+      const activeSession = buildSession();
+      if (!activeSession.authenticated) {
+        throw new ApiError(401, { kind: 'auth' }, 'Missing session token');
+      }
+      if (activeSession.user?.role === 'read-only-operator') {
+        throw new ApiError(
+          403,
+          { kind: 'forbidden' },
+          'read-only-operator cannot submit review decision',
+        );
+      }
       const detail = buildReviewDetailResponse(input.entryId);
-      const activeUser = buildSession().user;
+      const activeUser = activeSession.user;
       const decidedAt = '2026-06-19T10:30:00.000Z';
 
       detail.entry.reviewHistory.push({
@@ -852,12 +865,16 @@ export function createMockAdminPanelApi(): AdminPanelApiContract {
       if (!art) throw new Error('Artifact not found');
       return art;
     },
-    async loadTrapGraph() {
+    async loadTrapGraph(query?: Record<string, unknown>) {
+      // In mock, ignore server-side pagination/depth and return the full fixture.
+      // Real pagination via `items/filteredTotal/total/nextCursor` is simulated
+      // by the caller when needed; keep snapshot fallback for mock mode.
+      void query;
       return mockTrapGraph;
     },
-    async loadSkillGraph(artifactId, query) {
-      const mode = query?.mode || 'derivation';
-      const graph = mockSkillGraphs[artifactId]?.[mode];
+    async loadSkillGraph(artifactId: string, query?: Record<string, unknown>) {
+      const mode = (query?.mode as string) || 'derivation';
+      const graph = mockSkillGraphs[artifactId]?.[mode as 'derivation' | 'semantic'];
       if (!graph) {
         return { nodes: [], edges: [] };
       }

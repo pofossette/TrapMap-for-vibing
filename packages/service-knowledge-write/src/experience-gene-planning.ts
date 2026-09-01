@@ -7,7 +7,8 @@ import {
   experienceGeneSourceLifecycleEventSchema,
   experienceGeneSourceSnapshotSchema,
 } from '@trapmap/contracts';
-import { sha256CanonicalJson } from '@trapmap/lib';
+import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
+import { canonicalHashWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
 
 type Queryable = {
   query<T extends Record<string, unknown>>(
@@ -35,7 +36,7 @@ function nullableId(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
-function task(
+async function task(
   eventName: ExperienceGeneSourceLifecycleEvent['name'],
   sourceId: string,
   snapshot: ExperienceGeneSourceSnapshot,
@@ -54,7 +55,7 @@ function task(
     derivationUnitId: snapshot.derivationUnitId,
     generatorKind: 'rule',
     promptVersion: EXPERIENCE_GENE_RULE_PROMPT_VERSION,
-    snapshotHash: sha256CanonicalJson(snapshot),
+    snapshotHash: (await canonicalHashWithFallback(snapshot, getGoAcceleratorClient())).hash,
   });
 }
 
@@ -76,11 +77,12 @@ async function approvedTrap(pool: Queryable, id: string) {
   if (!row || number(row.revision_no) < 1) return null;
 
   const text = string(row.detail);
-  const sourceHash = sha256CanonicalJson({
-    title: string(row.shortcut),
-    text,
-    labels: labels(row.labels),
-  });
+  const sourceHash = (
+    await canonicalHashWithFallback(
+      { title: string(row.shortcut), text, labels: labels(row.labels) },
+      getGoAcceleratorClient(),
+    )
+  ).hash;
   return experienceGeneSourceSnapshotSchema.parse({
     kind: 'trap',
     sourceId: String(row.id),
@@ -156,43 +158,45 @@ async function approvedCapsules(pool: Queryable, artifactId: string) {
     [artifactId],
   );
 
-  return result.rows.map((row) => {
-    const provenance = {
-      revisionSourceHash: string(row.source_hash),
-      capsuleId: String(row.capsule_id),
-      content: string(row.content),
-      situation: string(row.situation),
-      problem: string(row.problem),
-      goal: string(row.goal),
-      errorText: nullableId(row.error_text),
-      contextualPrefix: nullableId(row.contextual_prefix),
-    };
-    return experienceGeneSourceSnapshotSchema.parse({
-      kind: 'skill-capsule',
-      sourceId: provenance.capsuleId,
-      revision: number(row.revision_no),
-      sourceHash: sha256CanonicalJson(provenance),
-      artifactId: String(row.artifact_id),
-      artifactRevision: number(row.revision_no),
-      capsuleId: provenance.capsuleId,
-      derivationUnitId: provenance.capsuleId,
-      title: string(row.artifact_title),
-      labels: labels(row.labels),
-      scope: string(row.scope),
-      teamId: nullableId(row.team_id),
-      requiredLevel: number(row.required_level),
-      text: [provenance.situation, provenance.problem, provenance.goal, provenance.content]
-        .filter(Boolean)
-        .join('\n'),
-      truncated: false,
-      situation: provenance.situation,
-      problem: provenance.problem,
-      goal: provenance.goal,
-      errorText: provenance.errorText,
-      contextualPrefix: provenance.contextualPrefix,
-      sourcePaths: labels(row.source_paths),
-    });
-  });
+  return Promise.all(
+    result.rows.map(async (row) => {
+      const provenance = {
+        revisionSourceHash: string(row.source_hash),
+        capsuleId: String(row.capsule_id),
+        content: string(row.content),
+        situation: string(row.situation),
+        problem: string(row.problem),
+        goal: string(row.goal),
+        errorText: nullableId(row.error_text),
+        contextualPrefix: nullableId(row.contextual_prefix),
+      };
+      return experienceGeneSourceSnapshotSchema.parse({
+        kind: 'skill-capsule',
+        sourceId: provenance.capsuleId,
+        revision: number(row.revision_no),
+        sourceHash: (await canonicalHashWithFallback(provenance, getGoAcceleratorClient())).hash,
+        artifactId: String(row.artifact_id),
+        artifactRevision: number(row.revision_no),
+        capsuleId: provenance.capsuleId,
+        derivationUnitId: provenance.capsuleId,
+        title: string(row.artifact_title),
+        labels: labels(row.labels),
+        scope: string(row.scope),
+        teamId: nullableId(row.team_id),
+        requiredLevel: number(row.required_level),
+        text: [provenance.situation, provenance.problem, provenance.goal, provenance.content]
+          .filter(Boolean)
+          .join('\n'),
+        truncated: false,
+        situation: provenance.situation,
+        problem: provenance.problem,
+        goal: provenance.goal,
+        errorText: provenance.errorText,
+        contextualPrefix: provenance.contextualPrefix,
+        sourcePaths: labels(row.source_paths),
+      });
+    }),
+  );
 }
 
 export function createExperienceGeneDerivationPlanner(pool: Queryable) {
@@ -205,14 +209,16 @@ export function createExperienceGeneDerivationPlanner(pool: Queryable) {
       if (event.name.startsWith('knowledge.')) {
         if (!event.entryId) throw new Error('knowledge lifecycle event missing entryId');
         const snapshot = await approvedTrap(pool, event.entryId);
-        return snapshot ? [task(event.name, event.entryId, snapshot)] : [];
+        return snapshot ? [await task(event.name, event.entryId, snapshot)] : [];
       }
 
       if (!event.artifactId) throw new Error('artifact lifecycle event missing artifactId');
       const artifactSnapshot = await approvedArtifact(pool, event.artifactId);
       const capsuleSnapshots = await approvedCapsules(pool, event.artifactId);
       const snapshots = [...(artifactSnapshot ? [artifactSnapshot] : []), ...capsuleSnapshots];
-      return snapshots.map((snapshot) => task(event.name, snapshot.sourceId, snapshot));
+      return Promise.all(
+        snapshots.map((snapshot) => task(event.name, snapshot.sourceId, snapshot)),
+      );
     },
   };
 }

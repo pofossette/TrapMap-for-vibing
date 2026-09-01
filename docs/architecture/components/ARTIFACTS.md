@@ -188,17 +188,17 @@ interface ClientManifestScriptRecord {
 ```mermaid
 flowchart TB
     subgraph 创建工件["创建工件"]
-        A1["POST /v1/operations/artifacts"]
+        A1["POST /v1/operations/artifacts/import"]
         A2["1. 用户上传源文件\n2. Agent 预审（agent-pass/agent-rejected）\n3. 进入人工审核队列"]
     end
 
     subgraph 审核发布["审核与发布"]
-        C1["POST /v1/operations/artifacts/:id/review"]
+        C1["POST /v1/operations/artifacts/:artifactId/review"]
         C2["1. 审核者检查工件\n2. 批准或拒绝\n3. 批准后：状态 → 'approved'"]
     end
 
     subgraph 派生输出["派生输出"]
-        B1["POST /v1/operations/artifacts/:id/derive"]
+        B1["内部 deriveFromPayloads — 无独立 gateway POST /derive"]
         B2["1. 生成 SkillProfile（摘要）\n2. 提取 SkillCapsules（分块）\n3. 生成 ClientManifest（元数据）\n4. 索引胶囊（向量与关键词）"]
     end
 
@@ -249,7 +249,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    A[POST /v1/operations/artifacts] --> B{验证会话}
+    A[POST /v1/operations/artifacts/import] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查权限}
     D -->|无权限| E[403 禁止访问]
@@ -267,11 +267,11 @@ flowchart TB
     N --> O[返回工件]
 ```
 
-#### 派生过程
+#### 派生过程（内部 derive，无独立 gateway 端点）
 
 ```mermaid
 flowchart TB
-    A[POST /v1/operations/artifacts/:id/derive] --> B{验证会话}
+    A[deriveFromPayloads / deriveSkillArtifactOutputs] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查工件存在}
     D -->|不存在| E[404 未找到]
@@ -300,7 +300,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-    A[POST /v1/operations/artifacts/:id/review] --> B{验证会话}
+    A[POST /v1/operations/artifacts/:artifactId/review] --> B{验证会话}
     B -->|失败| C[401 未授权]
     B -->|成功| D{检查 knowledge:review 权限}
     D -->|无权限| E[403 禁止访问]
