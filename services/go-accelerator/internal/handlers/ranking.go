@@ -1,6 +1,9 @@
+// Deprecated: use knowledge-read-go/internal/ranking — will be removed 2026-10-15, see DEPRECATED.md
 package handlers
 
 import (
+	"log"
+
 	"encoding/json"
 	"net/http"
 
@@ -9,6 +12,8 @@ import (
 )
 
 func RankingBatch(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Deprecated", "use knowledge-read-go")
+	log.Printf("WARN deprecated RankingBatch called, use knowledge-read-go")
 	var req api.RankingBatchRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -107,6 +112,8 @@ func RankingBatch(w http.ResponseWriter, r *http.Request) {
 }
 
 func KeywordScore(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("X-Deprecated", "use knowledge-read-go")
+	log.Printf("WARN deprecated KeywordScore called")
 	var req api.KeywordScoreRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

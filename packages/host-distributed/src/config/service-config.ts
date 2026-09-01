@@ -39,6 +39,11 @@ const ENV_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS = 'TRAPMAP_SERVICE_IDLE_IN_TRAN
 const ENV_DATABASE_CONNECTION_BUDGET = 'TRAPMAP_DATABASE_CONNECTION_BUDGET';
 const ENV_SYSTEM_ADMIN_KEY = 'TRAPMAP_SYSTEM_ADMIN_KEY';
 const ENV_GO_ACCELERATOR_ENABLED = 'TRAPMAP_GO_ACCELERATOR_ENABLED';
+const ENV_KNOWLEDGE_READ_GO_ENABLED = 'TRAPMAP_KNOWLEDGE_READ_GO_ENABLED';
+const ENV_KNOWLEDGE_READ_GO_URL = 'TRAPMAP_KNOWLEDGE_READ_GO_URL';
+const ENV_KNOWLEDGE_READ_GO_TIMEOUT_MS = 'TRAPMAP_KNOWLEDGE_READ_GO_TIMEOUT_MS';
+const ENV_READ_IMPL = 'TRAPMAP_READ_IMPL';
+const ENV_READ_SHADOW_PERCENT = 'TRAPMAP_READ_SHADOW_PERCENT';
 const ENV_GO_ACCELERATOR_URL = 'TRAPMAP_GO_ACCELERATOR_URL';
 const ENV_GO_ACCELERATOR_TIMEOUT_MS = 'TRAPMAP_GO_ACCELERATOR_TIMEOUT_MS';
 
@@ -121,6 +126,16 @@ export interface InternalServiceUrls {
 }
 
 export type InternalTransportKind = 'http' | 'rpc';
+
+export type ReadImpl = 'off' | 'shadow' | 'dual' | 'go';
+
+export interface KnowledgeReadGoConfig {
+  enabled: boolean;
+  url: string;
+  timeoutMs: number;
+  impl: ReadImpl;
+  shadowPercent: number;
+}
 
 export interface GoAcceleratorConfig {
   enabled: boolean;
@@ -452,6 +467,26 @@ export function assertDistributedResilienceConfig(
       );
     }
   }
+}
+
+export function getKnowledgeReadGoConfig(): KnowledgeReadGoConfig {
+  const rawImpl = (
+    (process.env[ENV_READ_IMPL] ?? process.env[ENV_KNOWLEDGE_READ_GO_ENABLED] === 'true')
+      ? 'go'
+      : 'off'
+  ) as string;
+  const impl = (['off', 'shadow', 'dual', 'go'].includes(rawImpl) ? rawImpl : 'off') as ReadImpl;
+  const enabled = impl !== 'off' && process.env[ENV_KNOWLEDGE_READ_GO_ENABLED] !== 'false';
+  const url = process.env[ENV_KNOWLEDGE_READ_GO_URL] ?? 'http://localhost:4101';
+  const timeoutMs = Number.parseInt(process.env[ENV_KNOWLEDGE_READ_GO_TIMEOUT_MS] ?? '3000', 10);
+  const shadowPercent = Number.parseInt(process.env[ENV_READ_SHADOW_PERCENT] ?? '5', 10);
+  return {
+    enabled: enabled || impl !== 'off',
+    url,
+    timeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : 3000,
+    impl,
+    shadowPercent: Number.isFinite(shadowPercent) ? shadowPercent : 5,
+  };
 }
 
 export function getGoAcceleratorConfig(): GoAcceleratorConfig {

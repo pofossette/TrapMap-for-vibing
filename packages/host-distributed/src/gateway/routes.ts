@@ -25,7 +25,7 @@ import {
 } from '@trapmap/service-knowledge-read';
 
 import { type InternalServiceClients, breakerStatesSnapshot } from './internal-client.js';
-import { getGoAcceleratorConfig } from '../config/service-config.js';
+import { getGoAcceleratorConfig, getKnowledgeReadGoConfig } from '../config/service-config.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
 import { TokenBucketRateLimiter, resolveRateLimitConfig } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';
@@ -196,7 +196,22 @@ export function registerGatewayRoutes(
 
   app.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     const goCfg = getGoAcceleratorConfig();
+    const readGoCfg = getKnowledgeReadGoConfig();
     let goStatus: Record<string, unknown> | undefined;
+    let readGoStatus: Record<string, unknown> | undefined;
+    if (readGoCfg.enabled) {
+      try {
+        const c2 = new AbortController();
+        const t2 = setTimeout(() => c2.abort(), 800);
+        const r2 = await fetch(`${readGoCfg.url.replace(/\/$/, '')}/health`, { signal: c2.signal });
+        clearTimeout(t2);
+        readGoStatus = r2.ok
+          ? ((await r2.json()) as Record<string, unknown>)
+          : { status: 'unreachable', httpStatus: r2.status };
+      } catch (e) {
+        readGoStatus = { status: 'unreachable', error: String(e) };
+      }
+    }
     if (goCfg.enabled) {
       try {
         const controller = new AbortController();
@@ -217,6 +232,7 @@ export function registerGatewayRoutes(
       status: 'ok',
       timestamp: new Date().toISOString(),
       ...(goStatus ? { goAccelerator: goStatus } : {}),
+      ...(readGoStatus ? { knowledgeReadGo: readGoStatus } : {}),
     });
   });
 
@@ -232,7 +248,19 @@ export function registerGatewayRoutes(
     const breakerStates = breakerStatesSnapshot();
     const anyOpen = Object.values(breakerStates).some((state) => state === 'open');
     const goCfg = getGoAcceleratorConfig();
+    const readGoCfg2 = getKnowledgeReadGoConfig();
     let goReady: Record<string, unknown> | undefined;
+    let readGoReady: Record<string, unknown> | undefined;
+    if (readGoCfg2.enabled) {
+      try {
+        const r = await fetch(`${readGoCfg2.url.replace(/\/$/, '')}/ready`, {
+          signal: AbortSignal.timeout(800),
+        });
+        readGoReady = r.ok ? { status: 'ready' } : { status: 'unreachable', httpStatus: r.status };
+      } catch (e) {
+        readGoReady = { status: 'unreachable', error: String(e) };
+      }
+    }
     if (goCfg.enabled) {
       try {
         const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/ready`, {
@@ -243,12 +271,19 @@ export function registerGatewayRoutes(
         goReady = { status: 'unreachable', error: String(e) };
       }
     }
-    const degraded = anyOpen || (goReady !== undefined && goReady.status !== 'ready');
+    const degraded =
+      anyOpen ||
+      (goReady !== undefined && goReady.status !== 'ready') ||
+      (readGoReady !== undefined && readGoReady.status !== 'ready');
     return reply.status(degraded ? 503 : 200).send({
       service: 'gateway',
       status: degraded ? 'degraded' : 'ready',
       timestamp: new Date().toISOString(),
-      dependencySummary: { breakerStates, ...(goReady ? { goAccelerator: goReady } : {}) },
+      dependencySummary: {
+        breakerStates,
+        ...(goReady ? { goAccelerator: goReady } : {}),
+        ...(readGoReady ? { knowledgeReadGo: readGoReady } : {}),
+      },
     });
   });
 

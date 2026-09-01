@@ -1,3 +1,4 @@
+// Deprecated: use knowledge-read-go/internal/ranking/domain — see DEPRECATED.md, sunset 2026-10-15
 package ranking
 
 import (

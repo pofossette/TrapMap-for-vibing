@@ -121,7 +121,8 @@
     "scripts/archived/**",
     "packages/skills",
     "services/go-accelerator/**",
-    "**/*.go"
+    "**/*.go",
+    "services/knowledge-read-go/**"
   ],
   "boundaries": {
     "zones": [

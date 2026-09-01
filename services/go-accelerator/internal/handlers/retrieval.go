@@ -1,3 +1,4 @@
+// Deprecated: use knowledge-read-go/internal/recall — will be removed 2026-10-15
 package handlers
 
 import (
