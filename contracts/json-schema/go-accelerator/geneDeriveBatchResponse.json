@@ -49,13 +49,7 @@
                 }
               }
             },
-            "required": [
-              "MATCH",
-              "GOAL",
-              "STRATEGY",
-              "AVOID",
-              "VERIFY"
-            ],
+            "required": ["MATCH", "GOAL", "STRATEGY", "AVOID", "VERIFY"],
             "additionalProperties": false
           },
           "contentHash": {
@@ -67,20 +61,12 @@
             "pattern": "^[0-9a-f]{64}$"
           }
         },
-        "required": [
-          "trapId",
-          "derivationUnitId",
-          "sections",
-          "contentHash",
-          "sourceHash"
-        ],
+        "required": ["trapId", "derivationUnitId", "sections", "contentHash", "sourceHash"],
         "additionalProperties": false
       }
     }
   },
-  "required": [
-    "results"
-  ],
+  "required": ["results"],
   "additionalProperties": false,
   "title": "geneDeriveBatchResponse"
 }

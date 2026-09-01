@@ -14,11 +14,7 @@
       "minimum": 0
     }
   },
-  "required": [
-    "similarity",
-    "normA",
-    "normB"
-  ],
+  "required": ["similarity", "normA", "normB"],
   "additionalProperties": false,
   "title": "vectorCosineResponse"
 }

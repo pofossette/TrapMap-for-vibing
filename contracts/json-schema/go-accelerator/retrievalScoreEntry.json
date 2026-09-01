@@ -31,14 +31,7 @@
       "type": "number"
     }
   },
-  "required": [
-    "id",
-    "scope",
-    "labels",
-    "requiredLevel",
-    "shortcut",
-    "detail"
-  ],
+  "required": ["id", "scope", "labels", "requiredLevel", "shortcut", "detail"],
   "additionalProperties": false,
   "title": "retrievalScoreEntry"
 }

@@ -36,14 +36,7 @@
             "type": "number"
           }
         },
-        "required": [
-          "id",
-          "scope",
-          "labels",
-          "requiredLevel",
-          "shortcut",
-          "detail"
-        ],
+        "required": ["id", "scope", "labels", "requiredLevel", "shortcut", "detail"],
         "additionalProperties": false
       }
     },
@@ -66,10 +59,7 @@
           }
         }
       },
-      "required": [
-        "labels",
-        "scopes"
-      ],
+      "required": ["labels", "scopes"],
       "additionalProperties": false
     },
     "limit": {
@@ -78,11 +68,7 @@
       "maximum": 100
     }
   },
-  "required": [
-    "entries",
-    "query",
-    "filters"
-  ],
+  "required": ["entries", "query", "filters"],
   "additionalProperties": false,
   "title": "retrievalScoreRequest"
 }
