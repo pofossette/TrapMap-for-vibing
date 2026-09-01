@@ -55,6 +55,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
     expect(calls[0]?.sql).toContain('entry_type');
     expect(calls[0]?.sql).toContain('submitted_by_user_id');
     expect(calls[0]?.sql).toContain('remediation_opened_by_user_id');
+    expect(calls[0]?.sql).toContain('custom_answers');
     expect(calls[0]?.values).toEqual(
       expect.arrayContaining([
         'feedback_abc123',
@@ -62,15 +63,20 @@ describe('governance-review PostgreSQL owner bundle', () => {
         'user-1',
         'alice',
         'pending-human-review',
+        JSON.stringify([{ prompt: 'What happened?', answer: 'Wrong result' }]),
       ]),
     );
-    expect(calls[1]?.sql).toContain('INSERT INTO feedback_custom_answers');
-    expect(calls[1]?.values).toEqual(['feedback_abc123', 'What happened?', 'Wrong result']);
+    expect(calls).toHaveLength(1);
     expect(calls.flatMap(({ sql }) => sql.match(/feedback_queue/g) ?? [])).toEqual([]);
   });
 
   it('hydrates custom answers and maps database rows to the feedback port record', async () => {
     const query = vi.fn(async (sql: string) => {
+      if (sql.includes('SELECT custom_answers FROM')) {
+        return {
+          rows: [{ custom_answers: [{ prompt: 'What happened?', answer: 'Wrong result' }] }],
+        };
+      }
       if (sql.includes('FROM feedback_records')) {
         return {
           rows: [
@@ -123,7 +129,7 @@ describe('governance-review PostgreSQL owner bundle', () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining('feedback_records'), [
       'feedback_abc123',
     ]);
-    expect(query).toHaveBeenCalledWith(expect.stringContaining('feedback_custom_answers'), [
+    expect(query).toHaveBeenCalledWith(expect.stringContaining('custom_answers'), [
       'feedback_abc123',
     ]);
   });
@@ -186,6 +192,11 @@ describe('governance-review PostgreSQL owner bundle', () => {
 
   it('exposes a governance retrieval projection for retrieval consumers', async () => {
     const query = vi.fn(async (sql: string, _values?: unknown[]) => {
+      if (sql.includes('SELECT custom_answers FROM')) {
+        return {
+          rows: [{ custom_answers: [{ prompt: 'What happened?', answer: 'Wrong result' }] }],
+        };
+      }
       if (sql.includes('FROM feedback_records')) {
         return {
           rows: [

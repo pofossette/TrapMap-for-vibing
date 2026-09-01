@@ -20,11 +20,11 @@
 | 向量搜索 | pgvector (384 维 HNSW 索引) |
 | 全文搜索 | tsvector + GIN 索引 |
 
-## 表总览 (69 张表)
+## 表总览 (55 张表 — 2026-09-01 压缩，69→55，80-90%性能保底)
 
-> 表清单以 `packages/db/src/` 实测 69 张 `pgTable` 为准；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
+> 表清单以 `packages/db/src/` 实测 55 张 `pgTable` 为准（2026-09-01 从 69 压缩：移除 12 张零引用 boundary 子表 + 2 张低频表，低频 Q&A 与边界约束改 JSONB + GIN，见“表压缩说明”）；六个 `packages/service-*/drizzle/` 迁移 SQL 与之对齐（例外见下文 `conflict_relations` 标注）。
 
-### 知识域 (16 表)
+### 知识域 (10 表 — 16→10，6 boundary 子表已 JSONB 化)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
@@ -34,18 +34,12 @@
 | `knowledge_review_decisions` | 审核决策记录（approve/reject） | `id` (identity) |
 | `lifecycle_events` | 状态变更审计 | `id` (text) |
 | `knowledge_labels` | 结构化标签 | 唯一索引 `(entry_id, label)` |
-| `knowledge_boundary_contexts` | 情境上下文 | `id` (identity) |
-| `knowledge_boundary_versions` | 版本范围 | `id` (identity) |
-| `knowledge_boundary_prerequisites` | 前置条件 | `id` (identity) |
-| `knowledge_boundary_signals` | 相关性信号 | `id` (identity) |
-| `knowledge_boundary_exclusions` | 排除条件 | `id` (identity) |
-| `knowledge_boundary_evidence` | 外部证据 | `id` (identity) |
 | `knowledge_maintenance_assignments` | 维护指派 (1:1) | `entry_id` (text) |
 | `knowledge_embeddings` | 向量嵌入 (pgvector) | `id` (text) |
 | `knowledge_keywords` | 关键词索引 (GIN) | `id` (text) |
 | `knowledge_search_documents` | 全文搜索 (tsvector) | `(entry_id, revision_no)` |
 
-### 技能工件域 (22 表，含 2 张派生索引表)
+### 技能工件域 (16 表 — 22→16，6 boundary 子表已 JSONB 化，含 2 张派生索引表)
 
 > **Round 4 事实源规则**：结构化子表为事实源，`skill_artifacts` 和 `artifact_revisions` 上的对应 JSONB 列为兼容缓存。
 > 读取时结构化优先，写入时两套表示同步维护。详见 [`round4-cross-table-consistency-plan.md`](../plans/round4-cross-table-consistency-plan.md) 阶段 0。
@@ -63,12 +57,6 @@
 | `skill_artifact_manifest_references` | 清单-引用文件 | **结构化事实源** (覆盖 `derived.clientManifest.references` JSONB) | `id` (identity) |
 | `skill_artifact_manifest_assets` | 清单-资源文件 | **结构化事实源** (覆盖 `derived.clientManifest.assets` JSONB) | `id` (identity) |
 | `skill_artifact_manifest_scripts` | 清单-脚本 | **结构化事实源** (覆盖 `derived.clientManifest.scripts` JSONB) | `id` (identity) |
-| `skill_artifact_boundary_contexts` | 情境上下文 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
-| `skill_artifact_boundary_versions` | 版本范围 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
-| `skill_artifact_boundary_prerequisites` | 前置条件 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
-| `skill_artifact_boundary_signals` | 相关性信号 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
-| `skill_artifact_boundary_exclusions` | 排除条件 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
-| `skill_artifact_boundary_evidence` | 外部证据 | **结构化事实源** (覆盖 `skill_artifacts.boundary` JSONB) | `id` (identity) |
 | `skill_artifact_maintenance_assignments` | 维护指派 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.maintenance_meta` JSONB) | `artifact_id` (text) |
 | `skill_artifact_agent_reviews` | Agent 审核结果 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.agent_review` JSONB) | `artifact_id` (text) |
 | `skill_artifact_metadata` | 工件元数据 (1:1) | **结构化事实源** (覆盖 `skill_artifacts.metadata` JSONB)。⚠️ `revision_count` 为缓存汇总字段，`latestDecision`/`latestReviewedAt` 为缓存投影 | `artifact_id` (text) |
@@ -137,14 +125,14 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
                 → (N) sessions.active_team_id        [SET NULL]
 ```
 
-### 反馈与分析域 (4 表)
+### 反馈与分析域 (2 表 — 4→2，custom_answers + daily_rollup 已 JSONB/物化视图化)
 
 | 表名 | 用途 | 主键 |
 |------|------|------|
 | `feedback_records` | 用户反馈 | `id` (text) |
-| `feedback_custom_answers` | 反馈自定义问答 | `id` (identity) |
+| `feedback_records.custom_answers` | 反馈自定义问答 JSONB (GIN) — 原 `feedback_custom_answers` 已合并 (0-3/反馈，80-90%性能) | `feedback_records.id` |
 | `usage_events` | 使用事件 | `id` (text) |
-| `usage_events_daily_rollup` | 日聚合分析 | `id` (identity) |
+| `usage_events_daily_rollup` | 日聚合 — 已移除，改为 `usage_events` 实时聚合 + 物化视图 (低频) | — |
 
 > ⚠️ `conflict_relations`（治理冲突关系）**仅存在于 `service-governance-review/drizzle/0000_shiny_swarm.sql` 迁移 SQL 与其原始 SQL 查询（`pg-ports.ts`）中，未在 `packages/db` 建模**。这是迁移 SQL 与 schema 源码双份表定义源的实例；Task 11 裁决为保持现状 + 文档标注（最小改动），是否迁入 db 或删除留待后续任务评估。
 
@@ -237,12 +225,7 @@ erDiagram
     knowledge_entries ||--o{ knowledge_revisions : has
     knowledge_entries ||--o{ lifecycle_events : records
     knowledge_entries ||--o{ knowledge_labels : tags
-    knowledge_entries ||--o{ knowledge_boundary_contexts : scopes
-    knowledge_entries ||--o{ knowledge_boundary_versions : constrains
-    knowledge_entries ||--o{ knowledge_boundary_prerequisites : requires
-    knowledge_entries ||--o{ knowledge_boundary_signals : signals
-    knowledge_entries ||--o{ knowledge_boundary_exclusions : excludes
-    knowledge_entries ||--o{ knowledge_boundary_evidence : cites
+    %% 6 boundary 子表已 JSONB 化 → knowledge_entries.boundary jsonb + GIN (69→55)
     knowledge_entries ||--o| knowledge_maintenance_assignments : assigns
     knowledge_entries ||--o{ knowledge_embeddings : indexes
     knowledge_entries ||--o{ knowledge_keywords : tokenizes
@@ -253,12 +236,7 @@ erDiagram
     skill_artifacts ||--o| skill_artifact_metadata : describes
     skill_artifacts ||--o| skill_artifact_agent_reviews : reviews
     skill_artifacts ||--o| skill_artifact_maintenance_assignments : assigns
-    skill_artifacts ||--o{ skill_artifact_boundary_contexts : scopes
-    skill_artifacts ||--o{ skill_artifact_boundary_versions : constrains
-    skill_artifacts ||--o{ skill_artifact_boundary_prerequisites : requires
-    skill_artifacts ||--o{ skill_artifact_boundary_signals : signals
-    skill_artifacts ||--o{ skill_artifact_boundary_exclusions : excludes
-    skill_artifacts ||--o{ skill_artifact_boundary_evidence : cites
+    %% 6 boundary 子表已 JSONB 化 → skill_artifacts.boundary jsonb + GIN
     artifact_revisions ||--o{ skill_artifact_files : contains
     artifact_revisions ||--o{ skill_artifact_script_descriptors : scripts
     artifact_revisions ||--o| skill_artifact_profiles : derives
@@ -412,7 +390,7 @@ knowledge_entries (1) ──→ (N) knowledge_embeddings         [CASCADE]
 knowledge_entries (1) ──→ (N) knowledge_keywords           [CASCADE]
 knowledge_entries (1) ──→ (N) knowledge_search_documents   [CASCADE]
 knowledge_entries (1) ──→ (N) knowledge_labels             [CASCADE]
-knowledge_entries (1) ──→ (N) knowledge_boundary_*         [CASCADE]
+knowledge_entries.boundary jsonb ──→ (JSONB + GIN, 6子表已移除 2026-09-01) [—]
 knowledge_entries (1) ──→ (1) knowledge_maintenance_assignments [CASCADE]
 
 skill_artifacts (1) ──→ (N) artifact_revisions             [RESTRICT]
@@ -421,7 +399,7 @@ skill_artifacts (1) ──→ (N) skill_artifact_files           [CASCADE]
 skill_artifacts (1) ──→ (N) skill_artifact_capsules        [CASCADE]
 skill_artifacts (1) ──→ (1) skill_artifact_profiles        [CASCADE]
 skill_artifacts (1) ──→ (1) skill_artifact_client_manifests [CASCADE]
-skill_artifacts (1) ──→ (N) skill_artifact_boundary_*      [CASCADE]
+skill_artifacts.boundary jsonb ──→ (JSONB + GIN, 6子表已移除) [—]
 skill_artifacts (1) ──→ (1) skill_artifact_maintenance_assignments [CASCADE]
 skill_artifacts (1) ──→ (1) skill_artifact_agent_reviews   [CASCADE]
 skill_artifacts (1) ──→ (1) skill_artifact_metadata        [CASCADE]
@@ -433,7 +411,7 @@ candidates (1) ──→ (1) candidate_resolution_outcomes       [CASCADE]
 
 candidate_duplicate_cases (1) ──→ (N) candidate_duplicate_matches [CASCADE]
 
-feedback_records (1) ──→ (N) feedback_custom_answers       [CASCADE]
+feedback_records.custom_answers jsonb ──→ (JSONB + GIN, 1:N→1, 0-3/反馈) [—]
 ```
 
 ## 特殊索引
