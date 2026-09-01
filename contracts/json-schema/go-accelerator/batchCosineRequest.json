@@ -18,7 +18,10 @@
       }
     }
   },
-  "required": ["query", "vectors"],
+  "required": [
+    "query",
+    "vectors"
+  ],
   "additionalProperties": false,
   "title": "batchCosineRequest"
 }

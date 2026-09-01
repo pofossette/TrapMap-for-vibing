@@ -27,7 +27,11 @@
       }
     }
   },
-  "required": ["similarities", "sharedCounts", "unionCounts"],
+  "required": [
+    "similarities",
+    "sharedCounts",
+    "unionCounts"
+  ],
   "additionalProperties": false,
   "title": "dedupBatchSimilarityResponse"
 }

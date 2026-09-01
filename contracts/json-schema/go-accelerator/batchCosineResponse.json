@@ -9,7 +9,9 @@
       }
     }
   },
-  "required": ["scores"],
+  "required": [
+    "scores"
+  ],
   "additionalProperties": false,
   "title": "batchCosineResponse"
 }

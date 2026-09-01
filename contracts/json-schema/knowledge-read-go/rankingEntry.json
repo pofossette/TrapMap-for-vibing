@@ -48,7 +48,10 @@
             }
           }
         },
-        "required": ["token", "fields"],
+        "required": [
+          "token",
+          "fields"
+        ],
         "additionalProperties": false
       }
     },

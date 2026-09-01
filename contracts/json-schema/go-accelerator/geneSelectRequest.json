@@ -74,7 +74,10 @@
       "maximum": 100
     }
   },
-  "required": ["candidates", "query"],
+  "required": [
+    "candidates",
+    "query"
+  ],
   "additionalProperties": false,
   "title": "geneSelectRequest"
 }

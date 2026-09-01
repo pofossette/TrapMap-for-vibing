@@ -18,7 +18,10 @@
       }
     }
   },
-  "required": ["leftTokens", "rightTokensList"],
+  "required": [
+    "leftTokens",
+    "rightTokensList"
+  ],
   "additionalProperties": false,
   "title": "dedupBatchSimilarityRequest"
 }

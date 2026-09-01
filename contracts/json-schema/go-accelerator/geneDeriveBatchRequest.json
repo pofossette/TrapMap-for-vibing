@@ -22,12 +22,18 @@
             "minLength": 1
           }
         },
-        "required": ["trapId", "trapText", "derivationUnitId"],
+        "required": [
+          "trapId",
+          "trapText",
+          "derivationUnitId"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["traps"],
+  "required": [
+    "traps"
+  ],
   "additionalProperties": false,
   "title": "geneDeriveBatchRequest"
 }

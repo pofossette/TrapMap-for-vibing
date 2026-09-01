@@ -53,7 +53,10 @@
                   }
                 }
               },
-              "required": ["token", "fields"],
+              "required": [
+                "token",
+                "fields"
+              ],
               "additionalProperties": false
             }
           },
@@ -125,12 +128,20 @@
             "type": "string"
           }
         },
-        "required": ["id", "scope", "detail"],
+        "required": [
+          "id",
+          "scope",
+          "detail"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["entries", "summary", "citations"],
+  "required": [
+    "entries",
+    "summary",
+    "citations"
+  ],
   "additionalProperties": false,
   "title": "readResponse"
 }

@@ -15,7 +15,10 @@
       }
     }
   },
-  "required": ["a", "b"],
+  "required": [
+    "a",
+    "b"
+  ],
   "additionalProperties": false,
   "title": "vectorCosineRequest"
 }
