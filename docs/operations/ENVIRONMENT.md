@@ -1,6 +1,6 @@
 # TrapMap 环境变量参考
 
-> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> **说明**：`归档旧实现` 已于  删除（提交 `a66d94e6`）。本文档中的 `归档旧实现` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 本文档是 TrapMap 所有环境变量的完整参考。
 
@@ -656,7 +656,7 @@ Feature flags 子 schema（`featureFlagsSchema`）：
 | `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
 
-> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主通过 `packages/host-local/src/nest/config/config.ts` 加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry。`packages/server` 已于 Wave-10 删除。环境变量与子配置 helper 统一由 host-local 持有。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线。
+> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主通过 `packages/host-local/src/nest/config/config.ts` 加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry。`归档旧实现` 已于  删除。环境变量与子配置 helper 统一由 host-local 持有。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线。
 
 ### Phase 1 instrumentation 语义冻结
 
@@ -766,7 +766,7 @@ Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 
 - `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout 继续是 adoption condition / deferred capability gate。当前分布式事实仍是 checked-in URL env + shared PostgreSQL + existing readiness endpoints；不能改写成动态 discovery、PgBouncer rollout default、或 richer health policy 已内建。
 - 本轮 Phase 4 最小真实落地只补到 distributed host 的可执行 DB pool budget env seam：`TRAPMAP_SERVICE_POOL_SIZE` 提供 shared 默认值，`TRAPMAP_<SERVICE>_POOL_SIZE` 提供 per-service override。它只约束 Node `pg.Pool.max`，不等同于 PgBouncer rollout、连接池 introspection contract 或完整容量治理平台。
 - `light` 与 `heavy` 的默认策略姿态不同，但 Phase 6 不引入新行为：`light` 继续偏向 in-process / fewer remote dependencies，`heavy` 继续偏向 gateway + internal HTTP hop + shared PostgreSQL 的 remote-expected posture。这里描述的是当前 adoption posture，不是 capability parity 或 platform maturity proof。
-- graph runtime 配置入口继续冻结为同一组 `TRAPMAP_GRAPH_DB_*` env family 和 shared config parser。`TRAPMAP_GRAPH_DB_FAIL_OPEN`、provider、enabled state、worker-status conflict warning 都已存在；但当前文档不能宣称 `packages/server（Wave-10 已删除）` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 在 graph provider、readiness、fail-open disposition 上已经完全一致，只能说它们复用同一 env family 与部分 shared consumer seam。
+- graph runtime 配置入口继续冻结为同一组 `TRAPMAP_GRAPH_DB_*` env family 和 shared config parser。`TRAPMAP_GRAPH_DB_FAIL_OPEN`、provider、enabled state、worker-status conflict warning 都已存在；但当前文档不能宣称 `归档旧实现` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 在 graph provider、readiness、fail-open disposition 上已经完全一致，只能说它们复用同一 env family 与部分 shared consumer seam。
 
 ## AI 提供商配置
 

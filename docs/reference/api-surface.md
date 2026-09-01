@@ -1,18 +1,13 @@
 # TrapMap API 契约表面
 
-> **文档关系说明**：本文档是 API 契约表面的全量概览，列出所有端点的请求/响应 Schema 名称。若需完整端点详情（请求示例、响应字段说明），请参阅 [`docs/archived/architecture/API.md`](../archived/architecture/API.md)。
+> 本文是 API 全量概览（请求/响应 Schema 名）。完整示例见 [`docs/archived/architecture/API.md`](../archived/architecture/API.md)。
 >
-> **Round 3 更新**：知识域的标签（`knowledge_labels`）、边界（`knowledge_boundary_*` ×6）、维护（`knowledge_maintenance_assignments`）已从 JSONB 拆分为 PostgreSQL 结构化子表。API 契约表面未变，所有请求/响应 Schema 保持不变。`KnowledgeEntry` 的 Schema 类型定义仍为单一聚合，子表读写由 `PgKnowledgeRepository` 内部处理。
->
-> **Wave-10 更新（2026-08-01）**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现。API 端点已迁移至各 service owner 包和 gateway。
->
-> **T3 对账（2026-08-30）**：本表以两宿主网关的 `createGatewayRouteDefs` / `createCronGatewayRouteDefs` / `createExperienceGeneRouteDefs` 为准（`packages/host-local/src/nest/gateway/*`、`packages/host-distributed/src/gateway/route-defs.ts`、`packages/service-knowledge-read/src/experience-gene-routes.ts`）。仍在 `SURFACE_INVENTORY_DRIFT` 中的旧版路径为已随 server 包退役、未在 gateway 实现的 legacy 面；`SURFACE_EXEMPTIONS` 仅保留 `/v2/retrieval/search`（CLI `--v2` 兼容，见 `docs/todos/open-debt-and-compromises.md`）。
+> 权威：`packages/host-local/src/nest/gateway/*`、`packages/host-distributed/src/gateway/route-defs.ts`、`packages/service-knowledge-read/src/experience-gene-routes.ts`。DRIFT 中旧路径为已退役 legacy 面。
 
 所有路由均以 `/v1` 或 `/v3` 为版本前缀，通过 `@trapmap/contracts` 验证进行 JSON 数据交换。
 
 > 源码依据：`packages/host-local/src/nest/gateway/gateway.route-defs.ts`、`packages/host-local/src/nest/gateway/gateway.cron-route-defs.ts`、`packages/host-distributed/src/gateway/route-defs.ts`、`packages/service-knowledge-read/src/experience-gene-routes.ts`、`packages/contracts/src/domain/*.ts`
 >
-> **Phase 1 instrumentation freeze**：统一 correlation key、metric namespace 与 public/internal debug 边界以 `packages/contracts/src/domain/observability.ts` 为准。API 响应只能增加 additive debug handles，不得把内部 workflow/candidate/artifact trace payload 直接提升为通用 public surface。
 
 ---
 
@@ -39,9 +34,8 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 | `GET` | `/metrics` | 无 | `text/plain; version=0.0.4` Prometheus exposition | Runtime / async / DB / queue / internal-hop 指标导出；仅低基数标签，禁止 requestId/traceId/queryId 等高基数键进入 label |
 | `GET` | `/meta/routes` | 无 | `{ documentedRoutes: string[] }` | 暴露当前 server 维护的文档化路由列表 |
 
-> 源码：`packages/server（Wave-10 已删除）/src/app.ts`
+> 源码：`packages/host-local/src/nest/` + `packages/host-distributed/src/gateway/`
 >
-> **Phase 3 observability closeout**：`/metrics` 当前只冻结 Prometheus scrape surface，不引入第二套 operator JSON route。`requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId` 等高基数关联键继续留在日志、workflow snapshot 或 durable trace，而不是 metrics label。
 
 ## 认证
 
@@ -51,7 +45,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 
 > 源码：`packages/host-distributed/src/gateway/route-defs.ts`
 >
-> **已退役（不在 gateway）**：`POST /v1/auth/login`、`GET /v1/auth/session` 曾由 `packages/server（Wave-10 已删除）/src/routes/auth.ts` 提供，现未在任何宿主 gateway 注册；如需认证请走分布式网关的 sessionToken / access-key 流程。两者仍在 `SURFACE_INVENTORY_DRIFT` 中豁免，避免新增漂移。
+> **已退役（不在 gateway）**：`POST /v1/auth/login`、`GET /v1/auth/session` 曾由 `归档旧实现` 提供，现未在任何宿主 gateway 注册；如需认证请走分布式网关的 sessionToken / access-key 流程。两者仍在 `SURFACE_INVENTORY_DRIFT` 中豁免，避免新增漂移。
 
 ## 团队与成员
 
@@ -84,7 +78,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 
 > 源码：`packages/host-local/src/nest/gateway/gateway.route-defs.ts`、`packages/host-distributed/src/gateway/route-defs.ts`、`packages/service-governance-review/src/routes.ts`
 >
-> **已退役（不在 gateway）**：`PATCH /v1/knowledge/:id/evidence`、`POST /v1/operations/knowledge/:entryId/deactivate` 仍见于旧 `packages/server（Wave-10 已删除）/src/routes`，现不在网关实现，保留在 `SURFACE_INVENTORY_DRIFT`。
+> **已退役（不在 gateway）**：`PATCH /v1/knowledge/:id/evidence`、`POST /v1/operations/knowledge/:entryId/deactivate` 仍见于旧 `归档旧实现`，现不在网关实现，保留在 `SURFACE_INVENTORY_DRIFT`。
 
 ## 陷阱（Traps）
 
@@ -176,9 +170,9 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 |------|------|----------|----------|------|
 | `POST` | `/v1/knowledge/decay` | `knowledgeActionSchema` | `knowledgeEntryResponseSchema` | 触发 decay 治理（distributed，见上文“知识条目”） |
 
-> **已退役（不在 gateway）**：`GET /v1/operations/decay/entries`、`POST /v1/operations/decay/batch`、`POST /v1/operations/decay/search` 为旧 server 的 `packages/server（Wave-10 已删除）/src/routes/decay.ts` 面，现仅通过 `POST /v1/knowledge/decay` 由 `governance-review`/`knowledge-write` 协作实现，旧 operations 路径保留在 `SURFACE_INVENTORY_DRIFT`。
+> **已退役（不在 gateway）**：`GET /v1/operations/decay/entries`、`POST /v1/operations/decay/batch`、`POST /v1/operations/decay/search` 为旧 server 的 `归档旧实现` 面，现仅通过 `POST /v1/knowledge/decay` 由 `governance-review`/`knowledge-write` 协作实现，旧 operations 路径保留在 `SURFACE_INVENTORY_DRIFT`。
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/decay.ts`（旧）与 `packages/host-distributed/src/gateway/route-defs.ts`（现）
+> 源码：`归档旧实现`（旧）与 `packages/host-distributed/src/gateway/route-defs.ts`（现）
 
 ## Maintenance 管理
 
@@ -186,9 +180,9 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 |------|------|----------|----------|------|
 | `POST` | `/v1/knowledge/maintenance` | `knowledgeActionSchema` | `knowledgeEntryResponseSchema` | 触发 maintenance 治理（distributed，见上文“知识条目”） |
 
-> **已退役（不在 gateway）**：`GET /v1/operations/maintenance/entries`、`POST /v1/operations/maintenance/batch` 来自旧 `packages/server（Wave-10 已删除）/src/routes/maintenance.ts`，现由 `POST /v1/knowledge/maintenance` 替代，旧路径保留在 `SURFACE_INVENTORY_DRIFT`。
+> **已退役（不在 gateway）**：`GET /v1/operations/maintenance/entries`、`POST /v1/operations/maintenance/batch` 来自旧 `归档旧实现`，现由 `POST /v1/knowledge/maintenance` 替代，旧路径保留在 `SURFACE_INVENTORY_DRIFT`。
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/maintenance.ts`（旧）与 `packages/host-distributed/src/gateway/route-defs.ts`（现）
+> 源码：`归档旧实现`（旧）与 `packages/host-distributed/src/gateway/route-defs.ts`（现）
 
 ## 工件（Artifacts / Skills）
 
@@ -213,7 +207,7 @@ continue to use one `gatewayUrl`; the current persistent consumer is the CLI.
 
 > 源码：`packages/host-distributed/src/gateway/route-defs.ts`
 >
-> **已退役（不在 gateway）**：`POST /v1/operations/export`、`POST /v1/operations/import`、`GET /v1/operations/knowledge`、`GET /v1/operations/audit`、`GET /v1/operations/status`、`POST /v1/operations/status/async/tasks/:taskId/requeue`、`GET /v1/operations/badcases/:feedbackId/export` 均为旧 `packages/server（Wave-10 已删除）/src/routes/operations.ts` 与子路由面，现仅保留 `GET /v1/operations/status/async` 作为 operator 面；旧路径保留在 `SURFACE_INVENTORY_DRIFT`。
+> **已退役（不在 gateway）**：`POST /v1/operations/export`、`POST /v1/operations/import`、`GET /v1/operations/knowledge`、`GET /v1/operations/audit`、`GET /v1/operations/status`、`POST /v1/operations/status/async/tasks/:taskId/requeue`、`GET /v1/operations/badcases/:feedbackId/export` 均为旧 `归档旧实现` 与子路由面，现仅保留 `GET /v1/operations/status/async` 作为 operator 面；旧路径保留在 `SURFACE_INVENTORY_DRIFT`。
 
 Phase 4 closeout 补充：
 
@@ -233,7 +227,7 @@ Phase 4 closeout 补充：
 | `GET` | `/v1/operations/capsule-index/health` | 无 | `{ sourceArtifactCount, report: { missingKeywords, missingEmbeddings, failedKeywords, failedEmbeddings, orphanKeywords, orphanEmbeddings }, reportedAt }` | 健康对账（只读）— 已退役 |
 | `POST` | `/v1/operations/capsule-index/cleanup-orphans` | 无 | `{ sourceArtifactCount, removed, cleanedAt }` | 清理孤立索引行 — 已退役 |
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/operations/capsule-index.ts`（旧实现，已随 server 包删除）
+> 源码：`归档旧实现`（旧实现，已随 server 包删除）
 >
 > **CLI 暴露**（历史）：`trapmap operations capsule-index rebuild|health|cleanup-orphans`。现不在网关实现，仅文档保留，路径在 `SURFACE_INVENTORY_DRIFT`。
 
@@ -245,7 +239,7 @@ Phase 4 closeout 补充：
 | `GET` | `/v1/operations/stats/hits` | `statsHitRankingQuerySchema` | `statsHitRankingResponseSchema` | 按条目命中次数排名 — 已退役 |
 | `GET` | `/v1/operations/stats/summary` | `statsSummaryQuerySchema` | `statsSummaryResponseSchema` | 系统级汇总统计（仅 system-admin）— 已退役 |
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/operations/stats.ts`。注意：统计端点需要 PostgreSQL（`usageAnalyticsRepo`），否则返回 503。
+> 源码：`packages/host-local/src/nest/`。注意：统计端点需要 PostgreSQL（`usageAnalyticsRepo`），否则返回 503。
 >
 > **状态**：上述 3 条统计端点现未在任何宿主 gateway 注册，保留在 `SURFACE_INVENTORY_DRIFT`，仅作历史契约参考。
 
@@ -256,7 +250,7 @@ Phase 4 closeout 补充：
 | `POST` | `/admin/boundary-search` | `adminBoundarySearchQuerySchema` | `adminBoundarySearchResponseSchema` | 搜索符合边界约束的知识条目（仅 system-admin，`POST /admin/boundary-search` 非版本化，不受 route-surface 守卫） |
 | `POST` | `/v1/admin/reconcile-knowledge-indexes` | 无 | `{ success, totalEntries, entriesSynced, ... }` | 重新同步所有知识索引（仅 system-admin）— 已退役，`SURFACE_INVENTORY_DRIFT` |
 
-> 源码：`packages/server（Wave-10 已删除）/src/routes/admin-boundary-search.ts`（旧）
+> 源码：`归档旧实现`（旧）
 
 ---
 
@@ -265,10 +259,9 @@ Phase 4 closeout 补充：
 - 所有错误响应统一为 canonical error envelope：`{ code, message, kind, requestId?, traceId?, error?, details? }`。`kind` 与 HTTP 状态码遵循共享 invocation taxonomy（400 validation / 401 unauthorized / 403 forbidden / 404 not-found / 409 conflict / 503 unavailable / 504 timeout / 500 internal）；`error` 是 `message` 的兼容别名；`details` 携带结构化附加信息（如 Zod 校验 issues）。`/v1/auth/login` 与网关 auth hook 的历史 `{ error, kind }` 响应体仍由各宿主保留（guard/登录入口语义，见 `packages/host-distributed/src/gateway/routes.ts`）。
 - CLI 和 Server 必须将 `@trapmap/contracts` 视为规范的 Schema 契约表面。
 - 统计端点（`/v1/operations/stats/*`）依赖 PostgreSQL，使用 JSONB 存储的部署不可用。
-- **Round 2 更新**：知识、陷阱（traps）、候选提交的内部实现已从 `store_snapshot` JSONB 切换为 PostgreSQL 专用表（通过 `KnowledgeRepository` / `CandidateRepository`）。API 契约表面未变，所有请求/响应 Schema 保持不变。`DualWrite*Repository` 兼容层已删除。
+
 - **Round 3 更新**：知识域标签（`knowledge_labels`）、边界（`knowledge_boundary_*` ×6）、维护（`knowledge_maintenance_assignments`）已从 JSONB 拆为 PostgreSQL 结构化子表。`knowledge_entries` 及 `lifecycle_events` 表已补齐 `CHECK` 约束。`knowledge_revisions` 表已补齐 `unique(entry_id, revision_no)` 约束。知识条目读写 API 契约无变更。
 - 后续阶段可能会添加内部辅助路由，但新的面向用户的工作流路由应扩展此列表而非替换它。
-
 
 ## MCP 工具面（apps/mcp，2026-08-22 主线新增）
 

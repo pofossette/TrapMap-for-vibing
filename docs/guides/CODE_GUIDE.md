@@ -42,7 +42,7 @@ contracts → server (app → routes → lib) → cli → evals
 
 ## 2. 服务端 — 宿主与服务组合
 
-> `packages/server` 已于 Wave-10 删除。当前服务端由宿主层（`host-local` / `host-distributed`）和六个 service owner 包组成。
+> `归档旧实现` 已于  删除。当前服务端由宿主层（`host-local` / `host-distributed`）和六个 service owner 包组成。
 
 ### 2.1 应用启动 — `packages/host-local/src/nest/` + `packages/host-distributed/src/`
 

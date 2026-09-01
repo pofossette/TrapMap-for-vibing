@@ -4,25 +4,25 @@
 
 本矩阵补充 `SYSTEM_TRUTH_SOURCES.md`（侧重运行时架构事实）。下方矩阵涵盖跨文档主题（CI、部署、测试、护栏），横跨多个文档。
 
-> **历史说明**：`packages/server` 已于 Wave-10 删除。本矩阵中的权威来源已迁移至 `host-local`、`host-distributed`、`db` 和各 `service-*` 包。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
+> **说明**：`归档旧实现` 已于  删除。本矩阵中的权威来源已迁移至 `host-local`、`host-distributed`、`db` 和各 `service-*` 包。详见 `docs/reference/SYSTEM_TRUTH_SOURCES.md`。
 
 | 主题 | 权威来源 | 辅助文档 | 漂移类型 |
 |---|---|---|---|
-| ~~服务器入口~~ | **已删除**（Wave-10）。当前入口见 `SYSTEM_TRUTH_SOURCES.md`「Light 默认宿主入口」行 | `docs/guides/CODE_GUIDE.md`, `docs/architecture/ARCHITECTURE.md` | 描述性 |
+| ~~服务器入口~~ | **已删除**（）。当前入口见 `SYSTEM_TRUTH_SOURCES.md`「Light 默认宿主入口」行 | `docs/guides/CODE_GUIDE.md`, `docs/architecture/ARCHITECTURE.md` | 描述性 |
 | 启动序列 | `packages/host-local/src/nest/main.ts`（light）+ `packages/host-distributed/src/`（distributed） | `docs/architecture/ARCHITECTURE.md`, `docs/guides/CODE_GUIDE.md` | 描述性 |
 | 持久化策略 | `README.md` + `docs/reference/SYSTEM_TRUTH_SOURCES.md` + `packages/db/src/schema/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/README.md`, `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` | 描述性 |
 | 数据库 Schema | `packages/db/src/schema/`（owner-local schema 模块）+ 各 `packages/service-*/src/schema.ts` | `docs/reference/DATABASE_SCHEMA.md` | 描述性 |
 | Schema 数量 | `packages/db/src/schema/*.ts` + 各 `packages/service-*/src/schema.ts` | `docs/reference/DATABASE_SCHEMA.md`, `docs/README.md` | 描述性 |
 | 持久化迁移状态 | `docs/reference/DATA_MODEL.md` | `docs/PACKAGES.md`, `docs/architecture/ARCHITECTURE.md` | 描述性 |
 | Phase 2 store-snapshot / PG-first 策略冻结 | `docs/archived/archived-plans/trapmap-architecture-remediation-plan.md` + `docs/reference/SYSTEM_TRUTH_SOURCES.md`（`store_snapshot`/`JsonStore`/`PostgresStore` 已于 Wave-9 删除） | `docs/PACKAGES.md`, `docs/architecture/components/PERSISTENCE.md`, `docs/operations/TESTING.md` | 描述性 |
-| ~~服务器数据访问边界~~ | **已删除**（Wave-10）。当前数据访问由各 service owner ports 管理，见 `SYSTEM_TRUTH_SOURCES.md` | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` | 描述性 |
+| ~~服务器数据访问边界~~ | **已删除**（）。当前数据访问由各 service owner ports 管理，见 `SYSTEM_TRUTH_SOURCES.md` | `docs/PACKAGES.md`, `docs/reference/DATA_MODEL.md` | 描述性 |
 | CI 作业 | `.github/workflows/ci.yml` | `docs/operations/CI_CD.md`, `docs/operations/TESTING.md` | 描述性 |
 | 护栏命令 | `scripts/complexity-budgets.json` + `.github/workflows/ci.yml` | `docs/reference/SYSTEM_TRUTH_SOURCES.md`, `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` | 描述性 |
 | 启动命令 | `package.json` scripts 部分 | `docs/README.md`, `docs/guides/GETTING_STARTED.md` | 描述性 |
 | 评估入口 | `package.json` scripts 部分 | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` | 描述性 |
 | 部署默认配置 | `docker-compose.yml` + `packages/host-local/Dockerfile` + `packages/host-distributed/Dockerfile` | `docs/architecture/DEPLOYMENT.md`, `README.md` | 描述性 |
 | 根工作区命令 | `package.json`（scripts 部分） | `README.md`, `docs/README.md`, `docs/operations/TESTING.md` | 描述性 |
-| ~~服务器独占 DB 命令~~ | **已删除**（Wave-10）。DB 迁移由各 `packages/service-*/src/migrations.ts` 管理 | `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` | 描述性 |
+| ~~服务器独占 DB 命令~~ | **已删除**（）。DB 迁移由各 `packages/service-*/src/migrations.ts` 管理 | `docs/guides/GETTING_STARTED.md`, `docs/architecture/DEPLOYMENT.md` | 描述性 |
 | 运行时环境默认值 | `packages/host-local/src/nest/config/config.ts`（default `light` 宿主 owner）+ `packages/host-distributed/src/config/service-config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md` | 描述性 |
 | AI 提供者/模型默认值 | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` | `docs/operations/ENVIRONMENT.md`, `docs/architecture/ARCHITECTURE.md`, `docs/guides/GETTING_STARTED.md` | 描述性 |
 | 评估工作流 | `.github/workflows/eval.yml` | `docs/operations/TESTING.md`, `docs/operations/CI_CD.md` | 描述性 |

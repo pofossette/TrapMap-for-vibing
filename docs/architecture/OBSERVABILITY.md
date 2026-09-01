@@ -9,7 +9,7 @@ TrapMap 采用 OpenTelemetry 作为统一遥测接缝，目标上可对接 Tempo
 - `packages/host-local/src/nest/observability/` 负责 light 宿主的 `/metrics`、OTel bootstrap、Prometheus、Loki 和对应 adapter。
 - `packages/host-distributed/src/shared/telemetry.ts` 负责 distributed internal hop 的 traceparent/span 传播，以及 OTLP traces/metrics 导出。
 
-> `packages/server` 已于 Wave-10 删除。其 `/metrics`、OTel bootstrap 和 shutdown 职责已迁移至 `host-local`。
+> `/metrics`、OTel bootstrap 与 shutdown 由 `host-local` 持有。
 
 设计原则：
 
@@ -22,7 +22,7 @@ TrapMap 采用 OpenTelemetry 作为统一遥测接缝，目标上可对接 Tempo
 
 | 归属 | 当前事实 | 权威来源 |
 |---|---|---|
-| ~~Fastify compatibility shell~~ | **已删除**（Wave-10）。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 | `packages/host-local/src/nest/observability/*.ts` |
+| ~~Fastify compatibility shell~~ | **已删除**。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 | `packages/host-local/src/nest/observability/*.ts` |
 | light 宿主 | `packages/host-local/src/nest/observability/` 提供 `OtelService`、`PrometheusService`、`LokiService`，并通过 adapter 暴露给 `backend-core` ports | `packages/host-local/src/nest/observability/*.ts` |
 | distributed 宿主 | `packages/host-distributed/src/shared/telemetry.ts` 负责 internal hop span、OTLP endpoint、service.name 拼接和 trace 传播 | `packages/host-distributed/src/shared/telemetry.ts` |
 | 共享契约 | 健康状态、可观测性配置和遥测 policy 分别由 `packages/contracts/src/domain/health.ts`、`packages/contracts/src/domain/observability-config.ts`、`packages/contracts/src/domain/observability.ts` 定义 | contracts 源码 |
@@ -81,7 +81,6 @@ flowchart TB
 
 | 组件 | 当前职责 |
 |---|---|
-| ~~packages/server/src/bootstrap/bootstrap-otel.ts~~ | **已删除**（Wave-10）。OTel SDK 启动现由 `packages/host-local/src/nest/observability/otel.service.ts` 持有 |
 | `packages/host-local/src/nest/observability/otel.service.ts` | Nest 宿主的 OTel SDK 生命周期管理 |
 | `packages/host-local/src/nest/observability/prometheus.service.ts` | `prom-client` 指标注册、收集和文本导出 |
 | `packages/host-local/src/nest/observability/loki.service.ts` | `LOKI_HOST` 存在时追加 Loki transport；否则继续 stdout JSON |
@@ -180,7 +179,7 @@ host-local Nest 宿主按标准规则解析 request context：有效 request ID 
 | `backend-core` | 只定义 `MetricsPort`、`TracingPort`、`LoggingPort`，不包含具体实现 |
 | `host-local` | 装配 observability modules，把 port 桥接到 `prom-client`、OpenTelemetry 和 Nest Logger；可选 Sentry 适配器 |
 | `host-distributed` | 装配 distributed internal hop 的 tracing / metrics seam，负责 owner-aware service.name；可选 Sentry 适配器 |
-| ~~`server`~~ | **已删除**（Wave-10）。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 |
+| `旧兼容层` | **已删除**。`/metrics`、OTel 初始化和 shutdown 现由 `host-local` 持有 |
 
 ### 当前 light 宿主目录
 
@@ -251,9 +250,9 @@ TrapMap 对外暴露三个探针端点，继续遵循统一 contract：
 - light 宿主通过 `LifecycleManager` 和 `HealthController` 聚合 `HealthCheckResult[]`，暴露 runtime snapshot
 - distributed 宿主继续复用相同的 health contract，不在服务发现或 tracing 文档里发明第二套状态命名
 
-## Phase 1A 已冻结的接缝
+## 已冻结的接缝
 
-Phase 1A 已经在代码中冻结了以下内容：
+以下接缝已在代码中冻结：
 
 - `packages/contracts/src/domain/observability-config.ts`：OTel/Sentry/Langfuse 配置 policy（`observabilityConfigSchema`、`validateOtelPolicy`）
 - `packages/contracts/src/domain/observability.ts`：traceparent 解析、路由 family 归一、脱敏字段规则

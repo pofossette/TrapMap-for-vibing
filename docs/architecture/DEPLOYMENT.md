@@ -255,7 +255,7 @@ pnpm --filter @trapmap/app-light dev
 pnpm --filter @trapmap/app-light start
 ```
 
-旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`。`packages/server` compatibility shell 已于 Wave-10 删除。
+旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`。
 
 ### 可选：本地 Neo4j 查询后端
 
@@ -663,7 +663,7 @@ services:
 
 实际 Dockerfile 位于 `apps/light/Dockerfile`（light 宿主）、`apps/distributed/Dockerfile`（distributed 宿主）与 `apps/migration/Dockerfile`（迁移作业）。
 
-> `packages/server/Dockerfile` 已于 Wave-10 删除。当前 Dockerfile 请直接查看 `apps/light/Dockerfile`（及 `apps/distributed/Dockerfile`、`apps/migration/Dockerfile`）。
+> Dockerfile 见 `apps/light/Dockerfile`、`apps/distributed/Dockerfile`、`apps/migration/Dockerfile`。
 
 ---
 

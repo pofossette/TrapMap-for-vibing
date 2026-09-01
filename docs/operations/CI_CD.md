@@ -1,6 +1,6 @@
 # CI/CD 流水线
 
-> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> **说明**：`归档旧实现` 已于  删除（提交 `a66d94e6`）。本文档中的 `归档旧实现` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ## 概述
 
@@ -77,7 +77,7 @@ pnpm check:fallow
 - **PR smoke**：当 PR 修改以下路径时自动触发：
   - `packages/contracts/src/domain/evals/**`
   - `evals/**`
-  - `packages/server（Wave-10 已删除）/src/**`
+  - `归档旧实现/src/**`
 - **周调度 core**：每周一 UTC 06:00 运行 core tier
 - **手动触发**：`workflow_dispatch`，可选 smoke 或 core tier
 
