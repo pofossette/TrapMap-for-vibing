@@ -1,8 +1,8 @@
 # Go Service Modularization — knowledge-read-go Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
-**Goal:** Deliver module-level Go serviceization for read path (knowledge-read-go) and timely exit function-set compute center (go-accelerator) per go-service-gradual-migration-mainline.md — 6 modules each ≤600 lines / ≤300 per file, staged strangler via gateway.
+**Goal:** [DONE] Deliver module-level Go serviceization for read path (knowledge-read-go) and timely exit function-set compute center (go-accelerator) per go-service-gradual-migration-mainline.md — 6 modules each ≤600 lines / ≤300 per file, staged strangler via gateway.
 
 **Architecture:** Single-repo multi-module Go service (services/knowledge-read-go) with chi + pgx (read-only) + hashicorp/lru + singleflight + prometheus/otel, domain/service/port/handler four-layer per module, consumes contracts Zod SSOT via pkg/api/types.go; gateway TRAPMAP_READ_IMPL off/shadow/dual/go with fallback to Node; go-accelerator retrieval/ranking deprecated and archived.
 
@@ -40,7 +40,7 @@
 - Consumes: contracts SSOT (`packages/contracts/src/domain/*.ts` -> json-schema), existing go-accelerator pkg/api/types.go as reference
 - Produces: `NewConfig() Config {Port, ReadImpl, DatabaseURL, CacheSize}`; `Metrics` prometheus registry; `Types` Go structs for API; chi router skeleton
 
-- [ ] **Step 1: Write failing test for config**
+- [x] **Step 1: Write failing test for config**
 
 ```go
 // services/knowledge-read-go/internal/config/config_test.go
@@ -54,12 +54,12 @@ func TestLoad_Defaults(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/config -run TestLoad -v`
 Expected: FAIL missing package
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // go.mod module trapmap-knowledge-read-go go 1.23
@@ -80,12 +80,12 @@ EXPOSE 4101
 ENTRYPOINT ["/server"]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./... -v` in services/knowledge-read-go
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/knowledge-read-go/go.mod services/knowledge-read-go/Makefile services/knowledge-read-go/Dockerfile services/knowledge-read-go/cmd/server/main.go services/knowledge-read-go/internal/config/config.go services/knowledge-read-go/internal/observability/metrics.go services/knowledge-read-go/pkg/api/types.go docker-compose.yml .fallowrc.json scripts/complexity-budgets.json
@@ -107,7 +107,7 @@ git commit -m "feat(knowledge-read-go): scaffold modular service (Task 1)"
 - Consumes: `cache.Port` (Get/Set), `contracts` tokenization weights 3/2/1, `@trapmap/lib` cosine fallback dim 384
 - Produces: `func Tokenize(text string) []string`; `func NormalizeQuery(q string) []string`; `type Service struct{...}; func (s *Service) Plan(ctx context.Context, q string) ([]string, []float64, error)`; `type Port interface { Plan(...) }`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```go
 func TestTokenize_Split(t *testing.T){
@@ -120,12 +120,12 @@ func TestEmbedding_Dim(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/query/... -v`
 Expected: FAIL undefined
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // domain/tokenize.go ≤150 lines: regexp \p{L}\p{N}_+, lower, split, filter len>=2, KEYWORD weights const
@@ -133,12 +133,12 @@ Expected: FAIL undefined
 // service/query.go ≤180 lines: deps cache singleflight, Plan calls tokenize + cache Get embedding or DeterministicFallback
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./internal/query/... -v`
 Expected: PASS + lint file len ≤300
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/knowledge-read-go/internal/query/
@@ -162,7 +162,7 @@ git commit -m "feat(knowledge-read-go): query module (Task 2)"
 - Consumes: `query.Port` (for query tokens/vectors), `cache.Port`, `pgxpool.Pool`
 - Produces: `type RecallResult struct {Entries []Entry; Source string}`; `func (s *Service) Recall(ctx context.Context, q string, qVec []float64, tokens []string) (RecallResult, error)`; `store.PG.Read(ctx, limit int) ([]Entry, error)` read-only
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```go
 func TestScoreKeyword_Weight(t *testing.T){
@@ -175,12 +175,12 @@ func TestPg_ReadOnly(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/recall/... -v`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // domain/score.go ≤150 lines: cosine batch via BatchCosine, keyword 3/2/1, graph score boost 0.2
@@ -190,12 +190,12 @@ Expected: FAIL
 // store/pg.go ≤180 lines: pgxpool, SELECT ... WHERE scope/labels, no INSERT/UPDATE
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./internal/recall/... -v` + `golangci-lint run ./internal/recall/...`
 Expected: PASS, per-file ≤300
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/knowledge-read-go/internal/recall/
@@ -219,7 +219,7 @@ git commit -m "feat(knowledge-read-go): recall module (Task 3)"
 - Consumes: `recall.RecallResult`, `query tokens`
 - Produces: `func Merge(sem, kw []Entry) []RankedEntry`; `func Rerank(cands []RankedEntry, queryTokens []string) []RankedEntry`; `func BoundaryDelta(e Entry, ctx Boundary) float64`; `type Service struct{}; func (s *Service) Rank(ctx context.Context, r RecallResult) ([]RankedEntry,error)`
 
-- [ ] **Step 1: Write failing test (golden vs backend-core)**
+- [x] **Step 1: Write failing test (golden vs backend-core)**
 
 ```go
 func TestMerge_Weights(t *testing.T){
@@ -234,12 +234,12 @@ func TestRerank_DualBoost(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/ranking/... -v`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // domain/merge.go ≤150 lines: MergeSemanticWeight 0.6 / Keyword 0.4
@@ -248,12 +248,12 @@ Expected: FAIL
 // service/ranking.go ≤150 lines: calls domain funcs, sorts by FinalScore
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./internal/ranking/... -v`
 Expected: PASS, each file ≤200 lines
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/knowledge-read-go/internal/ranking/ services/go-accelerator/internal/service/ranking/
@@ -275,7 +275,7 @@ git commit -m "feat(knowledge-read-go): ranking module split 393-line anti-patte
 - Consumes: `ranking.RankedEntry[]`
 - Produces: `type Response struct{Entries []RankedEntry; Summary string; Citations []Citation}`; `func (s *Service) Assemble(ctx context.Context, ranked []RankedEntry) (Response,error)`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```go
 func TestCitation_Build(t *testing.T){
@@ -284,12 +284,12 @@ func TestCitation_Build(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/assembly/... -v`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // domain/citation.go ≤150 lines: build citations from boundary/version
@@ -297,12 +297,12 @@ Expected: FAIL
 // service/assemble.go ≤180 lines: orchestrate citation+summary+decay
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./internal/assembly/... -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/knowledge-read-go/internal/assembly/
@@ -324,7 +324,7 @@ git commit -m "feat(knowledge-read-go): assembly module (Task 5)"
 - Consumes: `hashicorp/golang-lru/v2`, `golang.org/x/sync/singleflight`
 - Produces: `type Cache struct{lru *lru.Cache; sf singleflight.Group}; func New(size int) *Cache; func (c *Cache) GetOrLoad(key string, load func() ([]float64,error)) ([]float64,error)`; `Len() int`
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```go
 func TestCache_LRU_Evict(t *testing.T){
@@ -336,24 +336,24 @@ func TestSingleflight_Dedup(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/cache -v`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // lru.go ≤120 lines: wrap hashicorp/lru, no hand-rolled list
 // singleflight.go ≤80 lines: wrap singleflight.Group with typed helper
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./internal/cache -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/knowledge-read-go/internal/cache/ services/go-accelerator/internal/cache/
@@ -378,7 +378,7 @@ git commit -m "feat(cache): mature LRU+singleflight, deprecate hand-rolled (Task
 - Consumes: `query.Port, recall.Port, ranking.Port, assembly.Port, cache.Port, config.Config`
 - Produces: `chi.Router` with `GET /health /ready /metrics, POST /v1/knowledge/read`; gateway `getReadServiceConfig()` and proxy with breaker fallback to Node
 
-- [ ] **Step 1: Write failing test**
+- [x] **Step 1: Write failing test**
 
 ```go
 func TestHandler_Read_KnownQuery(t *testing.T){
@@ -387,12 +387,12 @@ func TestHandler_Read_KnownQuery(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/api -v` ; `pnpm --filter @trapmap/host-distributed test --run test/gateway`
 Expected: FAIL
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // handler.go ≤120 lines: decode, call query.Plan -> recall.Recall -> ranking.Rank -> assembly.Assemble, encode
@@ -401,12 +401,12 @@ Expected: FAIL
 // gateway: if config.ReadImpl=="go" proxy to Go, else Node; shadow async, dual compare, breakerStatesSnapshot
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./... -v` ; `pnpm typecheck` ; `pnpm exec fallow audit`
 Expected: PASS, 0 boundary
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/knowledge-read-go/internal/api/ packages/host-distributed/src/config/service-config.ts packages/host-distributed/src/gateway/ docs/architecture/
@@ -433,7 +433,7 @@ git commit -m "feat(knowledge-read-go): api + gateway strangler (Task 7)"
 - Consumes: previous Task 4 ranking split, knowledge-read-go ranking service
 - Produces: `DEPRECATED.md` with sunset date, gateway prefers new service
 
-- [ ] **Step 1: Write failing test for deprecation**
+- [x] **Step 1: Write failing test for deprecation**
 
 ```go
 func TestDeprecated_Header(t *testing.T){
@@ -441,12 +441,12 @@ func TestDeprecated_Header(t *testing.T){
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `go test ./internal/handlers -v`
 Expected: FAIL no header
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```go
 // handlers/ranking.go first line: // Deprecated: use knowledge-read-go/internal/ranking, will be removed 2026-10-01
@@ -454,12 +454,12 @@ Expected: FAIL no header
 // DEPRECATED.md: lists retrieval/ranking as sunset, batch-cosine/hash/vector retained
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `go test ./... -v` ; `pnpm check:go-contract` ; `pnpm check:docs`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add services/go-accelerator/ services/go-accelerator/DEPRECATED.md packages/infra/src/go-accelerator/ docs/archived/ docs/todos/go-service-gradual-migration-mainline.md

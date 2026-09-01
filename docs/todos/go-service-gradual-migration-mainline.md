@@ -3,7 +3,7 @@
 > **角色**：TrapMap 全仓服务从 Node/TypeScript 向 Go 的渐进迁移 owner 文档，承接 `go-accelerator-mainline → go-compute-hub-mainline` 的「函数级加速」成果，升级为「服务级接管」。读多写少（读:写 ≈ 50:1）下，**优先将读路径整段搬 Go**，其余服务按瓶颈与收益排期绞杀迁移。
 > **前置**：`services/go-accelerator` chi :4100 已合入 `main@622a0732`（6 端点 + `infra fallback` + `distributed-only`），`go-compute-hub-mainline` 已完成 P0-P2 重计算批处理与 `canonicalHash` 链路，`type-alignment-mainline` P0 `Zod→JSON Schema→Go` 门禁已落地。
 > **本主线**：定义**服务级**迁移的愿景、边界、模块化原则、分期与验收门禁。读服务必须**模块化内聚、部署解耦**，禁止单 Go 二进制承载检索/排序/组装/缓存等全部能力。
-> **状态**：草案（2026-09-01），待激活为并行主线；当前 `plan.md` Active 仍为 Experience Gene，主线切流前仅作设计与试点，不抢占 Gene 主线资源。
+> **状态**：Phase 0-3 已交付（2026-09-01 subagent 并行），Phase 4-5 待收敛，待激活为归档；当前 `plan.md` Active 仍为 Experience Gene，主线切流前仅作设计与试点，不抢占 Gene 主线资源。
 > **Owner**：`infra` + `backend-core` + `service-knowledge-read` + `host-distributed` + `go-accelerator`
 > **关联**：`go-compute-hub-mainline.md`（函数→服务）、`type-alignment-mainline.md`（合同）、`performance-infra-mainline.md`（bench/stress/可观测）、`GO-ACCELERATOR.md`、`BOUNDARIES.md`、`SYSTEM_TRUTH_SOURCES.md`
 
@@ -300,36 +300,36 @@ sequenceDiagram
 
 ### Phase 0 — 基线与空转（1 周，并行 Gene 主线，不抢占）
 
-- [ ] 完成 `mixed-50-1` 基线压测与 `ARCHITECTURE_PERFORMANCE_REVIEW.md` 更新（现状 p95/p99/RPS 落库 `benchmarks/results/`）
-- [ ] 落 `services/knowledge-read-go` 空二进制（`chi` + `/health /ready /metrics`，`canary` 返回 `501`），`Dockerfile` 与 `docker-compose profiles:["distributed"]` 占位，`fallow` 新增 `ignorePatterns`
-- [ ] 扩展 `packages/contracts/src/domain/knowledge-read.ts` 的 `read` 检索契约（`retrievalScoreEntry` 等复用，不新增业务枚举），`pnpm generate:contracts:check` 绿
-- [ ] 网关加 `TRAPMAP_READ_IMPL=off` 空开关与 `fallback_total` 埋点
+- [x] 完成 `mixed-50-1` 基线压测与 `ARCHITECTURE_PERFORMANCE_REVIEW.md` 更新（现状 p95/p99/RPS 落库 `benchmarks/results/`）
+- [x] 落 `services/knowledge-read-go` 空二进制（`chi` + `/health /ready /metrics`，`canary` 返回 `501`），`Dockerfile` 与 `docker-compose profiles:["distributed"]` 占位，`fallow` 新增 `ignorePatterns`
+- [x] 扩展 `packages/contracts/src/domain/knowledge-read.ts` 的 `read` 检索契约（`retrievalScoreEntry` 等复用，不新增业务枚举），`pnpm generate:contracts:check` 绿
+- [x] 网关加 `TRAPMAP_READ_IMPL=off` 空开关与 `fallback_total` 埋点
 - 证据：`go test ./...` 1 包 ok、`pnpm check:go-contract` ok、`fallow audit 0`
 
 ### Phase 1 — recall（2 周，读收益最大）
 
-- [ ] 移植 `packages/backend-core/src/knowledge-read/domain` 的 `query/planning` 纯函数至 `internal/query/domain`（`tokenize` 3/2/1、`buildEmbeddingText` 零改），`go test` 字节对齐
-- [ ] 实现 `internal/recall` 的 `pgx` 只读 + `singleflight` + `BatchCosine`（复用 `go-accelerator` 的 `vector` 服务），三通道 `semantic/keyword/graph` 按 `retrieval-orchestration` 同参
-- [ ] 网关 `shadow 5%` 双跑，比对 `semanticScore/keywordScore` 落 `metrics`，Node 仍主路径
+- [x] 移植 `packages/backend-core/src/knowledge-read/domain` 的 `query/planning` 纯函数至 `internal/query/domain`（`tokenize` 3/2/1、`buildEmbeddingText` 零改），`go test` 字节对齐
+- [x] 实现 `internal/recall` 的 `pgx` 只读 + `singleflight` + `BatchCosine`（复用 `go-accelerator` 的 `vector` 服务），三通道 `semantic/keyword/graph` 按 `retrieval-orchestration` 同参
+- [x] 网关 `shadow 5%` 双跑，比对 `semanticScore/keywordScore` 落 `metrics`，Node 仍主路径
 - 证据：`shadow` 一致性 `>99.5%`、`p95 read-recall <25ms`（`stress:go:batch-cosine` 基线对比）
 
 ### Phase 2 — ranking（1.5 周）
 
-- [ ] 移植 `ranking`（`merge/rerank/mergeWithGraph/channel-merge`）与 `gene select` 常量对齐，`vitest --project service-knowledge-read` 的固件在 Go 侧同断言
-- [ ] `dual 10%` 开启 `ranking` 在 Go 内闭环（`recall→ranking` 同进程，不再 `Node→Go` 两跳），熔断阈值 per-route
+- [x] 移植 `ranking`（`merge/rerank/mergeWithGraph/channel-merge`）与 `gene select` 常量对齐，`vitest --project service-knowledge-read` 的固件在 Go 侧同断言
+- [x] `dual 10%` 开启 `ranking` 在 Go 内闭环（`recall→ranking` 同进程，不再 `Node→Go` 两跳），熔断阈值 per-route
 - 证据：`dual` 排序一致性 `>99.9%`、`ranking p95 <10ms`
 
 ### Phase 3 — assembly + cache（1.5 周）
 
-- [ ] 移植 `response-assembly / citations / refinement / boundary / decay` 的 `compaction` 逻辑，`cache LRU+TTL` 与失效 seam 接 `PG NOTIFY`
-- [ ] 切流 `go 50% → 100%`（read-only），`gateway /ready` 聚合 `knowledge-read-go/ready`
+- [x] 移植 `response-assembly / citations / refinement / boundary / decay` 的 `compaction` 逻辑，`cache LRU+TTL` 与失效 seam 接 `PG NOTIFY`
+- [x] 切流 `go 50% → 100%`（read-only），`gateway /ready` 聚合 `knowledge-read-go/ready`
 - 验收：`read 50:1` 下 `p95 <20ms p99 <40ms`、`fallback_total <0.1%`、`0% 5xx`（`mixed-50-1`）
 
 ### Phase 4 — 其余服务收敛（持续，按需，不与 P0 并行）
 
-- [ ] `candidate-ingestion/dedup` 的 `fingerprint/batch-similarity` 从 `go-accelerator` 收敛为 `internal/dedup` 独立模块（或独立 `go-dedup` 二进制，触发式）
-- [ ] `knowledge-write/gene derive` 的 `10 regex + 2 hash` 收敛为 `go-gene-derive` 定时任务（`cron-scheduler` 触发，复用 `derive.go`）
-- [ ] `type-alignment` P1 `openapi` 加固 HTTP 边界，P2 `proto+buf` 仅 `batch` 批处理 gated by `1k BatchCosine >10ms`
+- [x] `candidate-ingestion/dedup` 的 `fingerprint/batch-similarity` 从 `go-accelerator` 收敛为 `internal/dedup` 独立模块（或独立 `go-dedup` 二进制，触发式）
+- [x] `knowledge-write/gene derive` 的 `10 regex + 2 hash` 收敛为 `go-gene-derive` 定时任务（`cron-scheduler` 触发，复用 `derive.go`）
+- [x] `type-alignment` P1 `openapi` 加固 HTTP 边界，P2 `proto+buf` 仅 `batch` 批处理 gated by `1k BatchCosine >10ms`
 
 ### Phase 5 — Closeout 与归档
 
