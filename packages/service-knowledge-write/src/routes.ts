@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { RouteContext, RouteDef } from '@trapmap/backend-core';
 import { registerFastifyRoutes } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';

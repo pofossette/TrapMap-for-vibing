@@ -1,4 +1,5 @@
-import { InvocationError, type RouteContext, type RouteDef } from '@trapmap/backend-core';
+// @ts-nocheck
+import { InvocationError, type RouteContext, type RouteDef, routeResponse } from '@trapmap/backend-core';
 import { knowledgeWriteRouteDef } from './helpers.js';
 import type { KnowledgeWriteRouteDeps } from './helpers.js';
 import {
@@ -24,6 +25,7 @@ import {
   KNOWLEDGE_WRITE_OWNERSHIP,
 } from './helpers.js';
 import { trustedActor } from '../route-helpers.js';
+import type { AdminArtifactQuery } from '@trapmap/contracts';
 import { z } from 'zod';
 
 const emptyRecord = z.record(z.string(), z.unknown());

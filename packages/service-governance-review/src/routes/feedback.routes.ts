@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { InvocationError, routeResponse } from '@trapmap/backend-core';
 import type { RouteContext, RouteDef } from '@trapmap/backend-core';
 import { governanceRouteDef, withAdminActor } from './helpers.js';

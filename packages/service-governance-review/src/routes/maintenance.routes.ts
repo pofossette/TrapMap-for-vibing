@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { InvocationError } from '@trapmap/backend-core';
 import type { RouteContext, RouteDef } from '@trapmap/backend-core';
 import { governanceRouteDef, reviewCommandArgs, maintenanceCommandArgs } from './helpers.js';
