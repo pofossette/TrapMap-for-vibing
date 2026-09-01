@@ -130,9 +130,7 @@ teams (1) ──────→ (N) memberships                   [CASCADE]
 | 表名 | 用途 | 主键 |
 |------|------|------|
 | `feedback_records` | 用户反馈 | `id` (text) |
-| `feedback_records.custom_answers` | 反馈自定义问答 JSONB (GIN) — 原 `feedback_custom_answers` 已合并 (0-3/反馈，80-90%性能) | `feedback_records.id` |
 | `usage_events` | 使用事件 | `id` (text) |
-| `usage_events_daily_rollup` | 日聚合 — 已移除，改为 `usage_events` 实时聚合 + 物化视图 (低频) | — |
 
 > ⚠️ `conflict_relations`（治理冲突关系）**仅存在于 `service-governance-review/drizzle/0000_shiny_swarm.sql` 迁移 SQL 与其原始 SQL 查询（`pg-ports.ts`）中，未在 `packages/db` 建模**。这是迁移 SQL 与 schema 源码双份表定义源的实例；Task 11 裁决为保持现状 + 文档标注（最小改动），是否迁入 db 或删除留待后续任务评估。
 
