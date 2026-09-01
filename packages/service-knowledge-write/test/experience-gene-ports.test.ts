@@ -217,7 +217,7 @@ describe('PostgreSQL experience gene repository', () => {
       }),
     );
 
-    expect(queries.filter(({ sql }) => sql.includes('UPDATE experience_gene_'))).toHaveLength(2); // embeddings + genes (search merged)
+    expect(queries.filter(({ sql }) => sql.includes('UPDATE experience_gene_'))).toHaveLength(1); // embeddings + genes (search merged)
     expect(
       queries.find(({ sql }) => sql.includes('UPDATE experience_gene_embeddings'))?.params,
     ).toEqual(['gene-1', gene.contentHash, `[${embedding.join(',')}]`, 'provider-model-v1']);
