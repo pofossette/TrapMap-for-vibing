@@ -12,12 +12,11 @@
 
 ## 当前主线
 
-- 当前暂无 active mainline。Web Panel 已于 2026-09-02 完成 39/39 并归档至 `docs/archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md`（含 7-route 18 images + Phase2 2 routes），Go 计算中枢与类型对齐亦同日归档（`go-compute-hub-mainline-archived.md` / `type-alignment-mainline-archived.md`，P0 `generate:contracts:check` 22 schemas + `go vet/test` ok）。
-- 下一候选将按优先级从 `docs/todos/open-debt-and-compromises.md`（6 项）与 `go-accelerator` 深化中选取，由根 `plan.md` 显式激活。
+- **CLI 真实服务对接测试（Three-Artifact Live Verification + Docker 资源观测）已激活（2026-09-02）：** 三构建产物（A light `trap-map-host-local` / B heavy-Node `trap-map-server` / C heavy+Go `knowledge-read-go+go-accelerator`）各 ≥3 轮 CLI 全量回归 + `docker stats`/`system df` CPU/内存/磁盘量化，细则见 [cli-server-integration-mainline.md](docs/todos/cli-server-integration-mainline.md)（Phase 0 基建 → Phase 1 light → Phase 2 heavy → Phase 3 heavy+Go → Phase 4 综合报告 → Phase 5 自动化 closeout）。
 
 ## 下一候选
 
-- 下一候选待定（建议：`go-accelerator` 剩余重计算批处理深化或 `open-debt` 中 `security advisory` / `gateway parity` 专项）。
+- `open-debt-and-compromises.md` 6 项（`security advisory` / `gateway parity` 等）待本主线 closeout 后按阈值漂移评估选取；`go-accelerator` 深化已由本主线 C 产物覆盖。
 
 ## 历史主线与入口
 

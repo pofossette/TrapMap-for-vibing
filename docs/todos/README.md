@@ -11,6 +11,7 @@
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [experience-gene-program-mainline-archived.md](../archived/archived-plans/experience-gene-program-mainline-archived.md) | Experience Gene Infrastructure and Pipeline | 已完成并归档（2026-09-02，offline precision 1.0 + promotion eligible true，live CI deferred）；6 文件 mainline+5 phases |
+| [cli-server-integration-mainline.md](cli-server-integration-mainline.md) | **CLI 真实服务对接测试**（Three-Artifact Live + Docker 资源观测） | **active（2026-09-02）**；Phase 0-5 三产物各≥3轮 CLI 全量 + docker stats/system df 量化；见 `plan.md` 当前主线 |
 | [go-accelerator-mainline.md](go-accelerator-mainline.md) | Go 加速服务 scaffold（已合入 `pre`） | 已合入 `pre@a9b413b5`；见 `go-compute-hub-mainline.md` 深化 |
 | [performance-infra-mainline-archived.md](../archived/archived-plans/performance-infra-mainline-archived.md) | **性能与压测基建**：bench harness + stress + 可观测 | 已完成并归档（2026-09-02，设施 5 链路 bench + 4 场景 stress + Go metrics/pprof，`pnpm bench:compute`/`go test -bench`） |
 | [skill-registry-mainline.md](skill-registry-mainline.md) | Skill Registry 版本管理器抽离（已合入 `pre`） | 已合入 `pre@a9b413b5`；`@trapmap/skill-registry` 子包 |
