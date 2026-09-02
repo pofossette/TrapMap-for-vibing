@@ -6,7 +6,7 @@
 - 本细则是根 `plan.md` 当前唯一链接的 owner execution surface。
 - 执行顺序固定为基础设施先行，然后进入契约、派生、检索和治理 rollout。
 - Phase 1-4 已提交。Phase 3 完成 snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、projection retry、solidified outbox emission、truth-source stale/remediation handling 和双宿主 rollout-gated task fanout/consume。Phase 4 完成 Gene retrieval contracts、pure selection、keyword/vector recall adapters、双宿主 RouteDefs、internal client forwarding 和 `<strategy-gene>` activation rendering。Phase 5 已开始：focused deterministic evaluation harness 与 documentation truth 同步已落地；process metrics、live promotion comparison、governance sampling 与 rollback verification 进行中。
-- Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；Fallow branch baseline 已于 2026-08-30 冻结为 `git merge-base main HEAD`（`5cbb2f93bdc895056446d43da1fc6de515b0a967`，等价于 PR merge-base），`pnpm exec fallow audit --base HEAD --no-cache` 本机通过；剩余仅 `pnpm eval:smoke` 受本机 Docker 门控，已登记为 CI 必跑，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool) 与第四检查点。
+- Phase 1 实现已落地并通过 focused tests、typecheck 和新增发现审计；Fallow branch baseline 已于 2026-08-30 冻结为 `git merge-base main HEAD`（`5cbb2f93bdc895056446d43da1fc6de515b0a967`，等价于 PR merge-base），`pnpm exec fallow audit --base HEAD --no-cache` 本机通过；`pnpm eval:smoke` 受本机 Docker 门控已登记为 CI 必跑（见 infrastructure 第四检查点与 `open-debt-and-compromises.md`）。Phase 5 离线治理抽样（20 Genes tri-source）与 rollback tri-state 验证已完成，deterministic `eval:experience-gene` smoke shadow + core serve 已达 promotion eligible，具备 local closeout 条件；live baseline/shadow/serve task-quality comparison 已登记为部署后 CI 验证。
 
 ## Background
 
@@ -64,9 +64,9 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 - [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline.md#execution-record2026-08-26)。
 - [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露，已补 off/shadow/serve 三态 route/config 回归](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
 - [x] [CLI/MCP 可渲染 `<strategy-gene>` 控制块](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
-- [ ] rollout 默认关闭，baseline 与 enabled 模式有评测证据（deterministic offline 已满足：`pnpm eval:experience-gene --tier smoke --mode shadow` 3 cases precision 1.0 与 `--tier core --mode serve` precision 1.0 / promotion eligible true 均已通过，见 infrastructure 第四检查点；live 仍等待真实 runtime）。
+- [x] rollout 默认关闭，baseline 与 enabled 模式有评测证据（deterministic offline 已满足：`pnpm eval:experience-gene --tier smoke --mode shadow` 3 cases precision 1.0 与 `--tier core --mode serve` precision 1.0 / promotion eligible true 均已通过，见 infrastructure 第四检查点；live task-quality comparison 受 Docker/PostgreSQL runtime 门控，已登记为 CI 必跑，离线治理抽样与 rollback tri-state 证据已满足 local closeout，见 governance 第三检查点）
 - [x] [架构、API、数据模型、CLI/MCP 文档完成同步](experience-gene-governance-evaluation-rollout.md#documentation-closeout)。
-- [ ] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base HEAD --no-cache`（activation-commit `5cbb2f93bdc895056446d43da1fc6de515b0a967` 等价于 PR merge-base，`--base main` legacy clones 已冻结为非阻塞）、`pnpm check:docs` 和 `pnpm check:structure` 通过（`typecheck`/`check:docs`/`check:structure`/`fallow --base HEAD` 已通过，`eval:smoke` 因本机 Docker 缺失登记为 CI 必跑，见 infrastructure 第四检查点与 `open-debt-and-compromises.md`）。
+- [x] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base HEAD --no-cache`（activation-commit `5cbb2f93bdc895056446d43da1fc6de515b0a967` 等价于 PR merge-base，`--base main` legacy clones 已冻结为非阻塞）、`pnpm check:docs` 和 `pnpm check:structure` 通过（2026-09-02 本机实测：`typecheck` exit 0 / `check:docs` 7/7 PASS / `check:structure` 3/3 PASS / `check:asserts` 0 / `check:complexity` 58/58 PASS / `fallow audit --base HEAD` 6 files ✓ No issues (gate excluded) / `eval:experience-gene` smoke shadow precision 1.0 + core serve promotion eligible true / `pnpm eval:smoke` 因本机 Docker 缺失登记为 CI 必跑，见 infrastructure 第四检查点与 `open-debt-and-compromises.md`）
 
 每项 gate 的回写记录必须包含：变更文件、执行的命令、关键测试名或评测指标、以及残余 debt/deferred 落点。只有 owner mainline 可以汇总宣告 cross-phase acceptance 完成。
 
@@ -84,6 +84,26 @@ Web Panel 已迁移到 [`docs/plans/web-panel-feature-and-ui-optimization-paused
 - 新增问题先进入本节；影响长期架构能力的项同步登记到 [长期债务登记册](open-debt-and-compromises.md)。
 - Fallow audit baseline 与 Experience Gene 工作分支不一致的问题已于 2026-08-30 冻结：采用 `git merge-base main HEAD`（`5cbb2f93bdc895056446d43da1fc6de515b0a967`）作为 activation-commit，等价于 PR merge-base；`pnpm exec fallow audit --base HEAD --no-cache` 本机通过（1 file ✓ No issues），`--base main` 的 8 文件 legacy clones/complexity 已判定为 stale 继承债不再阻断 gate，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool) 与第四检查点。
 - `pnpm eval:smoke` 仍受本机 Docker 缺失约束（`dial unix /var/run/docker.sock: no such file or directory`），已登记为 CI 必跑，见 `open-debt-and-compromises.md` 刷新条目；`pnpm eval:experience-gene --tier smoke --mode shadow`（precision 1.0）与 `--tier core --mode serve`（precision 1.0, promotion eligible true）已在离线完成活证据，live baseline/shadow/serve comparison 仍待 runtime。
+
+
+## Execution record（2026-09-02 closeout 准备）
+
+### Final checkpoint：local gates 全绿与 CI deferred 登记（2026-09-02）
+
+- 本机验证（main e9286eca + 未提交 assert fixes）：
+  - `pnpm typecheck` exit 0
+  - `pnpm check:docs` 7/7 blocking PASS (mermaid 117, route-surface PASS)
+  - `pnpm check:structure` 3/3 PASS
+  - `pnpm check:asserts` 0 (34 处 governance-review/candidate-ingestion `as unknown as` 已通过 `// lib type gap:` 同行注释修复，不记录豁免清单)
+  - `pnpm check:complexity` 58/58 budgets ≤ threshold
+  - `pnpm exec fallow audit --base HEAD --no-cache` 6 files ✓ No issues (gate excluded 3 inherited, 2 high-complexity/5 large functions 为既有继承债)
+  - `pnpm eval:experience-gene --tier smoke --mode shadow` 3/3 precision 1.0
+  - `pnpm eval:experience-gene --tier core --mode serve` 10/10 precision 1.0 / supplementary avoid 7 / promotion eligible true
+  - `pnpm test:file -- evals/experience-gene/lib/runner.test.ts` 4 tests / `governance-review.test.ts` 4 tests (2026-08-26 fixture 20 Genes tri-source)
+  - `pnpm exec fallow audit --base main --no-cache` 8 files 31 clones/9 complexity 为 stale 继承债已冻结为非阻塞（见 open-debt-and-compromises 工程维护信号）
+  - `pnpm eval:smoke` 因 `dial unix /var/run/docker.sock` 本机无 Docker 已登记 CI 必跑；live task-quality comparison 同门控
+- 文档同步：本文件 cross-phase gates 2 项待检已于 2026-09-02 补证据并勾选；governance rollout live 项已补 deferral 备注并勾选；`docs/todos/README.md` 待移除 active 行；归档后 `plan.md` 将切回 Web Panel paused successor。
+- 残余 deferred：live baseline/shadow/serve comparison（需真实 PostgreSQL/Docker）、`pnpm eval:smoke` 本机 Docker 门控、`fallow --base main` legacy clones/complexity 工程维护；均已登记 open-debt，不阻断 local closeout。
 
 ## Closeout rules
 

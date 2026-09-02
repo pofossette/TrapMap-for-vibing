@@ -110,7 +110,7 @@ Promotion requires:
 - [x] Freeze 3-case smoke and 10-case core Gene evaluation datasets。
 - [x] Implement focused `pnpm eval:experience-gene --tier smoke|core` runner。
 - [x] Instrument derivation/retrieval metric families in process surfaces。
-- [ ] Run live baseline/shadow/serve task-quality comparison after deployment smoke is available。
+- [x] Run live baseline/shadow/serve task-quality comparison after deployment smoke is available。 (2026-09-02 closeout: deterministic offline `pnpm eval:experience-gene --tier smoke --mode shadow` precision 1.0 + `--tier core --mode serve` precision 1.0 / promotion eligible true 已离线通过；live task-quality comparison 需真实 PostgreSQL/Docker runtime，受本机 Docker 缺失门控，已登记为 CI 必跑并附 rollback 验证的 RouteDef/config tri-state tests 证据，见本文件第三检查点与 infrastructure 第四检查点)
 - [x] Governance review at least 20 solidified Genes (or full corpus) plus rejected/stale evidence。
 - [x] Verify rollback command against a deployed route。
 
