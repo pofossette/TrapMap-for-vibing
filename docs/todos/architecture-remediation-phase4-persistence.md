@@ -45,10 +45,10 @@ export const knowledgeEntries = pgTable('knowledge_entries', { ... })
 
 ## Tasks
 
-- [ ] **4.1 Owner 拆分** — 每 service `schema.ts` 自持 `pgTable` 定义，`db/src/schema/*.ts` 仅聚合；`column-factories.ts` 留 `db` 复用
-- [ ] **4.2 消灭例外** — `conflict_relations` 正式建模于 `service-governance-review`，`DATABASE_SCHEMA.md` 增治理域小节并标注原双源已收敛
-- [ ] **4.3 索引复核** — 保持 `HNSW(tsvector) + tsvector GIN + jsonb GIN/函数索引`，`task_queue` 是否加 `pending_dequeue` 部分索引以实测决择，仅文档与注释对齐，不新增存储
-- [ ] **4.4 守卫对齐** — 跑 `check:table-schema 42/42` 与 `check:pgtable-single-source`（`service-*` 内 `pgTable(` 仅在 `schema.ts`）
+- [x] **4.1 Owner 拆分** — 每 service `schema.ts` 自持 `pgTable` 定义，`db/src/schema/*.ts` 仅聚合；`column-factories.ts` 留 `db` 复用
+- [x] **4.2 消灭例外** — `conflict_relations` 正式建模于 `service-governance-review`，`DATABASE_SCHEMA.md` 增治理域小节并标注原双源已收敛
+- [x] **4.3 索引复核** — 保持 `HNSW(tsvector) + tsvector GIN + jsonb GIN/函数索引`，`task_queue` 是否加 `pending_dequeue` 部分索引以实测决择，仅文档与注释对齐，不新增存储
+- [x] **4.4 守卫对齐** — 跑 `check:table-schema 42/42` 与 `check:pgtable-single-source`（`service-*` 内 `pgTable(` 仅在 `schema.ts`）
 
 ## 完成标准
 

@@ -32,15 +32,15 @@ after:  governance/routes/{queue,feedback,maintenance,admin}.ts ≤280
 
 ## Tasks
 
-- [ ] **1.1 拆 governance-review 914** — 按 `queue/feedback/maintenance/admin` 资源拆，每文件 ≤280，`helpers.ts` 放 `GOVERNANCE_REVIEW_OWNERSHIP` 常量与 Zod schemas；对外仍 `createGovernanceReviewRouteDefs` 聚合，移除头部 `// fallow-ignore-file`
+- [x] **1.1 拆 governance-review 914** — 按 `queue/feedback/maintenance/admin` 资源拆，每文件 ≤280，`helpers.ts` 放 `GOVERNANCE_REVIEW_OWNERSHIP` 常量与 Zod schemas；对外仍 `createGovernanceReviewRouteDefs` 聚合，移除头部 `// fallow-ignore-file`
   - *Files:* `routes/queue.routes.ts` `feedback.routes.ts` `maintenance.routes.ts` `admin.routes.ts`
-- [ ] **1.2 拆 knowledge-write 826** — `knowledge.routes.ts` 承载 entry/revision 生命周期，`submission.routes.ts` 承载提交/审核快照，复用 `artifact-ports.ts`
+- [x] **1.2 拆 knowledge-write 826** — `knowledge.routes.ts` 承载 entry/revision 生命周期，`submission.routes.ts` 承载提交/审核快照，复用 `artifact-ports.ts`
   - *Files:* `routes/knowledge.routes.ts` `routes/submission.routes.ts`
-- [ ] **1.3 拆 recall coordinator 586** — 仅保留编排，抽三通道各 ≤120 至 `recall/*`，`ChannelRegistry + StrategyRegistry` 统一注册，`retrieval-orchestration.ts 59` 归口
+- [x] **1.3 拆 recall coordinator 586** — 仅保留编排，抽三通道各 ≤120 至 `recall/*`，`ChannelRegistry + StrategyRegistry` 统一注册，`retrieval-orchestration.ts 59` 归口
   - *Files:* `recall/hybrid-channel.ts` `semantic-channel.ts` `graph-channel.ts` `channel-registry.ts`
-- [ ] **1.4 拆 search-knowledge 391** — 保留 v1 `semantic|hybrid|graph-assisted`，`search-v2.ts` 胶囊原生，`search-v3-plan.ts` trap-first
+- [x] **1.4 拆 search-knowledge 391** — 保留 v1 `semantic|hybrid|graph-assisted`，`search-v2.ts` 胶囊原生，`search-v3-plan.ts` trap-first
   - *Files:* `search/search-v2.ts` `search-v3-plan.ts`
-- [ ] **1.5 网关瘦身（仅 host-local）** — `packages/host-local/src/nest/gateway/gateway.route-defs.ts` 仅聚合与鉴权委托，`host-distributed` 归 P2，目标 ≤150 行
+- [x] **1.5 网关瘦身（仅 host-local）** — `packages/host-local/src/nest/gateway/gateway.route-defs.ts` 仅聚合与鉴权委托，`host-distributed` 归 P2，目标 ≤150 行
 
 ## 反例（禁做）
 

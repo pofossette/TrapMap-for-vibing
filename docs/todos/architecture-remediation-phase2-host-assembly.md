@@ -30,13 +30,13 @@ after:  assembly/capabilities/{otel,prometheus,loki,sentry,langfuse,consul}.ts
 
 ## Tasks
 
-- [ ] **2.1 抽可观测 capability** — 6 模块各封装 `defineNode`，lifecycle 经 `shutdown-controller + startup-checks`，`AppModule` 0 直接 observability import
+- [x] **2.1 抽可观测 capability** — 6 模块各封装 `defineNode`，lifecycle 经 `shutdown-controller + startup-checks`，`AppModule` 0 直接 observability import
   - *Files:* `assembly/capabilities/*.capability.ts` `assembly/shutdown-controller.ts`
-- [ ] **2.2 拆 adapters 360** — 按 6 上下文拆，每 80-120 行，仅 `Port→PgPorts/Infra` 绑定，无业务判断
+- [x] **2.2 拆 adapters 360** — 按 6 上下文拆，每 80-120 行，仅 `Port→PgPorts/Infra` 绑定，无业务判断
   - *Files:* `host-local/src/nest/runtime/adapters/*.adapter.ts`
-- [ ] **2.3 三档 profile 统一** — `local-agent/team-monolith/distributed` 在 assembly 声明能力集合与 RouteDef 表面差异，`monolith-route-defs.ts` 仅透传
+- [x] **2.3 三档 profile 统一** — `local-agent/team-monolith/distributed` 在 assembly 声明能力集合与 RouteDef 表面差异，`monolith-route-defs.ts` 仅透传
   - *Files:* `assembly/profiles/*.ts` `host-local/src/nest/runtime/host-runtime.ts`
-- [ ] **2.4 Distributed 网关对齐** — `internal-client.ts 1307` 拆 `client.ts/breaker.ts/health-aggregator.ts`，`route-defs.ts 1460` 按资源拆，均经 `createNestAdapter/createFastifyAdapter` 消费同一 `RouteDef`
+- [x] **2.4 Distributed 网关对齐** — `internal-client.ts 1307` 拆 `client.ts/breaker.ts/health-aggregator.ts`，`route-defs.ts 1460` 按资源拆，均经 `createNestAdapter/createFastifyAdapter` 消费同一 `RouteDef`
   - *Files:* `host-distributed/src/gateway/client.ts` `breaker.ts` `health-aggregator.ts`
 
 ## 完成标准

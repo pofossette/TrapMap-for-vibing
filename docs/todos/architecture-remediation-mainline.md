@@ -73,10 +73,10 @@ flowchart LR
 
 ## P0: Freeze — 固化基线与预算
 
-- [ ] **P0.1 基线快照** — 落 `docs/reference/BASELINE_2026-09-01.md`：42 表、`governance 914/knowledge-write 826/coordinator 586/search 391`、Go 1348 行/6 模块、fallow 0、mermaid 115
-- [ ] **P0.2 预算冻结** — `scripts/complexity-budgets.json` 增 `TS file≤300 hard400 module≤600` 与 `Go file≤300 module≤600 ratio≤30%`
-- [ ] **P0.3 语义冻结** — 声明零语义变更，检索分数/排序/hash 字节一致由 fallback 单测保障
-- [ ] **P0.4 回滚锚点** — 每 Phase 独立 commit，失败 `git revert <phase-commit>` 至 P0 基线；fallback 单测为 `canonicalHashWithFallback / batchCosineWithFallback` 字节一致
+- [x] **P0.1 基线快照** — 落 `docs/reference/BASELINE_2026-09-01.md`：42 表、`governance 914/knowledge-write 826/coordinator 586/search 391`、Go 1348 行/6 模块、fallow 0、mermaid 115
+- [x] **P0.2 预算冻结** — `scripts/complexity-budgets.json` 增 `TS file≤300 hard400 module≤600` 与 `Go file≤300 module≤600 ratio≤30%`
+- [x] **P0.3 语义冻结** — 声明零语义变更，检索分数/排序/hash 字节一致由 fallback 单测保障
+- [x] **P0.4 回滚锚点** — 每 Phase 独立 commit，失败 `git revert <phase-commit>` 至 P0 基线；fallback 单测为 `canonicalHashWithFallback / batchCosineWithFallback` 字节一致
 
 **完成标准:** `check:complexity` 新阈值绿，`fallow audit --base main` 0
 

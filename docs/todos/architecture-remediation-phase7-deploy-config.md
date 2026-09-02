@@ -37,9 +37,9 @@ after:  envconfig 单源校验 fail-fast | compose --profile distributed 4 服�
 
 ## Tasks
 
-- [ ] **7.1 配置单源** — `envconfig` 唯一校验，`TRAPMAP_READ_IMPL` 非法 fail-fast；`host-local` 无 `GO_*` 环境；`shadow 5% / dual 10%` 抽配置非硬编码
-- [ ] **7.2 Compose 一键** — `docker compose --profile distributed up` 拉起全栈，`gateway /ready` 聚合 `knowledge-read-go/health` 与 `go-accelerator/ready`
-- [ ] **7.3 Thin apps** — `apps/light` 与 `apps/distributed` 仅 `assembly.build(profile).bootstrap()`，无业务逻辑
+- [x] **7.1 配置单源** — `envconfig` 唯一校验，`TRAPMAP_READ_IMPL` 非法 fail-fast；`host-local` 无 `GO_*` 环境；`shadow 5% / dual 10%` 抽配置非硬编码
+- [x] **7.2 Compose 一键** — `docker compose --profile distributed up` 拉起全栈，`gateway /ready` 聚合 `knowledge-read-go/health` 与 `go-accelerator/ready`
+- [x] **7.3 Thin apps** — `apps/light` 与 `apps/distributed` 仅 `assembly.build(profile).bootstrap()`，无业务逻辑
 
 ## 完成标准
 

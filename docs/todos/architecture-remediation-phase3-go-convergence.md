@@ -40,10 +40,10 @@
 
 ## Tasks
 
-- [ ] **3.1 go-accelerator 瘦身** — 仅保留 `POST /v1/hash/* /v1/vector/* /v1/text/tokenize /v1/dedup/fingerprint /v1/gene/*`；`retrieval/ranking` 若仍存在则删并在 `DEPRECATED.md` 标 sunset 2026-10-01
-- [ ] **3.2 读服务绞杀器** — `query→recall→ranking→assembly→cache` 同进程闭环 6 模块各 ≤600；`api/handler≤120 router≤80 middleware≤100`；`ranking` 已拆 `merge/rerank/boundary` 各 ≤150；`recall` 三通道 + `assembly` 两域复核
-- [ ] **3.3 统一 fallback（过渡态明确）** — 保留 `getGoAcceleratorClient` + `getKnowledgeReadGoConfig` 双 client，过渡期 `infra/fallback.ts` 优先 `knowledge-read-go` 再 `compute` 再 `JS`，`host-local` 恒 JS；`optimizedSemanticRecall` 仅 `distributed && entries>1` 时走 Go；计数双写 `Go metrics + Node metrics`
-- [ ] **3.4 栈锁死** — `go.mod` 仅白名单依赖，`go vet/test/golangci-lint` 6 包绿，`cmd/main.go≤150`
+- [x] **3.1 go-accelerator 瘦身** — 仅保留 `POST /v1/hash/* /v1/vector/* /v1/text/tokenize /v1/dedup/fingerprint /v1/gene/*`；`retrieval/ranking` 若仍存在则删并在 `DEPRECATED.md` 标 sunset 2026-10-01
+- [x] **3.2 读服务绞杀器** — `query→recall→ranking→assembly→cache` 同进程闭环 6 模块各 ≤600；`api/handler≤120 router≤80 middleware≤100`；`ranking` 已拆 `merge/rerank/boundary` 各 ≤150；`recall` 三通道 + `assembly` 两域复核
+- [x] **3.3 统一 fallback（过渡态明确）** — 保留 `getGoAcceleratorClient` + `getKnowledgeReadGoConfig` 双 client，过渡期 `infra/fallback.ts` 优先 `knowledge-read-go` 再 `compute` 再 `JS`，`host-local` 恒 JS；`optimizedSemanticRecall` 仅 `distributed && entries>1` 时走 Go；计数双写 `Go metrics + Node metrics`
+- [x] **3.4 栈锁死** — `go.mod` 仅白名单依赖，`go vet/test/golangci-lint` 6 包绿，`cmd/main.go≤150`
 
 ## 完成标准
 

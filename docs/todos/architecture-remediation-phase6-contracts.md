@@ -32,9 +32,9 @@ grep -rn "export.*Schema" packages/contracts/src/domain/operations.ts | head
 
 ## Tasks
 
-- [ ] **6.1 拆契约大文件** — `operations 5187→按 identity/knowledge/governance/job 4 文件`，每文件 ≤400，`index.ts` 唯一出口；`contracts/test/index 3424` 按域拆
-- [ ] **6.2 门禁** — `pnpm generate:contracts --check` + `git diff --exit-code -- contracts/json-schema services/*/pkg/api` + `pnpm check:go-contract` 进 `ci: type-alignment` job
-- [ ] **6.3 OpenAPI/proto** — `oapi-codegen` 对齐 `RouteDef` Zod，`proto/trapmap/compute/v1/compute.proto` 仅 `batchCosine` 二进制时启用（`TRAPMAP_GO_ACCEL_PROTO` benchmark gated）
+- [x] **6.1 拆契约大文件** — `operations 5187→按 identity/knowledge/governance/job 4 文件`，每文件 ≤400，`index.ts` 唯一出口；`contracts/test/index 3424` 按域拆
+- [x] **6.2 门禁** — `pnpm generate:contracts --check` + `git diff --exit-code -- contracts/json-schema services/*/pkg/api` + `pnpm check:go-contract` 进 `ci: type-alignment` job
+- [x] **6.3 OpenAPI/proto** — `oapi-codegen` 对齐 `RouteDef` Zod，`proto/trapmap/compute/v1/compute.proto` 仅 `batchCosine` 二进制时启用（`TRAPMAP_GO_ACCEL_PROTO` benchmark gated）
 
 ## 完成标准
 

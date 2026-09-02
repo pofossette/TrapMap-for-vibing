@@ -39,9 +39,9 @@ export interface CachePort {
 
 ## Tasks
 
-- [ ] **5.1 定义 Cache Port** — TS 与 Go 同 key 语义 `canonicalJsonStringify` 字节一致，`get` 命中率进 `prometheus`，`invalidate` 由 `workflow_runs` 状态变更触发
-- [ ] **5.2 双侧接线** — Node `retrieval-read-model-cache` 与 Go `lru+singleflight` 同源，`shadow/dual` 模式对比命中率落 metrics
-- [ ] **5.3 索引复核** — `knowledge_embeddings/capsule_embeddings/experience_gene_embeddings HNSW` + `knowledge_search_documents tsvector GIN` + `candidates.analysis jsonb GIN` 保持，不新增存储，仅补注释与迁移一致说明
+- [x] **5.1 定义 Cache Port** — TS 与 Go 同 key 语义 `canonicalJsonStringify` 字节一致，`get` 命中率进 `prometheus`，`invalidate` 由 `workflow_runs` 状态变更触发
+- [x] **5.2 双侧接线** — Node `retrieval-read-model-cache` 与 Go `lru+singleflight` 同源，`shadow/dual` 模式对比命中率落 metrics
+- [x] **5.3 索引复核** — `knowledge_embeddings/capsule_embeddings/experience_gene_embeddings HNSW` + `knowledge_search_documents tsvector GIN` + `candidates.analysis jsonb GIN` 保持，不新增存储，仅补注释与迁移一致说明
 
 ## 完成标准
 
