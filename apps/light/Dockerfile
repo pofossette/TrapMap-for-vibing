@@ -15,9 +15,9 @@ COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY packages/backend-core/src ./packages/backend-core/src
 
-COPY packages/persistence-schema/package.json ./packages/persistence-schema/
-COPY packages/persistence-schema/tsconfig.json ./packages/persistence-schema/
-COPY packages/persistence-schema/src ./packages/persistence-schema/src
+COPY packages/db/package.json ./packages/db/
+COPY packages/db/tsconfig.json ./packages/db/
+COPY packages/db/src ./packages/db/src
 
 COPY packages/ai-providers/package.json ./packages/ai-providers/
 COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/
@@ -68,6 +68,7 @@ WORKDIR /app
 RUN pnpm exec tsc -b \
   packages/contracts/tsconfig.json \
   packages/backend-core/tsconfig.json \
+  packages/db/tsconfig.json \
   packages/service-knowledge-read/tsconfig.json \
   packages/service-candidate-ingestion/tsconfig.json \
   packages/service-governance-review/tsconfig.json \
@@ -93,9 +94,9 @@ COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY --from=build /app/packages/backend-core/dist ./packages/backend-core/dist
 
-COPY packages/persistence-schema/package.json ./packages/persistence-schema/
-COPY packages/persistence-schema/tsconfig.json ./packages/persistence-schema/
-COPY --from=build /app/packages/persistence-schema/dist ./packages/persistence-schema/dist
+COPY packages/db/package.json ./packages/db/
+COPY packages/db/tsconfig.json ./packages/db/
+COPY --from=build /app/packages/db/dist ./packages/db/dist
 
 COPY packages/ai-providers/package.json ./packages/ai-providers/
 COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/

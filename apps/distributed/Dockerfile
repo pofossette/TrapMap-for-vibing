@@ -15,9 +15,9 @@ COPY packages/backend-core/package.json ./packages/backend-core/
 COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY packages/backend-core/src ./packages/backend-core/src
 
-COPY packages/persistence-schema/package.json ./packages/persistence-schema/
-COPY packages/persistence-schema/tsconfig.json ./packages/persistence-schema/
-COPY packages/persistence-schema/src ./packages/persistence-schema/src
+COPY packages/db/package.json ./packages/db/
+COPY packages/db/tsconfig.json ./packages/db/
+COPY packages/db/src ./packages/db/src
 
 COPY packages/ai-providers/package.json ./packages/ai-providers/
 COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/
@@ -68,6 +68,7 @@ WORKDIR /app
 RUN pnpm exec tsc -b \
   packages/contracts/tsconfig.json \
   packages/backend-core/tsconfig.json \
+  packages/db/tsconfig.json \
   packages/service-identity-access/tsconfig.json \
   packages/service-knowledge-read/tsconfig.json \
   packages/service-knowledge-write/tsconfig.json \
@@ -96,9 +97,9 @@ COPY packages/backend-core/tsconfig.json ./packages/backend-core/
 COPY --from=deps /app/packages/backend-core/node_modules ./packages/backend-core/node_modules
 COPY --from=build /app/packages/backend-core/dist ./packages/backend-core/dist
 
-COPY packages/persistence-schema/package.json ./packages/persistence-schema/
-COPY packages/persistence-schema/tsconfig.json ./packages/persistence-schema/
-COPY --from=build /app/packages/persistence-schema/dist ./packages/persistence-schema/dist
+COPY packages/db/package.json ./packages/db/
+COPY packages/db/tsconfig.json ./packages/db/
+COPY --from=build /app/packages/db/dist ./packages/db/dist
 
 COPY packages/ai-providers/package.json ./packages/ai-providers/
 COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/
@@ -108,43 +109,36 @@ COPY packages/service-identity-access/package.json ./packages/service-identity-a
 COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/
 COPY --from=deps /app/packages/service-identity-access/node_modules ./packages/service-identity-access/node_modules
 COPY --from=build /app/packages/service-identity-access/dist ./packages/service-identity-access/dist
-COPY packages/service-identity-access/drizzle ./packages/service-identity-access/drizzle
 
 COPY packages/service-knowledge-read/package.json ./packages/service-knowledge-read/
 COPY packages/service-knowledge-read/tsconfig.json ./packages/service-knowledge-read/
 COPY --from=deps /app/packages/service-knowledge-read/node_modules ./packages/service-knowledge-read/node_modules
 COPY --from=build /app/packages/service-knowledge-read/dist ./packages/service-knowledge-read/dist
-COPY packages/service-knowledge-read/drizzle ./packages/service-knowledge-read/drizzle
 
 COPY packages/service-knowledge-write/package.json ./packages/service-knowledge-write/
 COPY packages/service-knowledge-write/tsconfig.json ./packages/service-knowledge-write/
 COPY --from=deps /app/packages/service-knowledge-write/node_modules ./packages/service-knowledge-write/node_modules
 COPY --from=build /app/packages/service-knowledge-write/dist ./packages/service-knowledge-write/dist
-COPY packages/service-knowledge-write/drizzle ./packages/service-knowledge-write/drizzle
 
 COPY packages/service-candidate-ingestion/package.json ./packages/service-candidate-ingestion/
 COPY packages/service-candidate-ingestion/tsconfig.json ./packages/service-candidate-ingestion/
 COPY --from=deps /app/packages/service-candidate-ingestion/node_modules ./packages/service-candidate-ingestion/node_modules
 COPY --from=build /app/packages/service-candidate-ingestion/dist ./packages/service-candidate-ingestion/dist
-COPY packages/service-candidate-ingestion/drizzle ./packages/service-candidate-ingestion/drizzle
 
 COPY packages/service-governance-review/package.json ./packages/service-governance-review/
 COPY packages/service-governance-review/tsconfig.json ./packages/service-governance-review/
 COPY --from=deps /app/packages/service-governance-review/node_modules ./packages/service-governance-review/node_modules
 COPY --from=build /app/packages/service-governance-review/dist ./packages/service-governance-review/dist
-COPY packages/service-governance-review/drizzle ./packages/service-governance-review/drizzle
 
 COPY packages/service-job-runtime/package.json ./packages/service-job-runtime/
 COPY packages/service-job-runtime/tsconfig.json ./packages/service-job-runtime/
 COPY --from=deps /app/packages/service-job-runtime/node_modules ./packages/service-job-runtime/node_modules
 COPY --from=build /app/packages/service-job-runtime/dist ./packages/service-job-runtime/dist
-COPY packages/service-job-runtime/drizzle ./packages/service-job-runtime/drizzle
 
 COPY packages/service-cron/package.json ./packages/service-cron/
 COPY packages/service-cron/tsconfig.json ./packages/service-cron/
 COPY --from=deps /app/packages/service-cron/node_modules ./packages/service-cron/node_modules
 COPY --from=build /app/packages/service-cron/dist ./packages/service-cron/dist
-COPY packages/service-cron/drizzle ./packages/service-cron/drizzle
 
 COPY packages/host-distributed/package.json ./packages/host-distributed/
 COPY packages/host-distributed/tsconfig.json ./packages/host-distributed/

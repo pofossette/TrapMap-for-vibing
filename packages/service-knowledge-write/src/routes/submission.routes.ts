@@ -5,33 +5,33 @@ import {
   type RouteDef,
   routeResponse,
 } from '@trapmap/backend-core';
+import type { AdminArtifactQuery } from '@trapmap/contracts';
+import { z } from 'zod';
+import { trustedActor } from '../route-helpers.js';
 import { knowledgeWriteRouteDef } from './helpers.js';
 import type { KnowledgeWriteRouteDeps } from './helpers.js';
 import {
-  reviewDecisionSchema,
-  maintenanceDecisionSchema,
-  publishCandidateSchema,
+  KNOWLEDGE_WRITE_OWNERSHIP,
+  adminArtifactDetailSchema,
+  adminArtifactListSchema,
   experienceGeneDerivationSchema,
   experienceGeneStalenessSchema,
-  rpcSchema,
-  healthSchema,
-  adminArtifactListSchema,
-  adminArtifactDetailSchema,
-  reviewDecisionArgs,
-  maintenanceDecisionArgs,
-  getArtifactAuth,
-  isArtifactVisible,
-  parseArtifactCursor,
   fetchAllArtifacts,
   fetchArtifactById,
+  getArtifactAuth,
+  healthSchema,
   invokeKnowledgeWriteRpc,
-  toConflictCandidate,
+  isArtifactVisible,
+  maintenanceDecisionArgs,
+  maintenanceDecisionSchema,
+  parseArtifactCursor,
+  publishCandidateSchema,
   readinessHandler,
-  KNOWLEDGE_WRITE_OWNERSHIP,
+  reviewDecisionArgs,
+  reviewDecisionSchema,
+  rpcSchema,
+  toConflictCandidate,
 } from './helpers.js';
-import { trustedActor } from '../route-helpers.js';
-import type { AdminArtifactQuery } from '@trapmap/contracts';
-import { z } from 'zod';
 
 const emptyRecord = z.record(z.string(), z.unknown());
 const headersSchema = z.record(z.string(), z.unknown());

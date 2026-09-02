@@ -1,5 +1,5 @@
-import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './registry-adapter.js';
 import type { SkillRegistryEntry, SkillSource } from '../contracts/skill-source.js';
+import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './registry-adapter.js';
 
 /**
  * skills.sh adapter — mirrors ai-pkgs "skills" distribution.

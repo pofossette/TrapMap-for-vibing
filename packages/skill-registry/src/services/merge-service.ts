@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import { readdir } from 'node:fs/promises';
-import { threeWayMerge, type MergeResult } from '../domain/merge.js';
+import path from 'node:path';
 import type { SkillSnapshot } from '../domain/diff.js';
 import { diffSnapshots } from '../domain/diff.js';
+import { type MergeResult, threeWayMerge } from '../domain/merge.js';
 
 async function readSnapshot(dir: string, slug: string, version?: string): Promise<SkillSnapshot> {
   const files: SkillSnapshot['files'] = [];

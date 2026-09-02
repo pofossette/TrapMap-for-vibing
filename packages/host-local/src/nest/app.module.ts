@@ -1,7 +1,7 @@
 import { type MiddlewareConsumer, Module, type NestModule } from '@nestjs/common';
 import { buildHostLocalModule } from './app.composition.js';
-import type { HostLocalRuntime } from './runtime/host-runtime.js';
 import { HttpMetricsMiddleware } from './observability/index.js';
+import type { HostLocalRuntime } from './runtime/host-runtime.js';
 import { LoggingMiddleware } from './runtime/logging.middleware.js';
 import { RequestContextMiddleware } from './runtime/request-context.middleware.js';
 

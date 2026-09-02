@@ -1,6 +1,6 @@
+import { graphRecall } from './graph-channel.js';
 import { hybridRecall } from './hybrid-channel.js';
 import { semanticRecall } from './semantic-channel.js';
-import { graphRecall } from './graph-channel.js';
 
 export const ChannelRegistry = {
   hybrid: hybridRecall,

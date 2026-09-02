@@ -1,8 +1,8 @@
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import type { RegistryService } from './registry-service.js';
 import type { SkillLockEntry, SkillLockfile } from '../contracts/skill-lock.js';
 import { skillLockfileSchema } from '../contracts/skill-lock.js';
+import type { RegistryService } from './registry-service.js';
 
 export interface InstallOptions {
   scope?: 'global' | 'project';

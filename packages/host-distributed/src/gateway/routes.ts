@@ -24,8 +24,8 @@ import {
   createExperienceGeneRouteDefs,
 } from '@trapmap/service-knowledge-read';
 
-import { type InternalServiceClients, breakerStatesSnapshot } from './internal-client.js';
 import { getGoAcceleratorConfig, getKnowledgeReadGoConfig } from '../config/service-config.js';
+import { type InternalServiceClients, breakerStatesSnapshot } from './internal-client.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
 import { TokenBucketRateLimiter, resolveRateLimitConfig } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';

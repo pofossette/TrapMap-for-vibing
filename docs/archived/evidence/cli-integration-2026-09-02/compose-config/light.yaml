@@ -1,0 +1,116 @@
+time="2026-09-02T16:54:54+08:00" level=warning msg="The \"OPENAI_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-09-02T16:54:54+08:00" level=warning msg="The \"OPENAI_API_KEY\" variable is not set. Defaulting to a blank string."
+name: trap-map
+services:
+  postgres:
+    container_name: trapmap-postgres
+    environment:
+      POSTGRES_DB: trapmap
+      POSTGRES_PASSWORD: trapmap
+      POSTGRES_USER: trapmap
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U trapmap -d trapmap
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    image: pgvector/pgvector:pg16
+    networks:
+      trapmap-distributed: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5434"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        volume: {}
+  server:
+    profiles:
+      - team-monolith
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/light/Dockerfile
+    container_name: trapmap-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      AI_API_KEY: tp-si7zo15jv5f77zopci6st90h9sid7iph38l1i0j0gd1sppjw
+      AI_BASE_URL: https://token-plan-sgp.xiaomimimo.com/v1
+      AI_CHAT_MODEL: mimo-v2.5
+      AI_PROVIDER: openai-compatible
+      EMBEDDING_API_KEY: AIzaSyD-UaoNwH10NemdqZDy296TgvMpUeW4klw
+      EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta
+      EMBEDDING_MODEL: gemini-embedding-2
+      EMBEDDING_PROVIDER: google-genai
+      HOST: 0.0.0.0
+      LOG_MAX_BACKUP_FILES: "5"
+      LOG_MAX_FILE_SIZE_MB: "10"
+      LOG_RAG_DIR: /app/logs/rag
+      LOG_RAG_ENABLED: "false"
+      LOG_USER_OPS_DIR: /app/logs/user-ops
+      LOG_USER_OPS_ENABLED: "false"
+      NODE_ENV: production
+      OPENAI_API_KEY: ""
+      PORT: "4000"
+      RUNTIME_MODE: combined
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: monolith
+      TRAPMAP_DEPLOYMENT_PROFILE: team-monolith
+      TRAPMAP_GRAPH_DB_DATABASE: neo4j
+      TRAPMAP_GRAPH_DB_ENABLED: "false"
+      TRAPMAP_GRAPH_DB_FAIL_OPEN: "true"
+      TRAPMAP_GRAPH_DB_PASSWORD: ""
+      TRAPMAP_GRAPH_DB_PROVIDER: neo4j
+      TRAPMAP_GRAPH_DB_SYNC_ON_WRITE: "true"
+      TRAPMAP_GRAPH_DB_URI: ""
+      TRAPMAP_GRAPH_DB_USERNAME: ""
+      TRAPMAP_RABBITMQ_PREFETCH: "1"
+      TRAPMAP_RABBITMQ_TASK_EXCHANGE: trapmap.tasks
+      TRAPMAP_RABBITMQ_TASK_QUEUE: trapmap.default
+      TRAPMAP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      TRAPMAP_SYSTEM_ADMIN_KEY: eval-local-admin-key-do-not-use-in-production
+      TRAPMAP_TASK_TRANSPORT: postgres
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://127.0.0.1:4000/health
+      timeout: 10s
+      interval: 30s
+      retries: 3
+      start_period: 5s
+    image: trap-map-host-local:latest
+    networks:
+      trapmap-distributed: null
+    ports:
+      - mode: ingress
+        target: 4000
+        published: "4000"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /home/wunai/Disks/Data/my-project/Trap-Map/.data
+        target: /app/.data
+        bind: {}
+      - type: bind
+        source: /home/wunai/Disks/Data/my-project/Trap-Map/logs
+        target: /app/logs
+        bind: {}
+networks:
+  trapmap-distributed:
+    name: trapmap-distributed
+    external: true
+volumes:
+  postgres_data:
+    name: trap-map_postgres_data

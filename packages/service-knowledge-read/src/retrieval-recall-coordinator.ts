@@ -1,18 +1,18 @@
 import { InvocationError, buildUnknownModeMessage } from '@trapmap/backend-core';
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
-import type { KnowledgeRecord } from './store.js';
-import { hybridRecall as _hybrid } from './recall/hybrid-channel.js';
-import { semanticRecall as _semantic } from './recall/semantic-channel.js';
 import { graphAssistedHybridRecall as _graph } from './recall/graph-channel.js';
+import { hybridRecall as _hybrid } from './recall/hybrid-channel.js';
 import {
-  getDbSearchConfig,
-  finalizeSemanticResults,
-  versionMultiplierFor,
-  toScoredEntry,
-  rerankRecallResults,
   computeSemanticCandidates,
+  finalizeSemanticResults,
+  getDbSearchConfig,
+  rerankRecallResults,
+  toScoredEntry,
+  versionMultiplierFor,
 } from './recall/recall-helpers.js';
+import { semanticRecall as _semantic } from './recall/semantic-channel.js';
+import type { KnowledgeRecord } from './store.js';
 export {
   getDbSearchConfig,
   finalizeSemanticResults,

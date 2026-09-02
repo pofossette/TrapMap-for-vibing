@@ -103,24 +103,24 @@
 
 ### Phase 0 — 基建与可复现底座（预计 1 day）
 
-- [ ] **0.1 构建产物产出与镜像校验**（owner: `infra`）
+- [x] **0.1 构建产物产出与镜像校验**（owner: `infra`）
   - `pnpm build && pnpm build:light && pnpm build:heavy && docker build -f apps/light/Dockerfile -t trap-map-host-local:latest . && docker build -f apps/distributed/Dockerfile -t trap-map-server:latest . && docker build -f services/go-accelerator/Dockerfile -t trap-map-go-accelerator:latest services/go-accelerator && docker build -f services/knowledge-read-go/Dockerfile -t trap-map-knowledge-read-go:latest services/knowledge-read-go`
   - `docker images | grep trap-map` 落快照，`docker system df -v` 基线；任一构建失败即阻断。
 
-- [ ] **0.2 compose 形态与网络隔离验证**
+- [x] **0.2 compose 形态与网络隔离验证**
   - `docker network create trapmap-distributed || true`；校验 `docker compose --profile team-monolith config` / `--profile distributed config` 无 `port 4000` 冲突。
   - 产出 `docs/archived/evidence/cli-integration-2026-09-02/compose-config/{light,heavy,heavy-go}.yaml`。
 
-- [ ] **0.3 CLI 二进制与真 gateway 预检**
+- [x] **0.3 CLI 二进制与真 gateway 预检**
   - `pnpm --filter @trapmap/cli build && node ./apps/cli/dist/index.js about && node ./apps/cli/dist/index.js api:list | wc -l` 计数对照 `apps/cli/src/index.ts` 注册数。
   - `TRAPMAP_DATABASE_URL=postgres://trapmap:trapmap@127.0.0.1:5432/trapmap pnpm --filter @trapmap/app-light exec tsx src/migrate.ts --dry-run` 校验 42 表可建。
 
-- [ ] **0.4 资源采集脚本落地**（`scripts/cli-integration-collect.ts` + `scripts/cli-integration-report.ts`）
+- [x] **0.4 资源采集脚本落地**（`scripts/cli-integration-collect.ts` + `scripts/cli-integration-report.ts`）
   - `collect`: 封装 `docker stats --no-stream --format json` → `stats.jsonl`, `docker system df -v` → `df.json`, `curl -s http://127.0.0.1:4000/health` → `health.json`, `curl -s http://127.0.0.1:4101/metrics || true` → `metrics.txt`。
   - `report`: 将 `benchmarks/results/cli-integration/**` 聚合为 Markdown 表 + `mermaid` 折线（CPU/内存/磁盘三图）。
   - 单测：`pnpm test:file -- scripts/__tests__/cli-integration-collect.test.ts`（mock `execSync`）。
 
-- [ ] **0.5 清理守则与回滚脚本**
+- [x] **0.5 清理守则与回滚脚本**
   - `scripts/cli-integration-reset.sh`: `docker compose --profile distributed --profile team-monolith down -v --remove-orphans; docker volume prune -f; rm -rf .data/* logs/*; docker system df -v`，确保轮转隔离。
 
 **Phase 0 验收**：三镜像可构建、`compose config` 无冲突、CLI `api:list` 非空、四脚本可执行且单测绿。
@@ -129,17 +129,17 @@
 
 ### Phase 1 — Artifact A (light) 真实 CLI 回归 × 资源基线
 
-- [ ] **1.1 启动与健康**
+- [x] **1.1 启动与健康**
   - `TRAPMAP_DATABASE_URL=... docker compose --profile team-monolith up -d --build --wait`；`curl -f http://127.0.0.1:4000/health` 与 `/ready` 200；`docker ps --format table` 快照。
 
-- [ ] **1.2 CLI 全量回归（轮 1）+ 资源采样**
+- [x] **1.2 CLI 全量回归（轮 1）+ 资源采样**
   - 按 §1.1 顺序执行 12 族命令，每条 `time` 计时、保存 `stdout`/`stderr`/`exitCode` 至 `benchmarks/results/cli-integration/A-light/run-01/cli-*.json`；前后各一次 `collect`，循环中 `retrieval search ×10` 期间每 2s `docker stats` 后台采样。
   - 断言：所有命令 `exit 0` 且 `--json` 可 `jq`，`retrieval` 非空；任一失败落 `FAILED.md` 并重跑 1 次确认 flake。
 
-- [ ] **1.3 重复轮 2/3 + 磁盘增量**
+- [x] **1.3 重复轮 2/3 + 磁盘增量**
   - 执行 `cli-integration-reset.sh` 后重跑 1.1-1.2 两次；`du -sh .data` 与 `pg_database_size` diff 三轮对比；产出 `A-light/README.md` 初版表。
 
-- [ ] **1.4 证据与报告**
+- [x] **1.4 证据与报告**
   - `report` 生成 `docs/archived/evidence/cli-integration-2026-09-02/A-light/report.md`（含 CPU/内存/磁盘表 + CLI p95）。
 
 **Phase 1 验收**：3 轮全绿、`stats.jsonl` 每轮 ≥3 样本、`system df -v` 三轮无 image 层泄漏、报告可复现。
@@ -148,17 +148,17 @@
 
 ### Phase 2 — Artifact B (heavy-Node, 无 Go) 分布式对等回归
 
-- [ ] **2.1 启动（分布式 Node-only）**
+- [x] **2.1 启动（分布式 Node-only）**
   - `TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=false TRAPMAP_GO_ACCELERATOR_ENABLED=false docker compose --profile distributed up -d --wait gateway postgres candidate-ingestion governance-review job-runtime identity-access knowledge-read knowledge-write`；`curl -f http://127.0.0.1:4000/health | jq .dependencies` 确认 6 服务 `healthy`。
 
-- [ ] **2.2 CLI 全量回归（轮 1..3）**
+- [x] **2.2 CLI 全量回归（轮 1..3）**
   - 复用 1.2 同套 CLI 序列；额外覆盖 `distributed` 特有：`gateway` 路由透传（`knowledge-read` 的 `search` 经 gateway 4000 非直连）、`candidate ingestion` 跟踪（`submit` 后 `review queue` 可见）、`job-runtime` 异步 outbox（`operations status/async`）。
   - 资源采样同 1.2，但 `docker stats` 需逐容器（gateway/candidate/governance/job-runtime/postgres）分别记录，不得合并为单容器平均。
 
-- [ ] **2.3 与 A 的等价性对比**
+- [x] **2.3 与 A 的等价性对比**
   - 同一 CLI 输入在 A 与 B 上的 `responses` 逐字段 diff（`jq -S` 归一化后 `diff -u`），仅允许 `traceId/timestamp` 差异；不一致项记为 `PARITY_DRIFT` 入 `open-debt`。
 
-- [ ] **2.4 证据与报告**
+- [x] **2.4 证据与报告**
   - 产出 `docs/archived/evidence/cli-integration-2026-09-02/B-heavy/report.md` + `A-vs-B-parity.md`。
 
 **Phase 2 验收**：B 三轮全绿、逐容器 `stats.jsonl` 完整、A/B parity 无业务字段漂移。
@@ -167,17 +167,17 @@
 
 ### Phase 3 — Artifact C (heavy+Go) 读路径接管回归
 
-- [ ] **3.1 启动（heavy+Go, shadow 起步）**
+- [x] **3.1 启动（heavy+Go, shadow 起步）**
   - `TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=true TRAPMAP_READ_IMPL=shadow TRAPMAP_GO_ACCEL_CACHE_SIZE=10000 docker compose --profile distributed up -d --wait gateway postgres go-accelerator knowledge-read-go candidate-ingestion governance-review job-runtime`；校验 `curl -f http://127.0.0.1:4101/health` + `curl -f http://127.0.0.1:4100/health` 200，且 `gateway /health` 含 `knowledgeReadGo: healthy`。
 
-- [ ] **3.2 Shadow 模式 CLI 回归（轮 1..3）**
+- [x] **3.2 Shadow 模式 CLI 回归（轮 1..3）**
   - 同套 CLI 全量；重点 `retrieval search` ×10 循环时记录 `go-accelerator` 与 `knowledge-read-go` 的 `stats` 及 Go `/metrics`（`cache_hits/miss`, `pg_pool_conns`, `request_duration_seconds` histogram）。
   - 断言：shadow 下 C 返回与 B 字节一致（`infra` fallback 保证），`metrics` 显示 cache 命中率递增。
 
-- [ ] **3.3 Go-only 对比（可选，若 shadow 全绿）**
+- [x] **3.3 Go-only 对比（可选，若 shadow 全绿）**
   - `TRAPMAP_READ_IMPL=go-only` 重启 `knowledge-read-go` 后单轮 CLI 回归，记录 p95 相对 B 的收益；不一致记为 `GO_PARITY_DRIFT` 并回退 `shadow`。
 
-- [ ] **3.4 证据与报告**
+- [x] **3.4 证据与报告**
   - 产出 `docs/archived/evidence/cli-integration-2026-09-02/C-go/report.md` + `B-vs-C-perf.md`（CPU/内存/p95 收益表）。
 
 **Phase 3 验收**：C shadow 三轮全绿、Go 容器 `stats.jsonl` 与 `/metrics` 快照完整、与 B 响应等价（shadow）或收益可量化（go-only）。
@@ -186,13 +186,13 @@
 
 ### Phase 4 — 跨产物综合对比与量化报告
 
-- [ ] **4.1 报告器定版**（`scripts/cli-integration-report.ts` 强化）
+- [x] **4.1 报告器定版**（`scripts/cli-integration-report.ts` 强化）
   - 输入 `benchmarks/results/cli-integration/{A,B,C}/**`，输出 `docs/archived/evidence/cli-integration-2026-09-02/SUMMARY.md`：三产物 CPU/内存/磁盘/ `retrieval p95` 四表 + 三折线图（`mermaid xychart-beta`，需过 `pnpm check:mermaid`）。
 
-- [ ] **4.2 阈值判定与 debt 登记**
+- [x] **4.2 阈值判定与 debt 登记**
   - 将实测对照 §2.2 阈值，超限项写入 `docs/todos/open-debt-and-compromises.md`（新增 `cli-integration resource drift 2026-09-02` 条目，含 `进入条件/后续落点`）。
 
-- [ ] **4.3 文档回写**
+- [x] **4.3 文档回写**
   - 更新 `docs/operations/REGRESSION-COMMANDS.md`（新增 `pnpm test:cli-integration` 入口）、`docs/architecture/DEPLOYMENT.md`（三产物实测资源区间）、`docs/architecture/GO_TECH_STACK.md` 附录（Go 读服务实测收益）。
 
 **Phase 4 验收**：`SUMMARY.md` 含真实数据、三图可渲染、债务已登记、doc guard 全绿。
@@ -201,10 +201,10 @@
 
 ### Phase 5 — 自动化与 Closeout
 
-- [ ] **5.1 一键脚本**（`scripts/cli-integration-run.sh` / `pnpm test:cli-integration`）
+- [x] **5.1 一键脚本**（`scripts/cli-integration-run.sh` / `pnpm test:cli-integration`）
   - 串联 `collect → run CLI matrix → collect → report`，支持 `--artifact A|B|C|all --runs 3 --keep-volumes`；失败保留 `benchmarks/results` 供复盘。
 
-- [ ] **5.2 守卫与 CI 接线（dry-run friendly）**
+- [x] **5.2 守卫与 CI 接线（dry-run friendly）**
   - `package.json` 新增 `test:cli-integration`（调用 `run.sh --dry-run` 时仅校验 CLI `api:list` + `compose config`，不需 docker），`check:docs` 新增 `SUMMARY.md` 必须含 `docker stats` 表的 `mustContain`。
 
 - [ ] **5.3 Closeout 归档**
@@ -260,10 +260,10 @@
 
 ## 8. 证据清单（Closeout 时勾选）
 
-- [ ] `benchmarks/results/cli-integration/A-light/run-0{1,2,3}/stats.jsonl + df.json + cli-timings.jsonl`
-- [ ] `benchmarks/results/cli-integration/B-heavy/run-0{1,2,3}/stats.jsonl`（逐容器） + `parity.json`
-- [ ] `benchmarks/results/cli-integration/C-go/run-0{1,2,3}/stats.jsonl + metrics.txt + cache-hit.json`
-- [ ] `docs/archived/evidence/cli-integration-2026-09-02/{A-light,B-heavy,C-go}/report.md`
-- [ ] `docs/archived/evidence/cli-integration-2026-09-02/SUMMARY.md`（三产物四表三图）
-- [ ] `pnpm typecheck 0` / `check:docs 7/7` / `check:structure 3/3` / `check:complexity green` / `check:mermaid pass` 截图
+- [x] `benchmarks/results/cli-integration/A-light/run-0{1,2,3}/stats.jsonl + df.json + cli-timings.jsonl`
+- [x] `benchmarks/results/cli-integration/B-heavy/run-0{1,2,3}/stats.jsonl`（逐容器） + `parity.json`
+- [x] `benchmarks/results/cli-integration/C-go/run-0{1,2,3}/stats.jsonl + metrics.txt + cache-hit.json`
+- [x] `docs/archived/evidence/cli-integration-2026-09-02/{A-light,B-heavy,C-go}/report.md`
+- [x] `docs/archived/evidence/cli-integration-2026-09-02/SUMMARY.md`（三产物四表三图）
+- [x] `pnpm typecheck 0` / `check:docs 7/7` / `check:structure 3/3` / `check:complexity green` / `check:mermaid pass` 截图
 

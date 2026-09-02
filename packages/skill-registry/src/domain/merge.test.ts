@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { threeWayMerge } from './merge.js';
 import type { SkillSnapshot } from './diff.js';
+import { threeWayMerge } from './merge.js';
 
 function snap(slug: string, files: Record<string, string>): SkillSnapshot {
   return {

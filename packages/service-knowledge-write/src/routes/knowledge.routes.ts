@@ -1,16 +1,16 @@
 // @ts-nocheck
 import { InvocationError, type RouteContext, type RouteDef } from '@trapmap/backend-core';
-import { knowledgeWriteRouteDef, toConflictCandidate } from './helpers.js';
 import { trustedActor } from '../route-helpers.js';
+import { knowledgeWriteRouteDef, toConflictCandidate } from './helpers.js';
 import type { KnowledgeWriteRouteDeps } from './helpers.js';
 import {
-  submitSchema,
   conflictCandidatesSchema,
-  entryMutationSchema,
-  supersedeSchema,
-  listTrapsSchema,
-  getTrapSchema,
   createTrapSchema,
+  entryMutationSchema,
+  getTrapSchema,
+  listTrapsSchema,
+  submitSchema,
+  supersedeSchema,
 } from './helpers.js';
 
 export function createKnowledgeKnowledgeRouteDefs(): RouteDef<

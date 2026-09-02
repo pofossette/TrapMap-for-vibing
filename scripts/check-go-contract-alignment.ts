@@ -13,7 +13,7 @@
  *        pnpm exec tsx scripts/check-go-contract-alignment.ts --check (CI)
  */
 
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');

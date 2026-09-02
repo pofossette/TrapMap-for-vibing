@@ -1,0 +1,605 @@
+time="2026-09-02T16:54:54+08:00" level=warning msg="The \"OPENAI_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-09-02T16:54:54+08:00" level=warning msg="The \"OPENAI_API_KEY\" variable is not set. Defaulting to a blank string."
+name: trap-map
+services:
+  candidate-worker:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    command:
+      - node
+      - dist/index.js
+      - --service
+      - candidate-ingestion
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      rabbitmq:
+        condition: service_started
+        required: false
+    environment:
+      AI_API_KEY: tp-si7zo15jv5f77zopci6st90h9sid7iph38l1i0j0gd1sppjw
+      AI_BASE_URL: https://token-plan-sgp.xiaomimimo.com/v1
+      AI_CHAT_MODEL: mimo-v2.5
+      AI_PROVIDER: openai-compatible
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      EMBEDDING_API_KEY: AIzaSyD-UaoNwH10NemdqZDy296TgvMpUeW4klw
+      EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta
+      EMBEDDING_MODEL: gemini-embedding-2
+      EMBEDDING_PROVIDER: google-genai
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      NODE_ENV: production
+      OPENAI_API_KEY: ""
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4004"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: candidate-worker
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_GRAPH_DB_DATABASE: neo4j
+      TRAPMAP_GRAPH_DB_ENABLED: "false"
+      TRAPMAP_GRAPH_DB_FAIL_OPEN: "true"
+      TRAPMAP_GRAPH_DB_PASSWORD: ""
+      TRAPMAP_GRAPH_DB_PROVIDER: neo4j
+      TRAPMAP_GRAPH_DB_SYNC_ON_WRITE: "true"
+      TRAPMAP_GRAPH_DB_URI: ""
+      TRAPMAP_GRAPH_DB_USERNAME: ""
+      TRAPMAP_RABBITMQ_PREFETCH: "4"
+      TRAPMAP_RABBITMQ_TASK_EXCHANGE: trapmap.tasks
+      TRAPMAP_RABBITMQ_TASK_QUEUE: trapmap.candidate
+      TRAPMAP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      TRAPMAP_SERVICE_PORT: "4004"
+      TRAPMAP_TASK_TRANSPORT: postgres
+    healthcheck:
+      disable: true
+    image: trap-map-host-distributed:latest
+    networks:
+      trapmap-distributed: null
+    restart: unless-stopped
+    working_dir: /app/apps/distributed
+  cron-scheduler:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    command:
+      - node
+      - dist/index.js
+      - --service
+      - cron-scheduler
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      NODE_ENV: production
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4007"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: cron-scheduler
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_SERVICE_PORT: "4007"
+      TRAPMAP_TASK_TRANSPORT: postgres
+    healthcheck:
+      disable: true
+    image: trap-map-host-distributed:latest
+    networks:
+      trapmap-distributed: null
+    restart: unless-stopped
+    working_dir: /app/apps/distributed
+  gateway:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    container_name: trapmap-gateway
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      AI_API_KEY: tp-si7zo15jv5f77zopci6st90h9sid7iph38l1i0j0gd1sppjw
+      AI_BASE_URL: https://token-plan-sgp.xiaomimimo.com/v1
+      AI_CHAT_MODEL: mimo-v2.5
+      AI_PROVIDER: openai-compatible
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      EMBEDDING_API_KEY: AIzaSyD-UaoNwH10NemdqZDy296TgvMpUeW4klw
+      EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta
+      EMBEDDING_MODEL: gemini-embedding-2
+      EMBEDDING_PROVIDER: google-genai
+      HOST: 0.0.0.0
+      LANGFUSE_BASE_URL: ""
+      LANGFUSE_ENABLED: "false"
+      LANGFUSE_FLUSH_TIMEOUT_MS: "5000"
+      LANGFUSE_PRIVACY_MODE: strict
+      LANGFUSE_PUBLIC_KEY: ""
+      LANGFUSE_SECRET_KEY: ""
+      LOG_MAX_BACKUP_FILES: "5"
+      LOG_MAX_FILE_SIZE_MB: "10"
+      LOG_RAG_DIR: /app/logs/rag
+      LOG_RAG_ENABLED: "false"
+      LOG_USER_OPS_DIR: /app/logs/user-ops
+      LOG_USER_OPS_ENABLED: "false"
+      NODE_ENV: production
+      OPENAI_API_KEY: ""
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4000"
+      RUNTIME_MODE: api
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      SENTRY_SAMPLE_RATE: "1"
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: api
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_GRAPH_DB_DATABASE: neo4j
+      TRAPMAP_GRAPH_DB_ENABLED: "false"
+      TRAPMAP_GRAPH_DB_FAIL_OPEN: "true"
+      TRAPMAP_GRAPH_DB_PASSWORD: ""
+      TRAPMAP_GRAPH_DB_PROVIDER: neo4j
+      TRAPMAP_GRAPH_DB_SYNC_ON_WRITE: "true"
+      TRAPMAP_GRAPH_DB_URI: ""
+      TRAPMAP_GRAPH_DB_USERNAME: ""
+      TRAPMAP_RABBITMQ_PREFETCH: "1"
+      TRAPMAP_RABBITMQ_TASK_EXCHANGE: trapmap.tasks
+      TRAPMAP_RABBITMQ_TASK_QUEUE: trapmap.default
+      TRAPMAP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      TRAPMAP_SYSTEM_ADMIN_KEY: eval-local-admin-key-do-not-use-in-production
+      TRAPMAP_TASK_TRANSPORT: postgres
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://127.0.0.1:4000/health
+      timeout: 10s
+      interval: 30s
+      retries: 3
+      start_period: 5s
+    image: trap-map-server:latest
+    networks:
+      trapmap-distributed: null
+    ports:
+      - mode: ingress
+        target: 4000
+        published: "4000"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /home/wunai/Disks/Data/my-project/Trap-Map/.data
+        target: /app/.data
+        bind: {}
+      - type: bind
+        source: /home/wunai/Disks/Data/my-project/Trap-Map/logs
+        target: /app/logs
+        bind: {}
+  go-accelerator:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map/services/go-accelerator
+      dockerfile: Dockerfile
+    container_name: trapmap-go-accelerator
+    environment:
+      PORT: "4100"
+      TRAPMAP_GO_ACCELERATOR_PORT: "4100"
+      TRAPMAP_LOG_LEVEL: info
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://127.0.0.1:4100/health
+      timeout: 10s
+      interval: 30s
+      retries: 3
+      start_period: 5s
+    image: trap-map-go-accelerator:latest
+    networks:
+      trapmap-distributed: null
+    ports:
+      - mode: ingress
+        target: 4100
+        published: "4100"
+        protocol: tcp
+    restart: unless-stopped
+  governance-worker:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    command:
+      - node
+      - dist/index.js
+      - --service
+      - governance-review
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+      rabbitmq:
+        condition: service_started
+        required: false
+    environment:
+      AI_API_KEY: tp-si7zo15jv5f77zopci6st90h9sid7iph38l1i0j0gd1sppjw
+      AI_BASE_URL: https://token-plan-sgp.xiaomimimo.com/v1
+      AI_CHAT_MODEL: mimo-v2.5
+      AI_PROVIDER: openai-compatible
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      EMBEDDING_API_KEY: AIzaSyD-UaoNwH10NemdqZDy296TgvMpUeW4klw
+      EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta
+      EMBEDDING_MODEL: gemini-embedding-2
+      EMBEDDING_PROVIDER: google-genai
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      NODE_ENV: production
+      OPENAI_API_KEY: ""
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4005"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: governance-worker
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_GRAPH_DB_DATABASE: neo4j
+      TRAPMAP_GRAPH_DB_ENABLED: "false"
+      TRAPMAP_GRAPH_DB_FAIL_OPEN: "true"
+      TRAPMAP_GRAPH_DB_PASSWORD: ""
+      TRAPMAP_GRAPH_DB_PROVIDER: neo4j
+      TRAPMAP_GRAPH_DB_SYNC_ON_WRITE: "true"
+      TRAPMAP_GRAPH_DB_URI: ""
+      TRAPMAP_GRAPH_DB_USERNAME: ""
+      TRAPMAP_RABBITMQ_PREFETCH: "1"
+      TRAPMAP_RABBITMQ_TASK_EXCHANGE: trapmap.tasks
+      TRAPMAP_RABBITMQ_TASK_QUEUE: trapmap.governance
+      TRAPMAP_RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      TRAPMAP_SERVICE_PORT: "4005"
+      TRAPMAP_TASK_TRANSPORT: postgres
+    healthcheck:
+      disable: true
+    image: trap-map-host-distributed:latest
+    networks:
+      trapmap-distributed: null
+    restart: unless-stopped
+    working_dir: /app/apps/distributed
+  identity-access:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    command:
+      - node
+      - dist/index.js
+      - --service
+      - identity-access
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      HOST: 0.0.0.0
+      LANGFUSE_BASE_URL: ""
+      LANGFUSE_ENABLED: "false"
+      LANGFUSE_FLUSH_TIMEOUT_MS: "5000"
+      LANGFUSE_PRIVACY_MODE: strict
+      LANGFUSE_PUBLIC_KEY: ""
+      LANGFUSE_SECRET_KEY: ""
+      LOG_LEVEL: info
+      NODE_ENV: production
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4001"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      SENTRY_SAMPLE_RATE: "1"
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: identity-access
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_SERVICE_PORT: "4001"
+      TRAPMAP_SYSTEM_ADMIN_KEY: eval-local-admin-key-do-not-use-in-production
+    healthcheck:
+      disable: true
+    image: trap-map-host-distributed:latest
+    networks:
+      trapmap-distributed: null
+    restart: unless-stopped
+    working_dir: /app/apps/distributed
+  knowledge-read:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    command:
+      - node
+      - dist/index.js
+      - --service
+      - knowledge-read
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      AI_API_KEY: tp-si7zo15jv5f77zopci6st90h9sid7iph38l1i0j0gd1sppjw
+      AI_BASE_URL: https://token-plan-sgp.xiaomimimo.com/v1
+      AI_CHAT_MODEL: mimo-v2.5
+      AI_PROVIDER: openai-compatible
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      EMBEDDING_API_KEY: AIzaSyD-UaoNwH10NemdqZDy296TgvMpUeW4klw
+      EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta
+      EMBEDDING_MODEL: gemini-embedding-2
+      EMBEDDING_PROVIDER: google-genai
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      NODE_ENV: production
+      OPENAI_API_KEY: ""
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4002"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: knowledge-read
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_SERVICE_PORT: "4002"
+    healthcheck:
+      disable: true
+    image: trap-map-host-distributed:latest
+    networks:
+      trapmap-distributed: null
+    restart: unless-stopped
+    working_dir: /app/apps/distributed
+  knowledge-read-go:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map/services/knowledge-read-go
+      dockerfile: Dockerfile
+    container_name: trapmap-knowledge-read-go
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/trapmap
+      PORT: "4101"
+      TRAPMAP_GO_ACCEL_CACHE_SIZE: "10000"
+      TRAPMAP_GO_ACCELERATOR_URL: http://go-accelerator:4100
+      TRAPMAP_KNOWLEDGE_READ_GO_ENABLED: "true"
+      TRAPMAP_KNOWLEDGE_READ_GO_URL: http://knowledge-read-go:4101
+      TRAPMAP_LOG_LEVEL: info
+      TRAPMAP_READ_IMPL: shadow
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - --no-verbose
+        - --tries=1
+        - --spider
+        - http://127.0.0.1:4101/health
+      timeout: 10s
+      interval: 30s
+      retries: 3
+      start_period: 5s
+    image: trap-map-knowledge-read-go:latest
+    networks:
+      trapmap-distributed: null
+    ports:
+      - mode: ingress
+        target: 4101
+        published: "4101"
+        protocol: tcp
+    restart: unless-stopped
+  knowledge-write:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    command:
+      - node
+      - dist/index.js
+      - --service
+      - knowledge-write
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      AI_API_KEY: tp-si7zo15jv5f77zopci6st90h9sid7iph38l1i0j0gd1sppjw
+      AI_BASE_URL: https://token-plan-sgp.xiaomimimo.com/v1
+      AI_CHAT_MODEL: mimo-v2.5
+      AI_PROVIDER: openai-compatible
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      EMBEDDING_API_KEY: AIzaSyD-UaoNwH10NemdqZDy296TgvMpUeW4klw
+      EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta
+      EMBEDDING_MODEL: gemini-embedding-2
+      EMBEDDING_PROVIDER: google-genai
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      NODE_ENV: production
+      OPENAI_API_KEY: ""
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4003"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: knowledge-write
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_SERVICE_PORT: "4003"
+    healthcheck:
+      disable: true
+    image: trap-map-host-distributed:latest
+    networks:
+      trapmap-distributed: null
+    restart: unless-stopped
+    working_dir: /app/apps/distributed
+  migration:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/migration/Dockerfile
+    command:
+      - node
+      - dist/migrate.js
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+    image: trap-map-migration:latest
+    networks:
+      trapmap-distributed: null
+    restart: 'no'
+    working_dir: /app/apps/migration
+  outbox-worker:
+    profiles:
+      - distributed
+    build:
+      context: /home/wunai/Disks/Data/my-project/Trap-Map
+      dockerfile: apps/distributed/Dockerfile
+    command:
+      - node
+      - dist/index.js
+      - --service
+      - job-runtime
+    depends_on:
+      migration:
+        condition: service_completed_successfully
+        required: true
+      postgres:
+        condition: service_healthy
+        required: true
+    environment:
+      AI_API_KEY: tp-si7zo15jv5f77zopci6st90h9sid7iph38l1i0j0gd1sppjw
+      AI_BASE_URL: https://token-plan-sgp.xiaomimimo.com/v1
+      AI_CHAT_MODEL: mimo-v2.5
+      AI_PROVIDER: openai-compatible
+      CONSUL_ENABLED: "true"
+      CONSUL_HOST: consul
+      CONSUL_PORT: "8500"
+      EMBEDDING_API_KEY: AIzaSyD-UaoNwH10NemdqZDy296TgvMpUeW4klw
+      EMBEDDING_BASE_URL: https://generativelanguage.googleapis.com/v1beta
+      EMBEDDING_MODEL: gemini-embedding-2
+      EMBEDDING_PROVIDER: google-genai
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      NODE_ENV: production
+      OPENAI_API_KEY: ""
+      OTEL_DISABLED: "false"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+      PORT: "4006"
+      SENTRY_DSN: ""
+      SENTRY_ENVIRONMENT: production
+      TRAPMAP_DATABASE_URL: postgres://trapmap:trapmap@postgres:5432/trapmap
+      TRAPMAP_DEPLOYMENT_PRESET: outbox-worker
+      TRAPMAP_DEPLOYMENT_PROFILE: distributed
+      TRAPMAP_GRAPH_DB_DATABASE: neo4j
+      TRAPMAP_GRAPH_DB_ENABLED: "false"
+      TRAPMAP_GRAPH_DB_FAIL_OPEN: "true"
+      TRAPMAP_GRAPH_DB_PASSWORD: ""
+      TRAPMAP_GRAPH_DB_PROVIDER: neo4j
+      TRAPMAP_GRAPH_DB_SYNC_ON_WRITE: "true"
+      TRAPMAP_GRAPH_DB_URI: ""
+      TRAPMAP_GRAPH_DB_USERNAME: ""
+      TRAPMAP_SERVICE_PORT: "4006"
+      TRAPMAP_TASK_TRANSPORT: postgres
+    healthcheck:
+      disable: true
+    image: trap-map-host-distributed:latest
+    networks:
+      trapmap-distributed: null
+    restart: unless-stopped
+    working_dir: /app/apps/distributed
+  postgres:
+    container_name: trapmap-postgres
+    environment:
+      POSTGRES_DB: trapmap
+      POSTGRES_PASSWORD: trapmap
+      POSTGRES_USER: trapmap
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U trapmap -d trapmap
+      timeout: 5s
+      interval: 10s
+      retries: 5
+    image: pgvector/pgvector:pg16
+    networks:
+      trapmap-distributed: null
+    ports:
+      - mode: ingress
+        target: 5432
+        published: "5434"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: postgres_data
+        target: /var/lib/postgresql/data
+        volume: {}
+networks:
+  trapmap-distributed:
+    name: trapmap-distributed
+    external: true
+volumes:
+  postgres_data:
+    name: trap-map_postgres_data

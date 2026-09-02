@@ -1,5 +1,5 @@
-import type { InternalServiceClients } from './interface.js';
 import { callInternalService } from './http.js';
+import type { InternalServiceClients } from './interface.js';
 
 export function createGovernanceReviewClient(
   baseUrlFor: () => Promise<string>,

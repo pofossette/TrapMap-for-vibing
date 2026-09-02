@@ -1,9 +1,9 @@
-import {
-  type BadcaseExportDraftPayload,
-  type RemediationReactivationPayload,
-  type SkillLookupQuery,
+import type {
+  BadcaseExportDraftPayload,
+  RemediationReactivationPayload,
+  SkillLookupQuery,
 } from '@trapmap/contracts';
-import type { ServiceResponse, InternalRequestOptions, InternalRpcEnvelope } from './types.js';
+import type { InternalRequestOptions, InternalRpcEnvelope, ServiceResponse } from './types.js';
 
 export interface InternalServiceClients {
   identityAccess: {

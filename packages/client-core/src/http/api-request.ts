@@ -57,8 +57,57 @@ export async function apiRequest<T>(
       ...(options.body ? { body: JSON.stringify(options.body) } : {}),
     });
   } catch (error) {
+    // Fallback to Node http for localhost where fetch (undici) may ECONNREFUSED due to IPv6/keep-alive quirks
     const reason = error instanceof Error ? error.message : String(error);
-    throw new ApiError(0, { cause: reason, url }, `Request to ${url} failed: ${reason}`);
+    if (reason.includes('ECONNREFUSED') || reason.includes('fetch failed')) {
+      try {
+        const httpMod = await import('node:http');
+        const httpsMod = await import('node:https');
+        response = await new Promise<Response>((resolve, reject) => {
+          const request = httpMod.request;
+          const httpsRequest = httpsMod.request;
+          const isHttps = url.startsWith('https://');
+          const reqFn = isHttps ? httpsRequest : request;
+          const u = new URL(url);
+          const req = reqFn(
+            {
+              hostname: u.hostname,
+              port: u.port,
+              path: u.pathname + u.search,
+              method: options.method ?? 'GET',
+              headers,
+            },
+            (res: any) => {
+              const chunks: Buffer[] = [];
+              res.on('data', (c: Buffer) => chunks.push(c));
+              res.on('end', () => {
+                const text = Buffer.concat(chunks).toString('utf8');
+                const headersMap = new Map<string, string>();
+                for (const [k, v] of Object.entries(res.headers as Record<string, string | string[] | undefined>)) {
+                  if (typeof v === 'string') headersMap.set(k.toLowerCase(), v);
+                  else if (Array.isArray(v)) headersMap.set(k.toLowerCase(), v.join(', '));
+                }
+                const mockResponse = {
+                  ok: (res.statusCode ?? 500) >= 200 && (res.statusCode ?? 500) < 300,
+                  status: res.statusCode ?? 500,
+                  headers: { get: (name: string) => headersMap.get(name.toLowerCase()) ?? null },
+                  text: async () => text,
+                } as unknown as Response;
+                resolve(mockResponse);
+              });
+            },
+          );
+          req.on('error', reject);
+          if (options.body) req.write(JSON.stringify(options.body));
+          req.end();
+        });
+      } catch (fallbackError) {
+        const fbReason = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+        throw new ApiError(0, { cause: fbReason, url }, `Request to ${url} failed: ${fbReason}`);
+      }
+    } else {
+      throw new ApiError(0, { cause: reason, url }, `Request to ${url} failed: ${reason}`);
+    }
   }
 
   const sessionToken = response.headers.get('x-session-token');

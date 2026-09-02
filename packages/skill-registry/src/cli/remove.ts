@@ -1,6 +1,6 @@
-import type { Command } from 'commander';
-import { rm, readFile, writeFile } from 'node:fs/promises';
+import { readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import type { Command } from 'commander';
 import { skillLockfileSchema } from '../contracts/skill-lock.js';
 export function registerSkillRemoveCommand(program: Command): void {
   program

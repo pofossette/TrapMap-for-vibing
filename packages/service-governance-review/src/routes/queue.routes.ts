@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { InvocationError, isRouteResponse } from '@trapmap/backend-core';
+import type { RouteContext, RouteDef } from '@trapmap/backend-core';
 import {
   filterReviewQueueEntries,
   isReviewQueueEntryVisible,
@@ -7,23 +8,22 @@ import {
 import { applyReviewQueueQuery } from '@trapmap/backend-core/governance-review/domain/review-queue-query.js';
 import type { AdminReviewQueueQuery, KnowledgeEntry } from '@trapmap/contracts';
 import {
-  governanceRouteDef,
-  getGovernanceAuth,
-  toReviewQueueItem,
+  decodeActivityCursor,
+  fetchActivityEvents,
   fetchAllReviewEntries,
   fetchReviewEntryById,
-  fetchActivityEvents,
+  getGovernanceAuth,
+  governanceRouteDef,
   normalizeActivityType,
-  decodeActivityCursor,
   readAdminActor,
+  toReviewQueueItem,
 } from './helpers.js';
 import {
-  adminReviewQueueSchema,
-  adminReviewDetailSchema,
   adminActivitySchema,
   adminReviewDecisionSchema,
+  adminReviewDetailSchema,
+  adminReviewQueueSchema,
 } from './helpers.js';
-import type { RouteContext, RouteDef } from '@trapmap/backend-core';
 import type { GovernanceReviewRouteDeps } from './helpers.js';
 
 export function createGovernanceQueueRouteDefs(): RouteDef<

@@ -1,12 +1,12 @@
+import { createGraphRecallTrace } from '@trapmap/backend-core';
+import type { ChannelMergePort } from '@trapmap/backend-core';
 import type { retrievalQuerySchema } from '@trapmap/contracts';
+import { createRuleChannelMerge } from '../channel-merge/rule-channel-merge.js';
 import type { SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
 import { keywordRecall, normalizeQuery } from '../retrieval-keyword.js';
-import type { KnowledgeRecord } from '../store.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
-import { createRuleChannelMerge } from '../channel-merge/rule-channel-merge.js';
-import { createGraphRecallTrace } from '@trapmap/backend-core';
-import type { ChannelMergePort } from '@trapmap/backend-core';
+import type { KnowledgeRecord } from '../store.js';
 import { computeSemanticCandidates, rerankRecallResults } from './recall-helpers.js';
 
 export async function graphRecall(

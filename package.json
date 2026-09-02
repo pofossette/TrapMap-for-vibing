@@ -133,7 +133,9 @@
     "stress:go:dedup": "cd services/go-accelerator && go run ./cmd/stress -scenario dedup-flood",
     "stress:go:gene-derive": "cd services/go-accelerator && go run ./cmd/stress -scenario gene-derive",
     "stress:go:all": "cd services/go-accelerator && go run ./cmd/stress -scenario all",
-    "stress:list": "cd services/go-accelerator && go run ./cmd/stress -list"
+    "stress:list": "cd services/go-accelerator && go run ./cmd/stress -list",
+    "test:cli-integration": "bash scripts/cli-integration-run.sh",
+    "test:cli-integration:dry": "bash scripts/cli-integration-run.sh --runs 1"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
