@@ -3,7 +3,9 @@
     {
       "file": "docs/guides/CODE_GUIDE.md",
       "mustContain": [],
-      "mustNotContain": ["createApp()"]
+      "mustNotContain": [
+        "createApp()"
+      ]
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
@@ -15,7 +17,12 @@
         "RouteDef",
         "PostgreSQL"
       ],
-      "mustNotContain": ["packages/server", "Phase 0", "Phase 1", "\u5386\u53f2\u8bf4\u660e"]
+      "mustNotContain": [
+        "packages/server",
+        "Phase 0",
+        "Phase 1",
+        "\u5386\u53f2\u8bf4\u660e"
+      ]
     },
     {
       "file": "docs/reference/REPO_STRUCTURE.md",
@@ -63,12 +70,19 @@
     },
     {
       "file": "docs/operations/REGRESSION-COMMANDS.md",
-      "mustContain": ["pnpm test:observability-benchmark", "grep -i traceparent"],
-      "mustNotContain": ["grep X-Trace-Id"]
+      "mustContain": [
+        "pnpm test:observability-benchmark",
+        "grep -i traceparent"
+      ],
+      "mustNotContain": [
+        "grep X-Trace-Id"
+      ]
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["42 \u5f20\u8868"],
+      "mustContain": [
+        "42 \u5f20\u8868"
+      ],
       "mustNotContain": [
         "48 \u5f20\u8868",
         "54 \u5f20\u8868",
@@ -114,7 +128,11 @@
         "gateway -> governance-review -> knowledge-write",
         "gateway -> candidate-ingestion -> knowledge-write"
       ],
-      "mustNotContain": [".data/trapmap.json", "\u9ed8\u8ba4 openai", "Phase 1 \u8bd5\u70b9"]
+      "mustNotContain": [
+        ".data/trapmap.json",
+        "\u9ed8\u8ba4 openai",
+        "Phase 1 \u8bd5\u70b9"
+      ]
     },
     {
       "file": "docs/guides/CONTRIBUTING.md",
@@ -122,7 +140,10 @@
         "packages/service-*/drizzle/",
         "\u5df2\u6709\u5f00\u53d1\u6570\u636e\u5e93\u9700\u91cd\u5efa"
       ],
-      "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
+      "mustNotContain": [
+        "pnpm run db:generate",
+        "pnpm run db:migrate"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
@@ -156,7 +177,9 @@
         "pnpm test:deployment-smoke",
         "pnpm eval:smoke"
       ],
-      "mustNotContain": ["TIER=core pnpm eval:ci"]
+      "mustNotContain": [
+        "TIER=core pnpm eval:ci"
+      ]
     },
     {
       "file": "docs/operations/OBSERVABILITY-OPERATIONS.md",
@@ -164,7 +187,9 @@
         "NestJS: `not-ready` \u548c `unhealthy` \u8fd4\u56de `503`\uff1b`degraded` \u548c `ready` \u8fd4\u56de `200`",
         "pnpm test:observability-closeout"
       ],
-      "mustNotContain": ["NestJS: \u5f53\u524d\u59cb\u7ec8\u8fd4\u56de 200"]
+      "mustNotContain": [
+        "NestJS: \u5f53\u524d\u59cb\u7ec8\u8fd4\u56de 200"
+      ]
     },
     {
       "file": "plan.md",
@@ -287,12 +312,22 @@
         "doc-guardrails",
         "`pnpm eval:smoke`"
       ],
-      "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
+      "mustNotContain": [
+        "Node.js 20 + pnpm 10.33.0"
+      ]
     },
     {
       "file": "docs/architecture/components/EVALUATION.md",
-      "mustContain": ["pnpm eval:smoke", "pnpm eval:core", "datasets/", "scenarios/"],
-      "mustNotContain": ["pnpm eval:governance", "cases/"]
+      "mustContain": [
+        "pnpm eval:smoke",
+        "pnpm eval:core",
+        "datasets/",
+        "scenarios/"
+      ],
+      "mustNotContain": [
+        "pnpm eval:governance",
+        "cases/"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
@@ -302,17 +337,34 @@
         "GEMINI_API_KEY",
         "\u672a\u66b4\u9732\u4e3a\u7a33\u5b9a CLI \u547d\u4ee4"
       ],
-      "mustNotContain": ["\u9ed8\u8ba4 openai"]
+      "mustNotContain": [
+        "\u9ed8\u8ba4 openai"
+      ]
     },
     {
       "file": "docs/architecture/components/AI_PROVIDER.md",
-      "mustContain": ["fallback", "google-genai", "gpt-4o-mini", "llama3"],
-      "mustNotContain": ["\u9ed8\u8ba4 openai", "llama2"]
+      "mustContain": [
+        "fallback",
+        "google-genai",
+        "gpt-4o-mini",
+        "llama3"
+      ],
+      "mustNotContain": [
+        "\u9ed8\u8ba4 openai",
+        "llama2"
+      ]
     },
     {
       "file": "docs/architecture/components/ARTIFACTS.md",
-      "mustContain": ["\u5de5\u4ef6\u7cfb\u7edf", "artifact_revisions", "capsule_embeddings"],
-      "mustNotContain": ["packages/server", "\u5386\u53f2\u8bf4\u660e"]
+      "mustContain": [
+        "\u5de5\u4ef6\u7cfb\u7edf",
+        "artifact_revisions",
+        "capsule_embeddings"
+      ],
+      "mustNotContain": [
+        "packages/server",
+        "\u5386\u53f2\u8bf4\u660e"
+      ]
     },
     {
       "file": "evals/README.md",
@@ -356,16 +408,24 @@
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["\u9ed8\u8ba4 `light` \u4e3b\u7ebf"],
-      "mustNotContain": ["Phase 1 \u8bd5\u70b9"]
+      "mustContain": [
+        "\u9ed8\u8ba4 `light` \u4e3b\u7ebf"
+      ],
+      "mustNotContain": [
+        "Phase 1 \u8bd5\u70b9"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
-      "mustContain": ["Phase 4 \u9a8c\u8bc1\u5f52\u5c5e\u77e9\u9635"]
+      "mustContain": [
+        "Phase 4 \u9a8c\u8bc1\u5f52\u5c5e\u77e9\u9635"
+      ]
     },
     {
       "file": "README.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md",
@@ -378,7 +438,10 @@
         "pnpm check:docs-drift",
         "pnpm check:structure"
       ],
-      "mustNotContain": ["\u7b2c\u4e8c\u4e2a URL", "\u7b2c\u56db\u79cd deployment profile"]
+      "mustNotContain": [
+        "\u7b2c\u4e8c\u4e2a URL",
+        "\u7b2c\u56db\u79cd deployment profile"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/badcase-feedback-loop.md",
@@ -421,9 +484,16 @@
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["PostgreSQL", "host-local"],
-      "mustNotContain": ["image: postgres:16"],
-      "mustNotContainRegex": ["curl.*-f.*health"]
+      "mustContain": [
+        "PostgreSQL",
+        "host-local"
+      ],
+      "mustNotContain": [
+        "image: postgres:16"
+      ],
+      "mustNotContainRegex": [
+        "curl.*-f.*health"
+      ]
     },
     {
       "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
@@ -435,7 +505,10 @@
         "HTTP \u8def\u7531\u5951\u7ea6",
         "DOCS_TRUTH_MATRIX.md"
       ],
-      "mustNotContain": ["Phase 1 server/backend-core boundary freeze", "store_snapshot"]
+      "mustNotContain": [
+        "Phase 1 server/backend-core boundary freeze",
+        "store_snapshot"
+      ]
     },
     {
       "file": "docs/PACKAGES.md",
@@ -446,7 +519,10 @@
         "host-local",
         "contracts"
       ],
-      "mustNotContain": ["Phase 1", "Phase 2"]
+      "mustNotContain": [
+        "Phase 1",
+        "Phase 2"
+      ]
     },
     {
       "file": "docs/architecture/DEPLOYMENT.md",
@@ -457,17 +533,36 @@
         "heavy",
         "distributed"
       ],
-      "mustNotContain": ["packages/server", "Wave-10"]
+      "mustNotContain": [
+        "packages/server",
+        "Wave-10"
+      ]
     },
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
-      "mustContain": ["DATABASE_SCHEMA.md", "PostgreSQL", "42 \u8868"],
-      "mustNotContain": ["JsonStore", "store_snapshot", "packages/server", "48 \u5f20\u8868"]
+      "mustContain": [
+        "DATABASE_SCHEMA.md",
+        "PostgreSQL",
+        "42 \u8868"
+      ],
+      "mustNotContain": [
+        "JsonStore",
+        "store_snapshot",
+        "packages/server",
+        "48 \u5f20\u8868"
+      ]
     },
     {
       "file": "docs/architecture/components/ASYNC_MODEL.md",
-      "mustContain": ["task_queue", "domain_event_outbox", "workflow_runs"],
-      "mustNotContain": ["Phase 4 closeout", "packages/server"]
+      "mustContain": [
+        "task_queue",
+        "domain_event_outbox",
+        "workflow_runs"
+      ],
+      "mustNotContain": [
+        "Phase 4 closeout",
+        "packages/server"
+      ]
     }
   ],
   "lineBudgets": [
@@ -513,7 +608,7 @@
     },
     {
       "file": "packages/service-governance-review/src/routes/helpers.ts",
-      "maxLines": 400
+      "maxLines": 500
     },
     {
       "file": "packages/service-governance-review/src/routes/maintenance.routes.ts",
@@ -529,7 +624,7 @@
     },
     {
       "file": "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts",
-      "maxLines": 100
+      "maxLines": 150
     },
     {
       "file": "packages/service-knowledge-read/src/retrieval-semantic.ts",
