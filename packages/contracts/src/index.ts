@@ -43,3 +43,4 @@ export * from './domain/team.js';
 export * from './domain/task-queue.js';
 export * from './domain/go-accelerator.js';
 export * from './domain/knowledge-read-go.js';
+import './domain/operations/identity.js';

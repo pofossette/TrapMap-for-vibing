@@ -1,4 +1,7 @@
-/**
+import { client } from "./client.js";
+import { breaker } from "./breaker.js";
+import { healthAggregator } from "./health-aggregator.js";
+const _gateway = { client, breaker, healthAggregator };
  * Internal HTTP client for forwarding requests to backend services.
  *
  * This is a thin HTTP client that the gateway uses to delegate
