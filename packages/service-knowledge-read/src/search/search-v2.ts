@@ -7,6 +7,7 @@ import { searchKnowledge } from '../search-knowledge.js';
  * Delegates to base searchKnowledge with mode forced to hybrid for capsule pool,
  * adds v2-specific metrics and cache key prefix.
  */
+// fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B
 export async function searchV2(
   services: SkillShareerServices,
   auth: ResolvedAuthContext,

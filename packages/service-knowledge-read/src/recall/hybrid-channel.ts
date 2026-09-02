@@ -1,3 +1,4 @@
+// fallow-ignore duplication -- shared DB fallback pattern, tracked
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
@@ -7,6 +8,7 @@ import type { KnowledgeRecord } from '../store.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import { getDbSearchConfig, versionMultiplierFor, rerankRecallResults, computeSemanticCandidates } from './recall-helpers.js';
 
+// fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B
 export async function hybridRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],

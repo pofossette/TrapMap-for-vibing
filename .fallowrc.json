@@ -22,59 +22,120 @@
     "scripts/*.ts",
     "scripts/*.mjs",
     "apps/cli/src/testing/index.ts",
-    "evals/**/*.ts"
+    "evals/**/*.ts",
+    "packages/service-knowledge-read/src/recall/channel-registry.ts",
+    "packages/backend-core/src/ports/cache-port.ts",
+    "packages/service-knowledge-read/src/search/search-v2.ts",
+    "packages/service-knowledge-read/src/search/search-v3-plan.ts",
+    "packages/service-knowledge-read/src/recall/recall-helpers.ts"
   ],
-  "ignoreDependencies": ["amqplib", "markdown-link-check"],
+  "ignoreDependencies": [
+    "amqplib",
+    "markdown-link-check"
+  ],
   "ignoreExports": [
     {
       "file": "packages/host-local/src/nest/main.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-local/src/nest/resolve-listen-options.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/service-knowledge-write/src/artifact-ports.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/service-knowledge-write/src/pg-ports.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-distributed/src/candidate-ingestion/server.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-distributed/src/cron-scheduler/server.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-distributed/src/gateway/server.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-distributed/src/governance-review/server.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-distributed/src/identity-access/server.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-distributed/src/job-runtime/server.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
     },
     {
       "file": "packages/host-distributed/src/knowledge-write/server.ts",
-      "exports": ["*"]
+      "exports": [
+        "*"
+      ]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts",
+      "exports": [
+        "computeSemanticCandidates",
+        "finalizeSemanticResults",
+        "rerankRecallResults",
+        "toScoredEntry",
+        "versionMultiplierFor",
+        "DbSearchConfig"
+      ]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/hybrid-channel.ts",
+      "exports": [
+        "hybridRecall"
+      ]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/semantic-channel.ts",
+      "exports": [
+        "semanticRecall"
+      ]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/graph-channel.ts",
+      "exports": [
+        "graphAssistedHybridRecall"
+      ]
     }
   ],
   "usedClassMembers": [
     {
       "implements": "EmbeddingsProvider",
-      "members": ["embed"]
+      "members": [
+        "embed"
+      ]
     }
   ],
   "duplicates": {
@@ -128,35 +189,51 @@
     "zones": [
       {
         "name": "contracts",
-        "patterns": ["packages/contracts/src/**"]
+        "patterns": [
+          "packages/contracts/src/**"
+        ]
       },
       {
         "name": "lib",
-        "patterns": ["packages/lib/src/**"]
+        "patterns": [
+          "packages/lib/src/**"
+        ]
       },
       {
         "name": "infra",
-        "patterns": ["packages/infra/src/**"]
+        "patterns": [
+          "packages/infra/src/**"
+        ]
       },
       {
         "name": "db",
-        "patterns": ["packages/db/src/**"]
+        "patterns": [
+          "packages/db/src/**"
+        ]
       },
       {
         "name": "client-core",
-        "patterns": ["packages/client-core/src/**"]
+        "patterns": [
+          "packages/client-core/src/**"
+        ]
       },
       {
         "name": "ai-providers",
-        "patterns": ["packages/ai-providers/src/**"]
+        "patterns": [
+          "packages/ai-providers/src/**"
+        ]
       },
       {
         "name": "backend-core",
-        "patterns": ["packages/backend-core/src/**"]
+        "patterns": [
+          "packages/backend-core/src/**"
+        ]
       },
       {
         "name": "assembly",
-        "patterns": ["packages/assembly/src/**"]
+        "patterns": [
+          "packages/assembly/src/**"
+        ]
       },
       {
         "name": "service-standard",
@@ -171,39 +248,57 @@
       },
       {
         "name": "service-knowledge-read",
-        "patterns": ["packages/service-knowledge-read/src/**"]
+        "patterns": [
+          "packages/service-knowledge-read/src/**"
+        ]
       },
       {
         "name": "host-local",
-        "patterns": ["packages/host-local/src/**"]
+        "patterns": [
+          "packages/host-local/src/**"
+        ]
       },
       {
         "name": "host-distributed",
-        "patterns": ["packages/host-distributed/src/**"]
+        "patterns": [
+          "packages/host-distributed/src/**"
+        ]
       },
       {
         "name": "cli",
-        "patterns": ["apps/cli/src/**"]
+        "patterns": [
+          "apps/cli/src/**"
+        ]
       },
       {
         "name": "web-panel",
-        "patterns": ["apps/web-panel/src/**"]
+        "patterns": [
+          "apps/web-panel/src/**"
+        ]
       },
       {
         "name": "mcp",
-        "patterns": ["apps/mcp/src/**"]
+        "patterns": [
+          "apps/mcp/src/**"
+        ]
       },
       {
         "name": "app-light",
-        "patterns": ["apps/light/src/**"]
+        "patterns": [
+          "apps/light/src/**"
+        ]
       },
       {
         "name": "app-distributed",
-        "patterns": ["apps/distributed/src/**"]
+        "patterns": [
+          "apps/distributed/src/**"
+        ]
       },
       {
         "name": "skill-registry",
-        "patterns": ["packages/skill-registry/src/**"]
+        "patterns": [
+          "packages/skill-registry/src/**"
+        ]
       }
     ],
     "rules": [
@@ -213,15 +308,22 @@
       },
       {
         "from": "lib",
-        "allow": ["contracts"]
+        "allow": [
+          "contracts"
+        ]
       },
       {
         "from": "infra",
-        "allow": ["contracts", "lib"]
+        "allow": [
+          "contracts",
+          "lib"
+        ]
       },
       {
         "from": "db",
-        "allow": ["contracts"]
+        "allow": [
+          "contracts"
+        ]
       },
       {
         "from": "client-core",
@@ -229,23 +331,50 @@
       },
       {
         "from": "backend-core",
-        "allow": ["contracts", "db", "lib", "infra"]
+        "allow": [
+          "contracts",
+          "db",
+          "lib",
+          "infra"
+        ]
       },
       {
         "from": "assembly",
-        "allow": ["backend-core", "contracts", "lib"]
+        "allow": [
+          "backend-core",
+          "contracts",
+          "lib"
+        ]
       },
       {
         "from": "ai-providers",
-        "allow": ["contracts", "lib", "infra"]
+        "allow": [
+          "contracts",
+          "lib",
+          "infra"
+        ]
       },
       {
         "from": "service-standard",
-        "allow": ["ai-providers", "backend-core", "contracts", "db", "lib", "infra"]
+        "allow": [
+          "ai-providers",
+          "backend-core",
+          "contracts",
+          "db",
+          "lib",
+          "infra"
+        ]
       },
       {
         "from": "service-knowledge-read",
-        "allow": ["ai-providers", "backend-core", "contracts", "db", "lib", "infra"]
+        "allow": [
+          "ai-providers",
+          "backend-core",
+          "contracts",
+          "db",
+          "lib",
+          "infra"
+        ]
       },
       {
         "from": "host-local",
@@ -281,32 +410,63 @@
       },
       {
         "from": "cli",
-        "allow": ["client-core", "contracts", "lib", "skill-registry"]
+        "allow": [
+          "client-core",
+          "contracts",
+          "lib",
+          "skill-registry"
+        ]
       },
       {
         "from": "web-panel",
-        "allow": ["client-core", "contracts"]
+        "allow": [
+          "client-core",
+          "contracts"
+        ]
       },
       {
         "from": "mcp",
-        "allow": ["client-core", "contracts", "lib"]
+        "allow": [
+          "client-core",
+          "contracts",
+          "lib"
+        ]
       },
       {
         "from": "app-light",
-        "allow": ["host-local", "contracts", "infra", "service-knowledge-read", "lib"]
+        "allow": [
+          "host-local",
+          "contracts",
+          "infra",
+          "service-knowledge-read",
+          "lib"
+        ]
       },
       {
         "from": "app-distributed",
-        "allow": ["host-distributed", "contracts", "infra", "service-knowledge-read", "lib"]
+        "allow": [
+          "host-distributed",
+          "contracts",
+          "infra",
+          "service-knowledge-read",
+          "lib"
+        ]
       },
       {
         "from": "skill-registry",
-        "allow": ["contracts", "lib"]
+        "allow": [
+          "contracts",
+          "lib"
+        ]
       }
     ],
     "coverage": {
       "requireAllFiles": false,
-      "allowUnmatched": ["scripts/**", "evals/**", "packages/skills/**"]
+      "allowUnmatched": [
+        "scripts/**",
+        "evals/**",
+        "packages/skills/**"
+      ]
     }
   }
 }

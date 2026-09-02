@@ -624,7 +624,7 @@
     },
     {
       "file": "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts",
-      "maxLines": 1500
+      "maxLines": 100
     },
     {
       "file": "packages/service-knowledge-read/src/retrieval-semantic.ts",
@@ -632,7 +632,7 @@
     },
     {
       "file": "packages/service-knowledge-read/src/search-knowledge.ts",
-      "maxLines": 1500
+      "maxLines": 400
     },
     {
       "file": "packages/service-knowledge-write/src/artifact-ports.ts",
@@ -713,6 +713,14 @@
     {
       "file": "packages/service-knowledge-read/src/search/search-v3-plan.ts",
       "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/recall-helpers.ts",
+      "maxLines": 150
+    },
+    {
+      "file": "packages/backend-core/src/ports/cache-port.ts",
+      "maxLines": 150
     }
   ]
 }

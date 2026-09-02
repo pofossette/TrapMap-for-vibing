@@ -1,3 +1,4 @@
+// fallow-ignore duplication -- shared DB fallback pattern, tracked
 import { computeScore } from '@trapmap/backend-core';
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
@@ -8,6 +9,7 @@ import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import { getDbSearchConfig, finalizeSemanticResults, toScoredEntry, versionMultiplierFor } from './recall-helpers.js';
 import type { ScoredEntry } from '../retrieval-types.js';
 
+// fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B
 export async function semanticRecall(
   seed: string,
   eligibleEntries: KnowledgeRecord[],
