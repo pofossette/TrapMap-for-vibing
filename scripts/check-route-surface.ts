@@ -239,6 +239,14 @@ const REAL_ROUTE_FILES = [
   'packages/host-local/src/nest/gateway/gateway.route-defs.ts',
   'packages/host-local/src/nest/gateway/gateway.cron-route-defs.ts',
   'packages/host-distributed/src/gateway/route-defs.ts',
+  'packages/host-distributed/src/gateway/route-defs/shared.ts',
+  'packages/host-distributed/src/gateway/route-defs/knowledge.ts',
+  'packages/host-distributed/src/gateway/route-defs/identity.ts',
+  'packages/host-distributed/src/gateway/route-defs/candidate.ts',
+  'packages/host-distributed/src/gateway/route-defs/governance.ts',
+  'packages/host-distributed/src/gateway/route-defs/job.ts',
+  'packages/host-distributed/src/gateway/route-defs/cron.ts',
+  'packages/host-distributed/src/gateway/route-defs/index.ts',
 ];
 
 const DOCUMENTED_ROUTE_FILES = [
