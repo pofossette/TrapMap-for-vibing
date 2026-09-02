@@ -3,7 +3,7 @@
 > 本文档定义 TrapMap 可观测性基础设施的运维参数：采样策略、数据保留、资源限制、健康检查语义和 SLO/SLI 目标。
 > 本文档面向运维人员和平台工程师，关注"如何运维"而非"如何构建"。
 >
-> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> **说明**：`归档旧实现` 已于  删除（提交 `a66d94e6`）。本文档中的 `归档旧实现` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 ---
 
@@ -107,7 +107,7 @@ TrapMap 提供三个探针端点，遵循 Kubernetes 探针语义，适用于容
 - **用途**：Kubernetes liveness probe；如果此端点失败，说明进程卡死，应重启容器
 - **不检查**：不检查任何外部依赖（数据库、Consul、OTel 等）
 - **实现**：
-  - Fastify: `packages/server（Wave-10 已删除）/src/lib/runtime/http-surface.ts` 第 149-152 行
+  - Fastify: `归档旧实现/src/lib/runtime/http-surface.ts` 第 149-152 行
   - NestJS: `packages/host-local/src/nest/health/health.controller.ts` 第 105-110 行
 
 ### `/ready` — Readiness Probe

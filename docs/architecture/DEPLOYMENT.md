@@ -103,6 +103,8 @@ Phase 5 freeze 固定 distributed baseline / runtime-isolation 的当前叙事�
 - 当前 distributed 已有真实内部 HTTP hop、真实多进程 service/worker 装配，以及 shared PostgreSQL 支撑下的运行证据；因此它不是 fake distributed。
 - 当前 distributed 仍不是成熟自治平台：shared PostgreSQL 仍是主要持久化底座，retrieval 仍带有逻辑服务边界，部分 shared infra/runtime seam 仍未服务自治化。
 - compose 文案必须按当前事实收口：checked-in compose 证明的是 `distributed` profile 可展开 gateway 与多进程 worker/service 拓扑；当前已补齐 shared `trapmap-distributed` network，并把内部默认 URL 收口到 Docker DNS（`gateway`、`identity-access`、`knowledge-read`、`knowledge-write`、`candidate-worker`、`governance-worker`、`outbox-worker`），从而消除跨容器 `localhost` 回退。
+
+> **2026-09-01 Go 读服务**：`distributed` 下新增 `services/knowledge-read-go :4101`（`docker-compose.yml` `profiles:["distributed"]`，`Dockerfile golang:1.23 → distroless`），由 `TRAPMAP_READ_IMPL=off|shadow|dual|go` 绞杀器控制读路径是否走 Go；`host-local` 仍零 Go（`fallow ignorePatterns: services/**/``），网关 `GET /health`/`GET /ready` 聚合其探活（800ms 超时回退，`breakerStatesSnapshot`）。契约见 `packages/contracts/src/domain/knowledge-read-go.ts` → `contracts/json-schema/knowledge-read-go/*` → `services/knowledge-read-go/pkg/api/types.go`。
 - deferred 边界保持显式：当前只实现“显式配置 -> compose Docker DNS -> 统一 resolver seam”这一层服务发现。注册中心、Kubernetes Service、Service Mesh 仍属于 follow-up，而不是当前部署默认能力。
 
 ### Platform L3 operational verification（2026-08-30 freeze，CLI-gated）
@@ -253,7 +255,7 @@ pnpm --filter @trapmap/app-light dev
 pnpm --filter @trapmap/app-light start
 ```
 
-旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`。`packages/server` compatibility shell 已于 Wave-10 删除。
+旧 Fastify 轻宿主路径（`packages/host-local/src/bootstrap/**`、`src/http/**`、`src/runtime/**`）已经删除。`light` 默认主入口只剩 `packages/host-local/src/nest/**`。
 
 ### 可选：本地 Neo4j 查询后端
 
@@ -661,7 +663,7 @@ services:
 
 实际 Dockerfile 位于 `apps/light/Dockerfile`（light 宿主）、`apps/distributed/Dockerfile`（distributed 宿主）与 `apps/migration/Dockerfile`（迁移作业）。
 
-> `packages/server/Dockerfile` 已于 Wave-10 删除。当前 Dockerfile 请直接查看 `apps/light/Dockerfile`（及 `apps/distributed/Dockerfile`、`apps/migration/Dockerfile`）。
+> Dockerfile 见 `apps/light/Dockerfile`、`apps/distributed/Dockerfile`、`apps/migration/Dockerfile`。
 
 ---
 

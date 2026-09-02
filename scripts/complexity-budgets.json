@@ -3,75 +3,25 @@
     {
       "file": "docs/guides/CODE_GUIDE.md",
       "mustContain": [],
-      "mustNotContain": ["createApp()"]
-    },
-    {
-      "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md", "127.0.0.1", "gpt-4o-mini"],
-      "mustNotContain": ["| `HOST` | `0.0.0.0` |", "| `AI_CHAT_MODEL` | `gpt-4o` |"]
-    },
-    {
-      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
-      "mustContain": [
-        "六服务边界冻结",
-        "review` 拥有治理 queue/decision/feedback/maintenance/decay 命令，但必须通过远程 `KnowledgeWritePort` 调用委托最终聚合变更",
-        "candidate-ingestion` 拥有 candidate 工作流事实，但必须通过远程 `KnowledgeWritePort` 发布已解析结果",
-        "根工作区命令",
-        "Server 专属 DB 命令",
-        "运行时环境默认值",
-        "AI 提供者/模型默认值",
-        "评估入口",
-        "深层架构持久化文档",
-        "部署默认值",
-        "健康检查契约（Phase 1A）",
-        "深层架构组件文档",
-        "操作者专属内部 API",
-        "运行时请求/追踪 headers",
-        "运行时状态/就绪契约",
-        "共享弹性策略",
-        "运行时指标快照语义",
-        "队列 / outbox 可靠性策略",
-        "Phase 1 server/backend-core boundary freeze",
-        "packages/service-*/src/migrations.ts",
-        "packages/service-*",
-        "thin assembly",
-        "Phase 2 store-snapshot / PG-first 姿态冻结",
-        "InMemory 继续是 repo-backed fallback/testing posture",
-        "live no-PG / InMemory fallback",
-        "artifactFilePayloads hydration",
-        "Phase 3 unified-adapter boundary freeze",
-        "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
-        "packages/host-distributed/src/gateway/internal-client.ts",
-        "packages/host-distributed/src/shared/internal-knowledge-write-client.ts",
-        "host-owned adapter selection",
-        "Phase 4 adapter env / target-pruning freeze",
-        "packages/host-local/src/nest/config/config.ts",
-        "packages/host-distributed/src/config/service-config.ts",
-        "TRAPMAP_DEPLOYMENT_PROFILE",
-        "TRAPMAP_TASK_TRANSPORT",
-        "Phase 5 distributed baseline / runtime-isolation freeze",
-        "docs/archived/archived-plans/nestjs-service-evolution-distributed-maturity-assessment.md",
-        "packages/host-distributed/test/gateway/distributed-runtime-closeout.test.ts",
-        "docker-compose.yml",
-        "Phase 6 mature-capability / library-replacement freeze",
-        "不是当前内置运行时默认值",
-        "Node `24`",
-        "DOCS_TRUTH_MATRIX.md",
-        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
+      "mustNotContain": [
+        "createApp()"
       ]
     },
     {
       "file": "docs/architecture/ARCHITECTURE.md",
       "mustContain": [
-        "Phase 5 六服务 ownership 冻结补充事实",
-        "`knowledge-write` 拥有 knowledge/trap/evidence 写模型真相",
-        "`job-runtime` 只拥有 queue/outbox/worker/retry/reclaim/status 等 runtime 编排"
-      ]
-    },
-    {
-      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
-      "mustContain": [
-        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
+        "SYSTEM_TRUTH_SOURCES.md",
+        "host-local",
+        "host-distributed",
+        "有界上下文",
+        "RouteDef",
+        "PostgreSQL"
+      ],
+      "mustNotContain": [
+        "packages/server",
+        "Phase 0",
+        "Phase 1",
+        "历史说明"
       ]
     },
     {
@@ -107,7 +57,10 @@
     },
     {
       "file": "docs/guides/GETTING_STARTED.md",
-      "mustContain": ["PostgreSQL 设置（推荐）", ".data/skill-shareer.json"],
+      "mustContain": [
+        "PostgreSQL 设置（推荐）",
+        ".data/skill-shareer.json"
+      ],
       "mustNotContain": [
         "PostgreSQL 模式（可选）",
         ".data/trapmap.json",
@@ -116,47 +69,29 @@
       ]
     },
     {
-      "file": "docs/architecture/DEPLOYMENT.md",
+      "file": "docs/operations/REGRESSION-COMMANDS.md",
       "mustContain": [
-        "TRAPMAP_DATABASE_URL",
-        "gpt-4o-mini",
-        ".data/skill-shareer.json",
-        "仓库当前未包含 Helm chart",
-        "Nest modular monolith 主线",
-        "compatibility shell",
-        "Phase 4 freeze",
-        "local-agent",
-        "team-monolith",
-        "distributed",
-        "light",
-        "heavy",
-        "Phase 5 freeze",
-        "Level 2 / transitional-microservice",
-        "shared PostgreSQL",
-        "compose",
-        "/metrics"
+        "pnpm test:observability-benchmark",
+        "grep -i traceparent"
       ],
       "mustNotContain": [
-        "使用 JSON 文件存储",
-        "DEBUG=false",
-        "SESSION_SECRET",
-        "当前未内置 `/metrics` 端点"
-      ],
-      "mustNotContainRegex": ["gpt-4o(?!-)"],
-      "mustContainCount": {
-        "pattern": "PostgreSQL",
-        "minOccurrences": 3
-      }
-    },
-    {
-      "file": "docs/operations/REGRESSION-COMMANDS.md",
-      "mustContain": ["pnpm test:observability-benchmark", "grep -i traceparent"],
-      "mustNotContain": ["grep X-Trace-Id"]
+        "grep X-Trace-Id"
+      ]
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["55 张表"],
-      "mustNotContain": ["48 张表", "54 张表", "56 张表", "62 张表", "63 张表", "64 张表"]
+      "mustContain": [
+        "42 张表"
+      ],
+      "mustNotContain": [
+        "48 张表",
+        "54 张表",
+        "56 张表",
+        "62 张表",
+        "63 张表",
+        "64 张表",
+        "55 张表"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
@@ -193,24 +128,22 @@
         "gateway -> governance-review -> knowledge-write",
         "gateway -> candidate-ingestion -> knowledge-write"
       ],
-      "mustNotContain": [".data/trapmap.json", "默认 openai", "Phase 1 试点"]
-    },
-    {
-      "file": "docs/architecture/components/PERSISTENCE.md",
-      "mustContain": [
-        "docs/reference/DATABASE_SCHEMA.md",
-        ".data/skill-shareer.json",
-        "PostgreSQL 是主要且权威的生产存储后端",
-        "PG-first + InMemory fallback/testing posture",
-        "fallback 已经从运行态消失",
-        "不再接纳新的 production 主路径"
-      ],
-      "mustNotContain": ["48 张表", "56 张表"]
+      "mustNotContain": [
+        ".data/trapmap.json",
+        "默认 openai",
+        "Phase 1 试点"
+      ]
     },
     {
       "file": "docs/guides/CONTRIBUTING.md",
-      "mustContain": ["packages/service-*/drizzle/", "已有开发数据库需重建"],
-      "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
+      "mustContain": [
+        "packages/service-*/drizzle/",
+        "已有开发数据库需重建"
+      ],
+      "mustNotContain": [
+        "pnpm run db:generate",
+        "pnpm run db:migrate"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
@@ -244,7 +177,9 @@
         "pnpm test:deployment-smoke",
         "pnpm eval:smoke"
       ],
-      "mustNotContain": ["TIER=core pnpm eval:ci"]
+      "mustNotContain": [
+        "TIER=core pnpm eval:ci"
+      ]
     },
     {
       "file": "docs/operations/OBSERVABILITY-OPERATIONS.md",
@@ -252,7 +187,9 @@
         "NestJS: `not-ready` 和 `unhealthy` 返回 `503`；`degraded` 和 `ready` 返回 `200`",
         "pnpm test:observability-closeout"
       ],
-      "mustNotContain": ["NestJS: 当前始终返回 200"]
+      "mustNotContain": [
+        "NestJS: 当前始终返回 200"
+      ]
     },
     {
       "file": "plan.md",
@@ -325,15 +262,6 @@
       ]
     },
     {
-      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
-      "mustContain": [
-        "Documentation validation / observability platform mainline",
-        "Documentation Validation and Observability Platform",
-        "`doc-guardrails` job runs `pnpm check:docs`、`pnpm check:structure`、`pnpm check:asserts`、`pnpm check:table-schema`、`pnpm check:pgtable-single-source`、`pnpm check:eval-imports`、`pnpm check:eval-only`、`pnpm check:deps` 和 `pnpm check:complexity`",
-        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
-      ]
-    },
-    {
       "file": "docs/todos/README.md",
       "mustContain": [
         "活跃索引",
@@ -367,7 +295,10 @@
         "默认不承担当前执行面",
         "historical-reference"
       ],
-      "mustNotContain": ["active-reference", "NestJS 与服务演进执行索引"]
+      "mustNotContain": [
+        "active-reference",
+        "NestJS 与服务演进执行索引"
+      ]
     },
     {
       "file": "docs/operations/CI_CD.md",
@@ -381,33 +312,59 @@
         "doc-guardrails",
         "`pnpm eval:smoke`"
       ],
-      "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
+      "mustNotContain": [
+        "Node.js 20 + pnpm 10.33.0"
+      ]
     },
     {
       "file": "docs/architecture/components/EVALUATION.md",
-      "mustContain": ["pnpm eval:smoke", "pnpm eval:core", "datasets/", "scenarios/"],
-      "mustNotContain": ["pnpm eval:governance", "cases/"]
+      "mustContain": [
+        "pnpm eval:smoke",
+        "pnpm eval:core",
+        "datasets/",
+        "scenarios/"
+      ],
+      "mustNotContain": [
+        "pnpm eval:governance",
+        "cases/"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["fallback", "OPENAI_API_KEY", "GEMINI_API_KEY", "未暴露为稳定 CLI 命令"],
-      "mustNotContain": ["默认 openai"]
+      "mustContain": [
+        "fallback",
+        "OPENAI_API_KEY",
+        "GEMINI_API_KEY",
+        "未暴露为稳定 CLI 命令"
+      ],
+      "mustNotContain": [
+        "默认 openai"
+      ]
     },
     {
       "file": "docs/architecture/components/AI_PROVIDER.md",
-      "mustContain": ["fallback", "google-genai", "gpt-4o-mini", "llama3"],
-      "mustNotContain": ["默认 openai", "llama2"]
-    },
-    {
-      "file": "docs/architecture/ARCHITECTURE.md",
-      "mustContain": ["pgvector/pgvector:pg16", "wget"],
-      "mustNotContain": ["image: postgres:16"],
-      "mustNotContainRegex": ["curl.*-f.*health"]
+      "mustContain": [
+        "fallback",
+        "google-genai",
+        "gpt-4o-mini",
+        "llama3"
+      ],
+      "mustNotContain": [
+        "默认 openai",
+        "llama2"
+      ]
     },
     {
       "file": "docs/architecture/components/ARTIFACTS.md",
-      "mustContain": ["agent-pass", "SkillArtifactRecord"],
-      "mustNotContain": ["interface SkillArtifact {"]
+      "mustContain": [
+        "工件系统",
+        "artifact_revisions",
+        "capsule_embeddings"
+      ],
+      "mustNotContain": [
+        "packages/server",
+        "历史说明"
+      ]
     },
     {
       "file": "evals/README.md",
@@ -444,76 +401,31 @@
     },
     {
       "file": "evals/README.md",
-      "mustContain": ["root-plan closeout 已冻结该边界", "唯一序列化载荷"]
-    },
-    {
-      "file": "docs/PACKAGES.md",
       "mustContain": [
-        "Phase 4 数据、运维与退役收尾",
-        "packages/host-local/src/nest/**",
-        "## Phase 1 Server / Backend-Core boundary freeze",
-        "`packages/backend-core` 不是“仅接口”空壳",
-        "`packages/service-*` 只承载 owner-aligned thin assembly",
-        "## Phase 2 Store Snapshot / PG-first posture freeze",
-        "InMemory 不是与 PG 对等的长期生产轨道",
-        "PG-primary 事实已经成立",
-        "direct `store.snapshot()` / `store.transact()` 入口当前仍集中在 compatibility shell",
-        "## Phase 3 Unified adapter boundary freeze",
-        "统一适配器不是 mega-adapter",
-        "`backend-core` 只定义 port contract",
-        "`packages/host-local/src/nest/runtime/backend-core-adapters.ts`",
-        "`packages/host-distributed/src/gateway/internal-client.ts`",
-        "## Phase 4 Adapter env / target-pruning freeze",
-        "`local-agent` / `team-monolith` -> `light`",
-        "`distributed` -> `heavy`",
-        "optional dependency",
-        "## Phase 5 Distributed baseline freeze",
-        "Level 2 / transitional-microservice",
-        "shared PostgreSQL",
-        "gateway-only external access",
-        "## Phase 6 Mature capability freeze",
-        "不是完整 mature-service platform stack",
-        "rate limiting + bulkhead / 背压",
-        "自治缓存平台",
-        "不同默认策略姿态",
-        "### Phase 6 Wave 6D replacement matrix freeze",
-        "`优先引成熟库`",
-        "`条件成熟后引入`",
-        "`暂不替换`",
-        "internal client",
-        "shared resilience helper",
-        "runtime metrics snapshot",
-        "cache invalidation seam",
-        "service discovery",
-        "PgBouncer",
-        "service-autonomous remote cache",
-        "adaptive backpressure"
-      ],
-      "mustNotContain": ["packages/host-distributed 是 compatibility shell"]
+        "root-plan closeout 已冻结该边界",
+        "唯一序列化载荷"
+      ]
     },
     {
       "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["默认 `light` 主线"],
-      "mustNotContain": ["Phase 1 试点"]
+      "mustContain": [
+        "默认 `light` 主线"
+      ],
+      "mustNotContain": [
+        "Phase 1 试点"
+      ]
     },
     {
       "file": "docs/operations/TESTING.md",
-      "mustContain": ["Phase 4 验证归属矩阵"]
-    },
-    {
-      "file": "docs/architecture/components/ASYNC_MODEL.md",
       "mustContain": [
-        "Phase 4 closeout",
-        "operator runbook",
-        "task queue",
-        "internal hop latency",
-        "error rate",
-        "dashboard/alert/SLO"
+        "Phase 4 验证归属矩阵"
       ]
     },
     {
       "file": "README.md",
-      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md",
@@ -526,7 +438,10 @@
         "pnpm check:docs-drift",
         "pnpm check:structure"
       ],
-      "mustNotContain": ["第二个 URL", "第四种 deployment profile"]
+      "mustNotContain": [
+        "第二个 URL",
+        "第四种 deployment profile"
+      ]
     },
     {
       "file": "docs/archived/archived-plans/badcase-feedback-loop.md",
@@ -566,9 +481,107 @@
         "当前唯一执行面是",
         "为 distributed 容器补齐内存/CPU 预算、连接池与堆配置约束，形成可执行默认值"
       ]
+    },
+    {
+      "file": "docs/architecture/ARCHITECTURE.md",
+      "mustContain": [
+        "PostgreSQL",
+        "host-local"
+      ],
+      "mustNotContain": [
+        "image: postgres:16"
+      ],
+      "mustNotContainRegex": [
+        "curl.*-f.*health"
+      ]
+    },
+    {
+      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
+      "mustContain": [
+        "Light 默认宿主",
+        "数据库 schema",
+        "六服务归属边界",
+        "Go 读服务",
+        "HTTP 路由契约",
+        "DOCS_TRUTH_MATRIX.md"
+      ],
+      "mustNotContain": [
+        "Phase 1 server/backend-core boundary freeze",
+        "store_snapshot"
+      ]
+    },
+    {
+      "file": "docs/PACKAGES.md",
+      "mustContain": [
+        "包概览",
+        "backend-core",
+        "service-knowledge-read",
+        "host-local",
+        "contracts"
+      ],
+      "mustNotContain": [
+        "Phase 1",
+        "Phase 2"
+      ]
+    },
+    {
+      "file": "docs/architecture/DEPLOYMENT.md",
+      "mustContain": [
+        "TRAPMAP_DATABASE_URL",
+        ".data/skill-shareer.json",
+        "light",
+        "heavy",
+        "distributed"
+      ],
+      "mustNotContain": [
+        "packages/server",
+        "Wave-10"
+      ]
+    },
+    {
+      "file": "docs/architecture/components/PERSISTENCE.md",
+      "mustContain": [
+        "DATABASE_SCHEMA.md",
+        "PostgreSQL",
+        "42 表"
+      ],
+      "mustNotContain": [
+        "JsonStore",
+        "store_snapshot",
+        "packages/server",
+        "48 张表"
+      ]
+    },
+    {
+      "file": "docs/architecture/components/ASYNC_MODEL.md",
+      "mustContain": [
+        "task_queue",
+        "domain_event_outbox",
+        "workflow_runs"
+      ],
+      "mustNotContain": [
+        "Phase 4 closeout",
+        "packages/server"
+      ]
     }
   ],
   "lineBudgets": [
+    {
+      "file": "packages/contracts/src/domain/operations.ts",
+      "maxLines": 700
+    },
+    {
+      "file": "packages/db/src/schema/knowledge.ts",
+      "maxLines": 800
+    },
+    {
+      "file": "packages/host-distributed/src/gateway/internal-client.ts",
+      "maxLines": 1500
+    },
+    {
+      "file": "packages/host-distributed/src/gateway/route-defs.ts",
+      "maxLines": 1500
+    },
     {
       "file": "packages/host-local/src/nest/app.module.ts",
       "maxLines": 350
@@ -578,12 +591,72 @@
       "maxLines": 300
     },
     {
-      "file": "packages/db/src/schema/knowledge.ts",
-      "maxLines": 800
+      "file": "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
+      "maxLines": 1500
+    },
+    {
+      "file": "packages/service-governance-review/src/routes.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/admin.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/feedback.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/helpers.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/maintenance.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-governance-review/src/routes/queue.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-infra-default.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts",
+      "maxLines": 1500
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-semantic.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-knowledge-read/src/search-knowledge.ts",
+      "maxLines": 1500
     },
     {
       "file": "packages/service-knowledge-write/src/artifact-ports.ts",
       "maxLines": 800
+    },
+    {
+      "file": "packages/service-knowledge-write/src/routes.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-write/src/routes/knowledge.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "packages/service-knowledge-write/src/routes/submission.routes.ts",
+      "maxLines": 300
+    },
+    {
+      "file": "services/knowledge-read-go/cmd/server/main.go",
+      "maxLines": 150
+    },
+    {
+      "file": "services/knowledge-read-go/internal/ranking/domain/boundary.go",
+      "maxLines": 150
     },
     {
       "file": "services/knowledge-read-go/internal/ranking/domain/merge.go",
@@ -594,16 +667,52 @@
       "maxLines": 200
     },
     {
-      "file": "services/knowledge-read-go/internal/ranking/domain/boundary.go",
-      "maxLines": 150
+      "file": "services/knowledge-read-go/internal/ranking/service/ranking.go",
+      "maxLines": 200
     },
     {
       "file": "services/knowledge-read-go/internal/recall/service/semantic.go",
       "maxLines": 200
     },
     {
-      "file": "services/knowledge-read-go/cmd/server/main.go",
-      "maxLines": 150
+      "file": "packages/contracts/src/domain/operations/identity.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/contracts/src/domain/operations/knowledge.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/contracts/src/domain/operations/governance.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/contracts/src/domain/operations/job.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/hybrid-channel.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/semantic-channel.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/graph-channel.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/channel-registry.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/search/search-v2.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/search/search-v3-plan.ts",
+      "maxLines": 400
     }
   ]
 }

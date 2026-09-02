@@ -1,7 +1,5 @@
 # 评估框架 (Evaluation Framework)
 
-> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
-
 ## 概述
 
 TrapMap 的评估框架用于验证系统核心功能的正确性，包括检索质量、摘要生成、治理执行等。框架支持烟雾测试（快速）和核心测试（全面）两个层级。
@@ -379,7 +377,9 @@ on:
     paths:
       - 'packages/contracts/src/domain/evals/**'
       - 'evals/**'
-      - 'packages/server（Wave-10 已删除）/src/**'
+      - 'packages/service-*/src/**'
+      - 'packages/backend-core/src/**'
+      - 'packages/host-*/src/**'
   workflow_dispatch:
     inputs:
       tier:

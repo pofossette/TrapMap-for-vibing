@@ -21,6 +21,16 @@
 | [go-compute-hub-mainline.md](go-compute-hub-mainline.md) | **Go 计算中枢深化**：剩余重计算全量盘点与批处理迁移 | 并行主线（待激活）；分布式-only，`infra` fallback 一致性门禁 |
 | [type-alignment-mainline.md](type-alignment-mainline.md) | **跨语言类型对齐**：Zod->JSON Schema->Go / OpenAPI / proto 三期选型与门禁 | 并行主线（待激活）；为计算中枢提供 `contracts->Go` 编译期约束 |
 | [skill-registry-mainline.md](skill-registry-mainline.md) | Skill Registry 版本管理器抽离（已合入 `pre`） | 已合入 `pre@a9b413b5`；`@trapmap/skill-registry` 子包 |
+| [architecture-remediation-mainline.md](architecture-remediation-mainline.md) | **架构收敛与渐进 Go 化一次性根治**：路由/检索解耦 + 宿主 assembly 统一 + Go 收敛 + 持久化 Owner-Local + 缓存统一 + 契约模块化 + 部署配置统一 | **Queued parallel**；纯重构零语义变更，Phase 0-8 串行，subagent-driven，短周期可全量并行投入；探针证据 [`architecture-probe-report.md`](architecture-probe-report.md) |
+| [architecture-remediation-phase1-route-retrieval.md](architecture-remediation-phase1-route-retrieval.md) | Phase 1 路由与检索解耦（914/826/586/391→≤300） | Delegated active surface of `architecture-remediation-mainline.md` |
+| [architecture-remediation-phase2-host-assembly.md](architecture-remediation-phase2-host-assembly.md) | Phase 2 宿主装配统一（God Composition→assembly capability） | Delegated active surface |
+| [architecture-remediation-phase3-go-convergence.md](architecture-remediation-phase3-go-convergence.md) | Phase 3 Go 收敛（compute + 读服务绞杀器，`chi/pgx/lru+singleflight`） | Delegated active surface |
+| [architecture-remediation-phase4-persistence.md](architecture-remediation-phase4-persistence.md) | Phase 4 持久化 Owner-Local（42 表归属下沉） | Delegated active surface |
+| [architecture-remediation-phase5-cache-index.md](architecture-remediation-phase5-cache-index.md) | Phase 5 缓存与索引统一（Cache Port + HNSW/GIN） | Delegated active surface |
+| [architecture-remediation-phase6-contracts.md](architecture-remediation-phase6-contracts.md) | Phase 6 契约模块化（operations 5187→按域拆） | Delegated active surface |
+| [architecture-remediation-phase7-deploy-config.md](architecture-remediation-phase7-deploy-config.md) | Phase 7 部署与配置统一（envconfig 单源，一键分布式） | Delegated active surface |
+| [architecture-probe-report.md](architecture-probe-report.md) | 探针证据：68 条广度→20 份深研→38 项去重清单 | 只读证据，7 探针无观点隔离 |
+| [architecture-remediation-review.md](architecture-remediation-review.md) | 二次审阅：5 枚 Reco 重读方向 + 4 枚 Review 审“文档怎么落”，细则 31→67 行补强至 619 行总值 | 只读纪要，已回写主纲与 7 细则 |
 | [go-service-gradual-migration-archived.md](../archived/archived-plans/go-service-gradual-migration-archived.md) | **服务渐进 Go 化**：读路径整段绞杀 + 模块化（query/recall/ranking/assembly/cache）+ 其余服务按 RICE 排期 | 已完成并归档（2026-09-01，`main@d5f18c43`，`PR #3/#4`）；原 `docs/todos/go-service-gradual-migration-mainline.md` 已归档 |
 
 ## 归档主线索引
@@ -56,5 +66,6 @@
 - **Skill Registry**：`skill-registry-mainline.md` 已合入 `pre@a9b413b5`，子包 `@trapmap/skill-registry` 抽离完成。
 - **类型对齐**：[`type-alignment-mainline.md`](type-alignment-mainline.md) 以 `Zod(contracts) -> JSON Schema -> Go` 为 P0，`OpenAPI contract-first` 为 P1，`proto+buf` 为 P2（benchmark gated），为计算中枢提供类型门禁（`pnpm generate:contracts --check` + `git diff --exit-code`）。
 - **服务渐进 Go 化**：[`go-service-gradual-migration-archived.md`](../archived/archived-plans/go-service-gradual-migration-archived.md)（已完成并归档 2026-09-01，`main@d5f18c43`）—— 从“函数加速”升级为“服务接管”，读路径 `query→recall→ranking→assembly→cache` 模块化绞杀（单仓多模块单二进制起步，三二进制触发式），写侧仅收敛 `dedup/derive` 纯计算；模块化 6 模块 1348 行，`ranking 394→拆三`，`go-accelerator 410 Gone`。
+- **架构收敛一次性根治**：[`architecture-remediation-mainline.md`](architecture-remediation-mainline.md)（2026-09-01 queued parallel）—— 承接 8 项结构债一次性收敛（Phase 1 路由/检索解耦 → Phase 2 宿主 assembly 统一 → Phase 3 Go 收敛 → Phase 4 持久化 Owner-Local → Phase 5 缓存统一 → Phase 6 契约模块化 → Phase 7 部署配置统一 → Phase 8 验证归档），单文件 ≤300/模块 ≤600/占比 ≤30%，成熟 Go 栈 `chi+pgx+lru+singleflight+prometheus+slog+envconfig+otel`，`TRAPMAP_READ_IMPL` 绞杀器不变。输入证据见 [`architecture-probe-report.md`](architecture-probe-report.md)（Phase 1 68 条无观点广度 → Phase 2 同角 20 份深研 → 去重 38 项）。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。

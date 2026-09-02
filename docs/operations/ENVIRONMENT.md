@@ -1,6 +1,6 @@
 # TrapMap 环境变量参考
 
-> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> **说明**：`归档旧实现` 已于  删除（提交 `a66d94e6`）。本文档中的 `归档旧实现` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 本文档是 TrapMap 所有环境变量的完整参考。
 
@@ -131,7 +131,9 @@ Phase 4 freeze 只冻结当前 selector env / provider-specific env / fail-fast 
 - `packages/host-distributed/src/config/service-config.ts` 现在还冻结了首个 host-distributed transport seam：`TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT` 只允许 `http` 或 `rpc`，默认值是 `http`。当前它只影响 `governance-review -> knowledge-write` 与 `candidate-ingestion -> knowledge-write` 这两个 owner-hop 的 host wiring，不改变 gateway external surface，也不改变 `KnowledgeWritePort` contract。
 - 当前 `rpc` 值表示仓库自有 envelope RPC，而不是 Connect RPC 或 gRPC。切到更正式协议层需要额外接受 Protobuf schema、Buf/codegen、以及对应 operator/runtime 复杂度进入主线 truth source；在此之前 `TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT=rpc` 只代表启用当前 pilot seam。
 - 当前 closeout 证据已覆盖两条 owner-hop：
-  - `gateway -> governance-review -> knowledge-write`
+  - `gateway -> governance-review -> knowledge-write
+- `TRAPMAP_READ_IMPL`（`off|shadow|dual|go`，默认 `off`，`packages/host-distributed/src/config/service-config.ts`）：分布式读路径绞杀器，`off` 纯 Node，`shadow` 5% 影子比对，`dual` 10% 双跑回退，`go` 主路径 Go；`host-local` 忽略该变量，仅 `distributed` 生效。对应服务 `services/knowledge-read-go :4101`（`chi`+`pgx`+`lru`+`singleflight`），网关 `POST /v1/knowledge/read` 按模式转发，`/health`/`/ready` 聚合其探活（800ms）。
+- `TRAPMAP_GO_ACCELERATOR_ENABLED` / `TRAPMAP_GO_ACCELERATOR_URL` / `TRAPMAP_KNOWLEDGE_READ_GO_URL` 等 Go 加速开关见 `docs/architecture/GO-ACCELERATOR.md` 与 `GO_TECH_STACK.md`。`
   - `gateway -> candidate-ingestion -> knowledge-write`（通过 `manual-result` distributed closeout 样板验证）
 - 推荐组合冻结为：`local-agent` -> `light` + in-process/internal defaults + `json-store-ok`；`team-monolith` -> `light` + `postgres-required` + `gateway-core` + `split-owned`；`distributed` -> `heavy` + service/gateway split + `remote-expected`。
 - fail-fast / fallback 规则冻结为：`TRAPMAP_TASK_TRANSPORT=rabbitmq` 时必须同时提供 RabbitMQ config；`distributed` profile 需要 PostgreSQL；`local-agent` 仍允许 `.data/skill-shareer.json` 这类 JSON store fallback；internal service URLs 在 `in-process` mode 下继续视为 ignored config，而不是必填值。
@@ -654,7 +656,7 @@ Feature flags 子 schema（`featureFlagsSchema`）：
 | `TRAPMAP_REQUEST_ID_HEADER` | 运行时 request id 响应/透传头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | 运行时 trace header 名 | `traceparent` |
 
-> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主通过 `packages/host-local/src/nest/config/config.ts` 加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry。`packages/server` 已于 Wave-10 删除。环境变量与子配置 helper 统一由 host-local 持有。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线。
+> **Nest 宿主（默认 `light` 主线）**：`packages/host-local/src/nest/` 的 Nest 宿主通过 `packages/host-local/src/nest/config/config.ts` 加载 `HostLocalConfig`，这是 default `light` runtime env defaults 的 host-owned truth entry。`归档旧实现` 已于  删除。环境变量与子配置 helper 统一由 host-local 持有。`pnpm dev:local-agent`、`pnpm dev:team-monolith` 与 `pnpm --filter @trapmap/host-local dev` 都直接进入这条主线。
 
 ### Phase 1 instrumentation 语义冻结
 
@@ -764,7 +766,7 @@ Phase 6 只冻结当前 mature-capability / library-replacement 边界，不把 
 - `service discovery`、`DB budget / PgBouncer`、以及 richer `health indicator` rollout 继续是 adoption condition / deferred capability gate。当前分布式事实仍是 checked-in URL env + shared PostgreSQL + existing readiness endpoints；不能改写成动态 discovery、PgBouncer rollout default、或 richer health policy 已内建。
 - 本轮 Phase 4 最小真实落地只补到 distributed host 的可执行 DB pool budget env seam：`TRAPMAP_SERVICE_POOL_SIZE` 提供 shared 默认值，`TRAPMAP_<SERVICE>_POOL_SIZE` 提供 per-service override。它只约束 Node `pg.Pool.max`，不等同于 PgBouncer rollout、连接池 introspection contract 或完整容量治理平台。
 - `light` 与 `heavy` 的默认策略姿态不同，但 Phase 6 不引入新行为：`light` 继续偏向 in-process / fewer remote dependencies，`heavy` 继续偏向 gateway + internal HTTP hop + shared PostgreSQL 的 remote-expected posture。这里描述的是当前 adoption posture，不是 capability parity 或 platform maturity proof。
-- graph runtime 配置入口继续冻结为同一组 `TRAPMAP_GRAPH_DB_*` env family 和 shared config parser。`TRAPMAP_GRAPH_DB_FAIL_OPEN`、provider、enabled state、worker-status conflict warning 都已存在；但当前文档不能宣称 `packages/server（Wave-10 已删除）` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 在 graph provider、readiness、fail-open disposition 上已经完全一致，只能说它们复用同一 env family 与部分 shared consumer seam。
+- graph runtime 配置入口继续冻结为同一组 `TRAPMAP_GRAPH_DB_*` env family 和 shared config parser。`TRAPMAP_GRAPH_DB_FAIL_OPEN`、provider、enabled state、worker-status conflict warning 都已存在；但当前文档不能宣称 `归档旧实现` compatibility shell、`host-local` 默认主线、distributed gateway/service/worker 在 graph provider、readiness、fail-open disposition 上已经完全一致，只能说它们复用同一 env family 与部分 shared consumer seam。
 
 ## AI 提供商配置
 

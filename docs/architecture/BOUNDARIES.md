@@ -179,7 +179,7 @@ service-* / host-local / cli → lib → contracts
 
 ### host-local transitional composition
 
-`packages/runtime-infra` 已在 2026-07-25 删除（Wave-10）。host-local 可以在自身 composition 中暂时通过迁移期接缝调用必要能力；这不是可复用 service package，其他 services 不得通过 concrete import 获得该能力。
+`packages/runtime-infra` 已删除；host-local可在自身 composition 中暂用迁移接缝，其他 services 不得通过 concrete import 复用。
 
 ## 使用指南
 
@@ -211,11 +211,11 @@ CI 流水线中配置了 fallow 边界检查步骤。PR 合并前会自动运行
 
 ## Intentional Coupling Patterns
 
-The coupling audit (Phase 0.6) identified several patterns that violate strict layering but are accepted as intentional. These are documented below for future maintainers and for tracking against the open-debt register.
+Coupling audit 识别出 several patterns that violate strict layering but are accepted as intentional. These are documented below for future maintainers and for tracking against the open-debt register.
 
 ### Category A: Structural Store Pool Seam (Medium Severity)
 
-**Location**: `packages/host-local/src/nest/runtime/store-pool.ts`（Wave-10 迁移后位置）and the remaining compatibility orchestration/runtime callers.
+**Location**: `packages/host-local/src/nest/runtime/store-pool.ts`and the remaining compatibility orchestration/runtime callers.
 
 **Pattern**: Orchestration/runtime code now uses structural `getStorePool(...)` or `typeof store.getPool === 'function'` seams to extract a `Pool` from the Store interface instead of checking `instanceof PostgresStore`.
 
@@ -258,11 +258,7 @@ Regression evidence: any production import of a deleted package (`@trapmap/serve
 
 **Status**: Acceptable.
 
-## Wave-2 boundary closeout
-
-The 2026-07-16 Wave-2 closeout keeps the dependency direction above unchanged. `packages/contracts/src/domain/retrieval-projection.ts` contains the pure retrieval projection/read-model helpers, while `packages/contracts/src/domain/retrieval-fixtures.ts` contains deterministic fixture builders. The `service-knowledge-read` packages consume those contracts helpers without importing one another's implementation zones; service-specific normalization and remediation remain local.
-
-The new-only audit at commit `b3374307` reports zero introduced boundary violations, dead-code findings, complexity findings, or duplication groups. The audit still reports inherited complexity and duplication separately; those inherited totals are not new Wave-2 regressions.
+> 详细 closeout 历史见 `docs/archived/`；当前依赖方向以上图为准。
 
 ---
 

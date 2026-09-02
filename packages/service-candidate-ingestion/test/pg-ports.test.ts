@@ -159,11 +159,9 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     );
 
     expectCommitted(calls, [
-      'INSERT INTO candidate_analyses',
+      'UPDATE candidates SET analysis',
       'INSERT INTO candidate_duplicate_cases',
-      'DELETE FROM candidate_duplicate_matches',
-      'INSERT INTO candidate_duplicate_matches',
-      'INSERT INTO candidate_manual_results',
+      'INSERT INTO candidate_outcomes',
     ]);
     expect(calls.filter((sql) => sql === 'BEGIN')).toHaveLength(3);
     expect(client.release).toHaveBeenCalledTimes(3);
@@ -188,7 +186,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       manual_result: null,
     };
     const { pool } = createPool((sql) => {
-      if (sql.includes('candidate_analyses') && sql.includes('JOIN'))
+      if (sql.includes("analysis->>'fingerprint'"))
         return { rows: [{ id: candidate.id }] };
       if (sql.includes('FROM candidates')) return { rows: [row] };
       return { rows: [] };
@@ -236,10 +234,10 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     await owner.lineage.insert(lineage);
     await owner.lineage.insert(lineage);
 
-    expect(calls.filter((sql) => sql.includes('candidate_resolution_outcomes'))).toHaveLength(2);
+    expect(calls.filter((sql) => sql.includes('candidate_outcomes'))).toHaveLength(2);
     expect(calls.filter((sql) => sql.includes('entity_lineage'))).toHaveLength(2);
     expect(calls.filter((sql) => sql.includes('ON CONFLICT'))).toHaveLength(4);
-    expectCommitted(calls, ['candidate_resolution_outcomes', 'entity_lineage']);
+    expectCommitted(calls, ['candidate_outcomes', 'entity_lineage']);
     expect(client.release).toHaveBeenCalledTimes(4);
   });
 
@@ -271,7 +269,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     const submittedAt = '2026-07-16T00:04:00.000Z';
     const { calls, client, pool } = createPool((sql) => {
       if (sql.includes('FOR UPDATE')) return { rows: [{ id: candidate.id }] };
-      if (sql.includes('FROM candidate_manual_results')) {
+      if (sql.includes("FROM candidate_outcomes") && sql.includes("kind='manual'")) {
         return {
           rows: [
             {
@@ -300,8 +298,9 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       'reviewer-1',
     );
 
-    expectNoSql(calls, 'UPDATE candidates SET manual_result');
-    expectNoSql(calls, 'INSERT INTO candidate_manual_results');
+    expectNoSql(calls, 'UPDATE candidates SET analysis');
+    expectNoSql(calls, "INSERT INTO candidate_outcomes");
+    // analysis case already handled elsewhere
     expect(calls).toContain('COMMIT');
     expect(client.release).toHaveBeenCalledOnce();
   });
@@ -309,7 +308,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
   it('preserves the first analysis and candidate payload on an identical retry', async () => {
     const { calls, client, pool } = createPool((sql) => {
       if (sql.includes('FOR UPDATE')) return { rows: [{ id: candidate.id }] };
-      if (sql.includes('FROM candidate_analyses')) {
+      if (sql.includes('SELECT analysis FROM candidates')) {
         return {
           rows: [
             {
@@ -331,8 +330,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       analysis,
     );
 
-    expectNoSql(calls, 'UPDATE candidates SET analysis_snapshot');
-    expectNoSql(calls, 'INSERT INTO candidate_analyses');
+    expectNoSql(calls, 'UPDATE candidates SET analysis');
     expect(calls).toContain('COMMIT');
     expect(client.release).toHaveBeenCalledOnce();
   });
@@ -351,23 +349,18 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
               highest_similarity: duplicateCase.highestSimilarity,
               has_exact_duplicate: 0,
               duplicate_type: duplicateCase.duplicateType,
-            },
-          ],
-        };
-      }
-      if (sql.includes('FROM candidate_duplicate_matches')) {
-        return {
-          rows: [
-            {
-              duplicate_case_id: duplicateCase.id,
-              entity_type: 'skill',
-              entity_id: 'skill-1',
-              entity_title: 'Existing skill',
-              similarity_score: 0.98,
-              match_type: 'semantic-similar',
-              shared_keywords: ['owner'],
-              shared_tokens: ['local'],
-              text_overlap_percent: 80,
+              matches: [
+                {
+                  entityType: 'skill',
+                  entityId: 'skill-1',
+                  entityTitle: 'Existing skill',
+                  similarityScore: 0.98,
+                  matchType: 'semantic-similar',
+                  sharedKeywords: ['owner'],
+                  sharedTokens: ['local'],
+                  textOverlapPercent: 80,
+                },
+              ],
             },
           ],
         };
@@ -380,7 +373,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       duplicateCase,
     );
 
-    expectNoSql(calls, 'UPDATE candidates SET duplicate_case');
+    expectNoSql(calls, 'UPDATE candidates SET analysis');
     expectNoSql(calls, 'DELETE FROM candidate_duplicate_matches');
     expectNoSql(calls, 'INSERT INTO candidate_duplicate_matches');
     expect(calls).toContain('COMMIT');

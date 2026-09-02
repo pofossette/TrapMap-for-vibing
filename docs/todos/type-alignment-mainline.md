@@ -22,7 +22,7 @@ TrapMap 当前的单一真相源（SSOT）是 `packages/contracts` 内的 **Zod 
 
 ## 2. 非目标
 
-- 不在本主线引入 `packages/server（Wave-10 已删除，historical）` 复活或新增 DB/队列；
+- 不在本主线引入 `归档旧实现` 复活或新增 DB/队列；
 - 不把 `proto` / `OpenAPI yaml` 提升为新的业务语义真相源（业务语义仍归 `packages/contracts` Zod）；
 - 不在 `host-local` 引入 Go 工具链运行时依赖；
 - 不做 LLM 驱动的类型推导或动态反射。

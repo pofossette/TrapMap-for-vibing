@@ -201,7 +201,7 @@ pnpm run ci
 - [Agent Eval Platform 集成（已归档）](archived/guides/AGENT_EVAL_PLATFORM_INTEGRATION.md) — aggregate runner 启用 `langfuse/json-archive` mirror、失败回退与关闭方式
 - [微服务拆分验收清单（已归档）](archived/guides/MICROSERVICE_SPLIT_ACCEPTANCE_CHECKLIST.md) — 判断何时可以开始物理拆分 distributed 微服务
 - [数据模型](reference/DATA_MODEL.md) — 核心数据实体及关系
-- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — 69 张表快速参考、枚举值、外键关系
+- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — 42 张表快速参考、枚举值、外键关系
 - [术语表](reference/GLOSSARY.md) — 项目专用术语解释
 - [投稿指南](guides/CONTRIBUTING.md) — 代码规范和 PR 流程
 
@@ -266,7 +266,7 @@ deployment flexibility 最小验证矩阵：
 - [LLM 图提取改造计划（已归档）](archived/architecture/HYBRID_GRAPH_EXTRACTION.md) — 用 LLM 替代规则引擎的图构建 + 入库智能增强（进行中；实现已标记 @eval-only，仅 eval 链路引用）
 - [可观测性架构](architecture/OBSERVABILITY.md) — 指标、日志、链路追踪三大支柱与 LGTM 栈设计
 - [服务发现架构](architecture/SERVICE-DISCOVERY.md) — Consul 集成与 DNS 发现机制
-- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 69 张表完整参考
+- [数据库表结构速查](reference/DATABASE_SCHEMA.md) — PostgreSQL 42 张表完整参考
 
 ### 部署与运维
 - [部署指南](architecture/DEPLOYMENT.md) — `local-agent` / `team-monolith` / `distributed` 三档部署入口与 `host-local` Nest 主线 / `host-distributed` 分布式展开层

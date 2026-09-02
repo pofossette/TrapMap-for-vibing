@@ -1,6 +1,6 @@
 # 仓库结构
 
-> **历史说明**：`packages/server（Wave-10 已删除）` 已于 Wave-10 删除（提交 `a66d94e6`）。本文档中的 `packages/server（Wave-10 已删除）` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> **说明**：`归档旧实现` 已于  删除（提交 `a66d94e6`）。本文档中的 `归档旧实现` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
 
 本文档是 TrapMap 仓库布局的权威来源。
 
@@ -23,7 +23,7 @@
 ## 产品包
 
 - `apps/cli/`：Commander CLI 及 CLI 测试（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
-- `packages/server（Wave-10 已删除）/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
+- `归档旧实现/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
 - `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`packages/contracts/src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`packages/contracts/src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
 - `packages/db/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
 - `packages/skills/`：项目级 Skill 工件。
@@ -47,11 +47,11 @@
   `packages/host-distributed/src/config/service-config.ts` 是服务发现默认值和 URL 解析器接缝的权威放置位置。它拥有显式 `TRAPMAP_*_URL` 覆盖、`distributed` 中的 Docker DNS 默认值和 local/dev 上下文中的 `localhost` 默认值之间的配置感知映射。
   `packages/host-distributed/src/shared/` 是分布式主机中内部端口共享包装器（如 `internal-knowledge-write-client.ts`）的权威放置位置；这些包装器将传输语义映射回 backend-core 端口语义，不是仓库适配器。
 
-Wave-2 closeout（commit `b3374307`）：contracts projection/fixture helpers remain pure shared code; candidate fixture helpers stay under `packages/server（Wave-10 已删除）/src/lib/candidates/`, labels runner helpers stay under `packages/server（Wave-10 已删除）/src/lib/labels/`, and SQL/PG/worker runtime code remains in its owning zone.
+Wave-2 closeout（commit `b3374307`）：contracts projection/fixture helpers remain pure shared code; candidate fixture helpers stay under `归档旧实现/src/lib/candidates/`, labels runner helpers stay under `归档旧实现/src/lib/labels/`, and SQL/PG/worker runtime code remains in its owning zone.
 
-Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一 owner；distributed gateway 只保留 public transport/认证/trace forwarding，`packages/server（Wave-10 已删除）` 不再拥有这些领域的 route、repository、subscriber 或 aggregate member。
+Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一 owner；distributed gateway 只保留 public transport/认证/trace forwarding，`归档旧实现` 不再拥有这些领域的 route、repository、subscriber 或 aggregate member。
 
-Wave-10 intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除。host-local 直接组合过渡性 store、AI 与 graph infrastructure；`packages/server（Wave-10 已删除）`、snapshot compatibility state 和其余 legacy runtime consumers 仍保留，不能据此宣告完整 package retirement closeout。
+ intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除。host-local 直接组合过渡性 store、AI 与 graph infrastructure；`归档旧实现`、snapshot compatibility state 和其余 legacy runtime consumers 仍保留，不能据此宣告完整 package retirement closeout。
 
 ## Apps（组装中心）
 

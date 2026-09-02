@@ -37,7 +37,7 @@ Hash and canonical JSON must be byte-identical for same payload.
 
 ## Type Alignment (SSOT: contracts Zod)
 
-> 见 `docs/todos/type-alignment-mainline.md` Phase 0 已落地。
+> 见 `docs/todos/type-alignment-mainline.md`。
 
 - **SSOT**：`packages/contracts/src/domain/go-accelerator.ts` (Zod) — 17 schemas 覆盖 6 端点 + fallbackVector
 - **生成**：`z.toJSONSchema()` (Zod 4) → `contracts/json-schema/go-accelerator/*.json` (draft 2020-12) → `pkg/api/types.go` (json tag, `json.RawMessage` for `payload`)
@@ -45,9 +45,9 @@ Hash and canonical JSON must be byte-identical for same payload.
 - **索引**：`contracts/json-schema/go-accelerator/_index.json` + `contracts/json-schema/README.md`
 - **映射**：`payload: z.unknown()` ↔ Go `json.RawMessage`；`sha256Hex: ^[0-9a-f]{64}$`；`float` 有 `finite` 校验；`dim` 默认 384
 
-Phase 1 将以 `contracts/openapi/api.yaml` + `oapi-codegen + openapi-typescript` 加固 HTTP 边界；Phase 2 `proto+buf` 仅 batch 批处理 gated by benchmark。
+后续可按需以 OpenAPI / proto 加强边界（按 benchmark 决策）。
 
-## Endpoints (updated Phase 0)
+## Endpoints
 
 - `GET /health`, `GET /ready`, `GET /v1/health`
 - `POST /v1/hash/canonical` - canonical JSON + sha256 (`json.RawMessage` payload, 字节一致)
