@@ -10,16 +10,17 @@
 |---|---|---|
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
-| [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Active mainline；2026-08-23 启动，2026-09-02 从 paused 恢复 |
 | [experience-gene-program-mainline-archived.md](../archived/archived-plans/experience-gene-program-mainline-archived.md) | Experience Gene Infrastructure and Pipeline | 已完成并归档（2026-09-02，offline precision 1.0 + promotion eligible true，live CI deferred）；6 文件 mainline+5 phases |
 | [go-accelerator-mainline.md](go-accelerator-mainline.md) | Go 加速服务 scaffold（已合入 `pre`） | 已合入 `pre@a9b413b5`；见 `go-compute-hub-mainline.md` 深化 |
 | [performance-infra-mainline-archived.md](../archived/archived-plans/performance-infra-mainline-archived.md) | **性能与压测基建**：bench harness + stress + 可观测 | 已完成并归档（2026-09-02，设施 5 链路 bench + 4 场景 stress + Go metrics/pprof，`pnpm bench:compute`/`go test -bench`） |
-| [go-compute-hub-mainline.md](go-compute-hub-mainline.md) | **Go 计算中枢深化**：剩余重计算全量盘点与批处理迁移 | 并行主线（待激活）；分布式-only，`infra` fallback 一致性门禁 |
-| [type-alignment-mainline.md](type-alignment-mainline.md) | **跨语言类型对齐**：Zod->JSON Schema->Go / OpenAPI / proto 三期选型与门禁 | 并行主线（待激活）；为计算中枢提供 `contracts->Go` 编译期约束 |
 | [skill-registry-mainline.md](skill-registry-mainline.md) | Skill Registry 版本管理器抽离（已合入 `pre`） | 已合入 `pre@a9b413b5`；`@trapmap/skill-registry` 子包 |
 | [architecture-remediation-mainline-archived.md](../archived/archived-plans/architecture-remediation-mainline-archived.md) | **架构收敛与渐进 Go 化一次性根治** (2026-09-02, PR #8) | 已完成并归档；38项探针→7阶段，69+165+123 tests, 42表, budgets 37, typecheck/mermaid/docs green |
 | [architecture-remediation-mainline-b-true-convergence-archived.md](../archived/archived-plans/architecture-remediation-mainline-b-true-convergence-archived.md) | **架构收敛 B 真收敛** (2026-09-02, 58 budgets, 955 tests, 42 tables) | 已完成并归档 (PR #10 0d754b73, B2/B5/B7 真拆, B3 deferred) |
 | [go-service-gradual-migration-archived.md](../archived/archived-plans/go-service-gradual-migration-archived.md) | **服务渐进 Go 化**：读路径整段绞杀 + 模块化（query/recall/ranking/assembly/cache）+ 其余服务按 RICE 排期 | 已完成并归档（2026-09-01，`main@d5f18c43`，`PR #3/#4`）；原 `docs/todos/go-service-gradual-migration-mainline.md` 已归档 |
+| [web-panel-feature-and-ui-optimization-archived.md](../archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md) | Web Panel 功能补全与 UI 美化优化 | 已完成并归档（2026-09-02，39/39 Phase0-4，7-route baseline 18 images + Phase2 runtime/json-edit 2 routes，`check:docs/structure/complexity` green） |
+| [go-compute-hub-mainline-archived.md](../archived/archived-plans/go-compute-hub-mainline-archived.md) | Go 计算中枢深化 | 已完成并归档（2026-09-02，P0 BatchCosine/Hash fallback + P1 ranking/keyword + P2 dedup/batch，`go vet/test` ok） |
+| [type-alignment-mainline-archived.md](../archived/archived-plans/type-alignment-mainline-archived.md) | 跨语言类型对齐 | 已完成并归档（2026-09-02，P0 `generate:contracts:check` 22 schemas sync，`typecheck` green） |
+
 
 ## 归档主线索引
 
@@ -47,7 +48,7 @@
 
 ## 当前状态说明
 
-**当前 active mainline 是 Web Panel 功能补全与 UI 美化优化。** owner 细则见 [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md)；Gene 主线已于 2026-09-02 完成 closeout 并归档至 `docs/archived/archived-plans/experience-gene-program-mainline-archived.md`（含 5 个 delegated phase）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪（当前 34 处豁免，见 Wave 6 清理）。其余主线均只能作为历史证据查找；Dead Code and Architecture Order Cleanup（原 docs/todos/dead-code-and-architecture-order-cleanup.md）已于 2026-08-30 归档至 [`dead-code-and-architecture-order-cleanup-archived.md`](../archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md)。
+**当前无 active mainline。** Web Panel 已于 2026-09-02 完成 39/39 并归档至 `docs/archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md`（含 7-route 18 images + Phase2 2 routes），Go 计算中枢与类型对齐亦于同日归档（见下）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪（当前 34 处豁免，见 Wave 6 清理）。下一步候选将按优先级从 `open-debt` 与 `go-accelerator` 深化中选取。
 
 并行双轨（已合入 `pre` 待深化）：
 - **Go 计算中枢**：`go-accelerator-mainline.md` scaffold 已合入 `pre@a9b413b5`，深化见 [`go-compute-hub-mainline.md`](go-compute-hub-mainline.md)（P0 批余弦/回退向量/hash 接线 → P1 ranking/keyword 批处理 → P2 dedup/派生管线 → P3 缓存/proto 可选）。

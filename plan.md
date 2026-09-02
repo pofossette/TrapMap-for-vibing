@@ -12,15 +12,18 @@
 
 ## 当前主线
 
-- 当前主线是 [Web Panel 功能补全与 UI 美化优化](docs/todos/web-panel-feature-and-ui-optimization.md)。该主线补全真实运维工作流并现代化 Web Panel UI（七路由 + RBAC + server-side auth + gateway session/cookie 偏好），所有浏览器能力继续只经 gateway 暴露，不破坏 gateway-only 架构。
-- 执行顺序固定为：Phase 0 Baseline/Design-Token → Phase 1 Session/RBAC → Phase 2 Shared Admin Contracts & Real Routes → Phase 3 Feature Completion → Phase 4 UI Polish。阶段顺序、owner、证据、问题池和 closeout 记录以主细则为准。
+- 当前暂无 active mainline。Web Panel 已于 2026-09-02 完成 39/39 并归档至 `docs/archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md`（含 7-route 18 images + Phase2 2 routes），Go 计算中枢与类型对齐亦同日归档（`go-compute-hub-mainline-archived.md` / `type-alignment-mainline-archived.md`，P0 `generate:contracts:check` 22 schemas + `go vet/test` ok）。
+- 下一候选将按优先级从 `docs/todos/open-debt-and-compromises.md`（6 项）与 `go-accelerator` 深化中选取，由根 `plan.md` 显式激活。
 
 ## 下一候选
 
-- 下一候选待定。Web Panel 恢复后，下一个候选将按优先级从 `docs/todos/open-debt-and-compromises.md` 与 `go-compute-hub`/`type-alignment` 并行轨中选取。
+- 下一候选待定（建议：`go-accelerator` 剩余重计算批处理深化或 `open-debt` 中 `security advisory` / `gateway parity` 专项）。
 
 ## 历史主线与入口
 
+- **Web Panel 功能补全与 UI 美化优化已完成并归档（2026-09-02）：** Phase 0-4 39/39（7-route baseline 18 images + Phase2 runtime-overview + json-edits 双宿主），`check:docs/structure/complexity` green，见 [web-panel-feature-and-ui-optimization-archived.md](docs/archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md)。
+- **Go 计算中枢深化已完成并归档（2026-09-02）：** P0 `generate:contracts:check` 22 schemas + `go vet/test` ok，见 [go-compute-hub-mainline-archived.md](docs/archived/archived-plans/go-compute-hub-mainline-archived.md)。
+- **跨语言类型对齐已完成并归档（2026-09-02）：** P0 `Zod→JSON Schema→Go` 22 schemas sync，见 [type-alignment-mainline-archived.md](docs/archived/archived-plans/type-alignment-mainline-archived.md)。
 - **Experience Gene Infrastructure and Pipeline 已完成并归档（2026-09-02）：** 5 阶段基础设施→契约→派生→检索→治理 rollout 完成 closeout，offline smoke shadow 3/3 precision 1.0 + core serve 10/10 promotion eligible true，20 Genes 治理抽样 + rollback tri-state 验证，`typecheck/docs/structure/complexity/fallow --base HEAD` 全绿，live CI deferred，细则见 [experience-gene-program-mainline-archived.md](docs/archived/archived-plans/experience-gene-program-mainline-archived.md)。
 - **Skill Lookup 契约漂移修复已完成并归档（2026-08-22）：** 集成验证与 deferred 问题处置记录见 [skill-lookup-surface-mainline-archived.md](docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md)。
 - **债务全量派发 + Agent MCP 接入 + 微服务平台化已完成并归档（2026-08-22）：** 见 [历史归档总表](docs/archived/README.md) 中 `debt-mcp-platformization-mainline-archived.md` 行；残余项以长期登记册为准。

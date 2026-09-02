@@ -191,7 +191,7 @@ TrapMap 当前的单一真相源（SSOT）是 `packages/contracts` 内的 **Zod 
 - [x] `POST /v1/vector/batch-cosine:proto` 二进制路径 — spec 保留 JSON, proto 为 `infra` 可选 `application/protobuf` 分支 (gated by 50k >10ms benchmark, `GO-ACCELERATOR_BENCH.md`)
 - [x] `infra/client.ts` — proto 分支 deferred (JSON <3ms 阈值内), fallback 保留, chi JSON 外部契约不变
 - [x] `go test -bench` — `benchmarks/GO_ACCELERATOR_BENCH.md` 已记录 BatchCosine 2.5×/Ranking 2.3×/Dedup 0.04ms/GeneDerive 200 traps ~3.2ms, `GO-ACCELERATOR.md` Future 已更新为 P2 proto/cache
-- [ ] Closeout 并归档本 mainline 至 `docs/archived/archived-plans/` (deferred to Gene closeout batch)
+- [x] Closeout 并归档本 mainline 至 `docs/archived/archived-plans/` (2026-09-02 batch with Web Panel, P0 `pnpm generate:contracts:check` 22 schemas sync, `typecheck` green)
 
 ---
 

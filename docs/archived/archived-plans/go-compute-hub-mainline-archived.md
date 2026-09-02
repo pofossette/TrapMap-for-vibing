@@ -118,7 +118,7 @@
 - [x] Go 侧 `internal/cache/lru.go` LRU 10k + `config.CacheSize` `TRAPMAP_GO_ACCEL_CACHE_SIZE` (分布式-only, copy-on-get, evict tail) + `lru_test.go`
 - [x] `proto/trapmap/compute/v1/compute.proto` + `buf.yaml`/`buf.gen.yaml` (Go proto+connectrpc + TS) + `proto/README.md` + `package.json generate:proto` (gated, `buf` not required for JSON path)
 - [x] `gRPC` vs `HTTP` 基准 — `GO_ACCELERATOR_BENCH.md`：JSON 1k <3ms 不切 proto, 50k >10ms阈值才 `application/protobuf`, `GO-ACCELERATOR.md Future` 已更新为 P2 proto/cache
-- [ ] Closeout 并归档本 mainline 至 `docs/archived/archived-plans/`，更新 `docs/todos/README.md` 与 `docs/archived/README.md` (deferred to Gene closeout batch)
+- [x] Closeout 并归档本 mainline 至 `docs/archived/archived-plans/`，更新 `docs/todos/README.md` 与 `docs/archived/README.md` (2026-09-02 batch with Web Panel, P0 BatchCosine/Hash fallback verified `go vet/test` ok, `generate:contracts:check` 22 schemas)
 
 ---
 

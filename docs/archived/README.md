@@ -140,8 +140,12 @@
 
 | `archived-plans/performance-infra-mainline-archived.md` | 2026-09-02 | 性能与压测基建完成 closeout：bench harness（4 文件 + 3 脚本）+ stress（Go `cmd/stress` 4 场景 + k6 legacy）+ Go 可观测（metrics/middleware/cache/pprof）+ `GO_ACCELERATOR_BENCH.md` 阈值（BatchCosine 2.5×）已归档 |
 
+| `archived-plans/web-panel-feature-and-ui-optimization-archived.md` | 2026-09-02 | Web Panel 功能补全与 UI 美化优化完成 closeout：Phase 0-4 39/39（7-route baseline 18 images + Phase2 runtime-overview + json-edits 2 RouteDefs 双宿主，`check:docs/structure/complexity` green）已归档 |
+| `archived-plans/go-compute-hub-mainline-archived.md` | 2026-09-02 | Go 计算中枢深化完成 closeout：P0 BatchCosine/Hash fallback（`go vet/test` ok，`generate:contracts:check` 22 schemas）+ P1/P2 批处理，已归档 |
+| `archived-plans/type-alignment-mainline-archived.md` | 2026-09-02 | 跨语言类型对齐完成 closeout：P0 Zod→JSON Schema→Go（`pnpm generate:contracts:check` 22 schemas sync，`typecheck` green）已归档 |
+
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。
 
-当前根 `plan.md` 的 active mainline 是 Web Panel 功能补全与 UI 美化优化（2026-09-02 从 Gene 恢复）。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 暂无 active mainline（Web Panel / Go 计算 / 类型对齐 已于 2026-09-02 同批归档，下一候选待定）。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

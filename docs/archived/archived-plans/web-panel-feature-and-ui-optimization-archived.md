@@ -196,3 +196,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 ## Commit Policy
 
 Implementation commits go to `pre` with clear conventional subjects. Never merge or rebase `main`.
+
+## Closeout
+
+- 2026-09-02 Phase 0-4 39/39 checked, 7-route baseline desktop+mobile 18 images + Phase2 before/after 2 images committed, `pnpm check:docs/structure/complexity` green, `typecheck` 0, `web-panel test` 39 files, ready for archive.
