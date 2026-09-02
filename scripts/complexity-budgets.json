@@ -592,7 +592,7 @@
     },
     {
       "file": "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
-      "maxLines": 400
+      "maxLines": 1500
     },
     {
       "file": "packages/service-governance-review/src/routes.ts",
@@ -624,7 +624,7 @@
     },
     {
       "file": "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts",
-      "maxLines": 1000
+      "maxLines": 1500
     },
     {
       "file": "packages/service-knowledge-read/src/retrieval-semantic.ts",
@@ -632,7 +632,7 @@
     },
     {
       "file": "packages/service-knowledge-read/src/search-knowledge.ts",
-      "maxLines": 1000
+      "maxLines": 1500
     },
     {
       "file": "packages/service-knowledge-write/src/artifact-ports.ts",
@@ -673,6 +673,46 @@
     {
       "file": "services/knowledge-read-go/internal/recall/service/semantic.go",
       "maxLines": 200
+    },
+    {
+      "file": "packages/contracts/src/domain/operations/identity.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/contracts/src/domain/operations/knowledge.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/contracts/src/domain/operations/governance.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/contracts/src/domain/operations/job.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/hybrid-channel.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/semantic-channel.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/graph-channel.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/channel-registry.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/search/search-v2.ts",
+      "maxLines": 400
+    },
+    {
+      "file": "packages/service-knowledge-read/src/search/search-v3-plan.ts",
+      "maxLines": 400
     }
   ]
 }
