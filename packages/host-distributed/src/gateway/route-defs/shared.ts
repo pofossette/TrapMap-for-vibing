@@ -529,6 +529,26 @@ export const adminReviewDecisionSchema = z.object({
   }),
 });
 
+export const adminRuntimeOverviewSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.unknown(),
+});
+
+export const adminManualJsonEditSchema = z.object({
+  params: z.object({ id: z.string().min(1).max(128) }),
+  query: emptyRecord,
+  headers: headersSchema,
+  actor: actorSchema,
+  body: z.object({
+    filePath: z.string().min(1).max(500).optional(),
+    payload: z.unknown(),
+    rationale: z.string().trim().min(1).max(2000),
+  }),
+});
+
 export const adminArtifactListSchema = z.object({
   params: emptyRecord,
   query: adminArtifactQuerySchema,

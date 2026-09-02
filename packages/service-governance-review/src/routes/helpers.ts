@@ -245,6 +245,25 @@ export const adminReviewDecisionSchema = z.object({
   }),
 });
 
+export const adminRuntimeOverviewSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.unknown(),
+});
+
+export const adminManualJsonEditSchema = z.object({
+  params: z.object({ id: z.string() }),
+  query: emptyRecord,
+  headers: headersSchema,
+  body: z.object({
+    filePath: z.string().min(1).max(500).optional(),
+    payload: z.unknown(),
+    rationale: z.string().trim().min(1).max(2000),
+    reviewId: z.string().optional(),
+  }),
+});
+
 export function reviewCommandArgs(ctx: RouteContext): {
   entryId: string;
   actorId: string;

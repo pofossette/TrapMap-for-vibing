@@ -391,3 +391,102 @@ export type AdminGraphNode = z.infer<typeof adminGraphNodeSchema>;
 export type AdminGraphEdge = z.infer<typeof adminGraphEdgeSchema>;
 export type AdminGraphQuery = z.infer<typeof adminGraphQuerySchema>;
 export type AdminGraphResponse = z.infer<typeof adminGraphResponseSchema>;
+// ============================================================================
+// Admin Runtime Overview — `GET /api/admin/runtime-overview`
+// ============================================================================
+
+/**
+ * Health status for a single runtime service as exposed by the panel.
+ * Mirrors `RuntimeServiceHealth` in `apps/web-panel/src/shared/enum-types/runtime.ts`.
+ */
+export const adminRuntimeServiceHealthSchema = z.enum(['healthy', 'degraded', 'failed']);
+
+/**
+ * Status for a single runtime service.
+ */
+export const adminRuntimeServiceStatusSchema = z
+  .object({
+    detail: z.string().min(1).max(500),
+    lastCheckedAt: isoTimestampSchema,
+    name: z.string().min(1).max(64),
+    status: adminRuntimeServiceHealthSchema,
+    version: z.string().min(1).max(64),
+  })
+  .strict();
+
+/**
+ * Queue/workload metric for runtime overview.
+ */
+export const adminRuntimeQueueMetricSchema = z
+  .object({
+    label: z.string().min(1).max(64),
+    value: z.number().min(0),
+  })
+  .strict();
+
+/**
+ * Response schema for `GET /api/admin/runtime-overview`.
+ * Mirrors `RuntimeOverviewResponse` from the panel; all fields are required
+ * and use shared primitives where applicable.
+ */
+export const adminRuntimeOverviewResponseSchema = z
+  .object({
+    buildId: z.string().min(1).max(128),
+    deploymentProfile: z.string().min(1).max(64),
+    failedJobsCount: z.number().int().min(0),
+    incidents: z.array(z.string().min(1).max(500)),
+    lastHealthCheckAt: isoTimestampSchema,
+    pendingReviewCount: z.number().int().min(0),
+    services: z.array(adminRuntimeServiceStatusSchema),
+    throughputPerHour: z.number().min(0),
+    workload: z.array(adminRuntimeQueueMetricSchema),
+  })
+  .strict();
+
+export type AdminRuntimeServiceHealth = z.infer<typeof adminRuntimeServiceHealthSchema>;
+export type AdminRuntimeServiceStatus = z.infer<typeof adminRuntimeServiceStatusSchema>;
+export type AdminRuntimeQueueMetric = z.infer<typeof adminRuntimeQueueMetricSchema>;
+export type AdminRuntimeOverviewResponse = z.infer<typeof adminRuntimeOverviewResponseSchema>;
+
+// ============================================================================
+// Admin Manual JSON Edit — `POST /api/admin/reviews/:id/json-edits`
+// ============================================================================
+
+/**
+ * Request schema for manual JSON edits of a review entry.
+ * Path param `id` is the review/entry id; body carries the edited payload
+ * plus rationale. `filePath` is optional and defaults to `entry/review-payload.json`
+ * on the server when omitted.
+ */
+export const adminManualJsonEditRequestSchema = z
+  .object({
+    params: z.object({ id: entityIdSchema }),
+    query: z.object({}).strict(),
+    headers: z.record(z.string(), z.unknown()).optional(),
+    body: z
+      .object({
+        filePath: z.string().min(1).max(500).optional(),
+        payload: z.unknown(),
+        rationale: z.string().trim().min(1).max(2000),
+        reviewId: entityIdSchema.optional(),
+      })
+      .strict()
+      .superRefine((value, ctx) => {
+        if (value.payload === undefined) {
+          ctx.addIssue({ code: 'custom', message: 'payload is required', path: ['payload'] });
+        }
+      }),
+  })
+  .strict();
+
+/**
+ * Response schema for manual JSON edit — returns the server timestamp of the save.
+ */
+export const adminManualJsonEditResponseSchema = z
+  .object({
+    savedAt: isoTimestampSchema,
+  })
+  .strict();
+
+export type AdminManualJsonEditRequest = z.infer<typeof adminManualJsonEditRequestSchema>;
+export type AdminManualJsonEditResponse = z.infer<typeof adminManualJsonEditResponseSchema>;

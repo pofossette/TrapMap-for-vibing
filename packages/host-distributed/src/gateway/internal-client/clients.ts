@@ -510,6 +510,22 @@ export function createInternalServiceClients(
           undefined,
           options,
         ),
+      getRuntimeOverview: async (options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/api/admin/runtime-overview`,
+          'GET',
+          undefined,
+          undefined,
+          options,
+        ),
+      saveJsonEdit: async (reviewId, body, options) =>
+        callInternalService(
+          `${await baseUrl('governance-review', urls.governanceReview)}/api/admin/reviews/${reviewId}/json-edits`,
+          'POST',
+          body,
+          undefined,
+          options,
+        ),
     },
     adminArtifacts: {
       list: async (query, options) =>

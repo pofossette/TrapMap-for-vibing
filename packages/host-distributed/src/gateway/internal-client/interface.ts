@@ -266,6 +266,12 @@ export interface InternalServiceClients {
       body: Record<string, unknown>,
       options?: InternalRequestOptions,
     ): Promise<ServiceResponse>;
+    getRuntimeOverview(options?: InternalRequestOptions): Promise<ServiceResponse>;
+    saveJsonEdit(
+      reviewId: string,
+      body: Record<string, unknown>,
+      options?: InternalRequestOptions,
+    ): Promise<ServiceResponse>;
   };
   adminArtifacts: {
     list(query: Record<string, string>, options?: InternalRequestOptions): Promise<ServiceResponse>;

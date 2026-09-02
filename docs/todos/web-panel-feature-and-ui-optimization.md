@@ -53,11 +53,11 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Phase 2: Shared Admin Contracts and Real Routes
 
-- [ ] Add shared Zod schemas in `packages/contracts`.
-- [ ] Add routes through `create<X>RouteDefs(deps)` factories in the owning service packages.
-- [ ] Consume those RouteDefs through both host-local Nest and host-distributed gateway surfaces.
-- [ ] Cover runtime overview, review detail/activity, manual JSON edits, artifact list/detail, trap graph, and skill graph.
-- [ ] Add audit coverage for governance-relevant reads where required and mutations throughout.
+- [x] Add shared Zod schemas in `packages/contracts`. (`packages/contracts/src/domain/admin.ts` 新增 `adminRuntimeOverviewResponseSchema` + `adminManualJsonEditRequest/ResponseSchema`，`pnpm --filter @trapmap/contracts test` 955 pass)
+- [x] Add routes through `create<X>RouteDefs(deps)` factories in the owning service packages. (`service-governance-review/src/routes/runtime.routes.ts` GET /api/admin/runtime-overview + `json-edit.routes.ts` POST /api/admin/reviews/:id/json-edits，聚合入 `createGovernanceAdminRouteDefs`，`helpers.ts` 新增 schemas)
+- [x] Consume those RouteDefs through both host-local Nest and host-distributed gateway surfaces. (host-local via `GovernanceReviewModule` Nest adapter 自动暴露；host-distributed `gateway/route-defs/governance.ts` + `shared.ts` + `internal-client` 转发，`typecheck` green)
+- [x] Cover runtime overview, review detail/activity, manual JSON edits, artifact list/detail, trap graph, and skill graph. (runtime + json-edit 新 RouteDefs 覆盖剩余缺口；其余 5 类已在 `governance/queue`, `knowledge-write/artifacts`, `knowledge-read/graph` 实现并经 gateway 暴露)
+- [x] Add audit coverage for governance-relevant reads where required and mutations throughout. (runtime 与 json-edit 复用 `readAdminActor` + existing auditLog path；治理写操作仍经 `KnowledgeWritePort` 审计)
 - [x] Propagate session tokens through `SessionProvider` (`services/admin-panel-service-context.ts:browserSessionProvider` now bearer-aware, verified by `admin-panel-service-context.test.ts:attaches bearer token`, `README.md` endpoint table updated).
 - [x] Keep mock mode for development/tests, with a visible and explicit mock label in the UI.
 

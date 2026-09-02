@@ -3,9 +3,11 @@ import {
   adminActivitySchema,
   adminArtifactDetailSchema,
   adminArtifactListSchema,
+  adminManualJsonEditSchema,
   adminReviewDecisionSchema,
   adminReviewDetailSchema,
   adminReviewQueueSchema,
+  adminRuntimeOverviewSchema,
   adminSkillGraphByIdSchema,
   adminSkillGraphSchema,
   adminTrapGraphSchema,
@@ -301,6 +303,30 @@ export function createGovernanceRoutes(): RouteDef[] {
           clients.adminGraph.getSkillGraphById(
             ctx.params.artifactId,
             query,
+            trustedAdminOptions(ctx),
+          ),
+        );
+      },
+    }),
+    gatewayRouteDef({
+      method: 'GET',
+      path: '/api/admin/runtime-overview',
+      schema: adminRuntimeOverviewSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(clients.adminReview.getRuntimeOverview(trustedAdminOptions(ctx)));
+      },
+    }),
+    gatewayRouteDef({
+      method: 'POST',
+      path: '/api/admin/reviews/:id/json-edits',
+      schema: adminManualJsonEditSchema,
+      handler: async (ctx, clients) => {
+        requireTrustedActor(ctx);
+        return forward(
+          clients.adminReview.saveJsonEdit(
+            ctx.params.id,
+            bodyWithoutActor(ctx.body) as Record<string, unknown>,
             trustedAdminOptions(ctx),
           ),
         );
