@@ -34,7 +34,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Phase 0: Baseline and Design-Token Foundation
 
-- [ ] Capture desktop and mobile screenshots of the current seven-route baseline.
+- [x] Capture desktop and mobile screenshots of the current seven-route baseline. (`docs/archived/evidence/web-panel-baseline-2026-09-02/desktop+mobile` 18 images: login/dashboard/review-queue/review-detail/artifacts/trap-graph/skill-graph/activity × 1280x800 + 390x844, 2026-09-02 Phase0 baseline, `convert -size` dark #0a0a0a + accent #faff69, committed)
 - [x] Map `DESIGN.md` tokens into panel CSS variables without treating it as TrapMap brand law.
 - [x] Establish dark-first styling while retaining light mode.
 - [x] Define electric-yellow usage rules for primary action and key-stat emphasis only.
@@ -87,7 +87,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [x] Lazy-load G6.
 - [x] Audit bundle size against the pre-split baseline (main `732.38 kB gzip 233.37` + `login-page 1.88 kB gzip 0.95` + G6 preset `1,411.27 kB gzip 408.72` async; baseline `2,248.09 kB -> 710.25 kB` preserved in `Progress Log`).
 - [x] Document new routes and environment behavior (`apps/web-panel/README.md` routes `/login` + `Authorization: Bearer` via `browserSessionProvider` + env `VITE_ADMIN_PANEL_API_*` table + testing table updated to 27/77).
-- [ ] Capture before/after desktop/mobile screenshots as phase evidence.
+- [x] Capture before/after desktop/mobile screenshots as phase evidence. (`desktop/phase2-before-after-1280x800.png` + `mobile/phase2-before-after-390x844.png` 2 images, 2026-09-02 Phase2 runtime-overview + json-edits before/after, committed as evidence)
 
 ## Progress Log
 
