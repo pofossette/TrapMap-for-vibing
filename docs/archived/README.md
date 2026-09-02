@@ -118,6 +118,17 @@
 | `archived-plans/debt-mcp-platformization-mainline-archived.md` | 2026-08-22 | 债务全量派发 + Agent MCP 接入 + 微服务平台化主线完成 closeout：交付物、残余运营验证与开放债务分流记录见该归档细则和 debt register |
 | `archived-plans/dead-code-and-architecture-order-cleanup-archived.md` | 2026-08-30 | Dead Code and Architecture Order Cleanup 完成 closeout 并归档（实现已提交 2026-08-16，归档 2026-08-30）：约 3000 行死代码删除、契约/宿主/图算法与 SQL 下沉、4 类防复发守卫与 closeout 回写完成；历史细则见归档路径 |
 | `archived-plans/go-service-gradual-migration-archived.md` | 2026-09-01 | 服务渐进 Go 化主线完成 closeout：读路径整段 `knowledge-read-go` 模块化（`query 75/32/47 / recall 78/58/62/38/27 / ranking 35/33/56/24 / assembly 21/29/23 / cache 61 / api 134/25/11`，单文件 max 134 ≤300，模块 max 292 ≤600），网关 `off/shadow/dual/go` 绞杀器，契约 Zod→JSON Schema→Go 21/22 schemas，`go-accelerator` 检索/排序 `394 行` 已拆并 `410 Gone + X-Deprecated` 及时退出，`fallback` 直通本地；`main@d5f18c43 PR #3/#4` 已合入，门禁 `typecheck/structure/complexity/fallow 0/go vet/test` 全绿 |
+| `archived-plans/architecture-remediation-mainline-archived.md` | 2026-09-02 | 架构收敛与渐进 Go 化一次性根治主线 (P0-P8, 38项, 619行, budgets 37, 42表, 69+165+123 tests, PR #8 8f32928b) |
+| `archived-plans/architecture-remediation-phase1-route-retrieval-archived.md` | 2026-09-02 | Phase1 路由与检索解耦 (gov 914→5, kw 826→3, recall/search seeded) |
+| `archived-plans/architecture-remediation-phase2-host-assembly-archived.md` | 2026-09-02 | Phase2 宿主装配统一 (6 caps+6 adapters) |
+| `archived-plans/architecture-remediation-phase3-go-convergence-archived.md` | 2026-09-02 | Phase3 Go收敛 (Go1.23, 6 modules, chi/pgx/lru) |
+| `archived-plans/architecture-remediation-phase4-persistence-archived.md` | 2026-09-02 | Phase4 持久化 Owner-Local (6 schemas, 42/42) |
+| `archived-plans/architecture-remediation-phase5-cache-index-archived.md` | 2026-09-02 | Phase5 缓存与索引统一 (CachePort sha256) |
+| `archived-plans/architecture-remediation-phase6-contracts-archived.md` | 2026-09-02 | Phase6 契约模块化 (operations 658→4×166) |
+| `archived-plans/architecture-remediation-phase7-deploy-config-archived.md` | 2026-09-02 | Phase7 部署与配置统一 (thin apps) |
+| `archived-plans/architecture-remediation-probe-report-archived.md` | 2026-09-02 | 探针证据 68广度→20深研→38去重 |
+| `archived-plans/architecture-remediation-review-archived.md` | 2026-09-02 | 二次审阅 5 Reco+4 Review→619行 |
+| `archived-plans/architecture-remediation-review-final-archived.md` | 2026-09-02 | 终版 Review 4 reviewers, 8 gaps deferred |
 
 ## 归档原则
 
