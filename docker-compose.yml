@@ -1,342 +1,195 @@
 services:
   server:
-    profiles: ["team-monolith"]
+    profiles:
+    - team-monolith
     image: trap-map-host-local:latest
     build:
       context: .
       dockerfile: apps/light/Dockerfile
     container_name: trapmap-server
     ports:
-      - "4000:4000"
+    - 4000:4000
     volumes:
-      - ./.data:/app/.data
-      - ./logs:/app/logs
+    - ./.data:/app/.data
+    - ./logs:/app/logs
     environment:
-      - NODE_ENV=production
-      - RUNTIME_MODE=${RUNTIME_MODE:-combined}
-      - HOST=0.0.0.0
-      - PORT=4000
-      - TRAPMAP_DEPLOYMENT_PROFILE=${TRAPMAP_DEPLOYMENT_PROFILE:-team-monolith}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
-      - TRAPMAP_DEPLOYMENT_PRESET=${TRAPMAP_DEPLOYMENT_PRESET:-monolith}
-      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
-      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
-      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
-      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.default}
-      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
-      # AI Provider
-      - AI_PROVIDER=${AI_PROVIDER:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
-      # Embedding Provider
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
-      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
-      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
-      - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
-      - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
-      - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
-      - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
-      - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
-      - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
-      - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
-      - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
-      # Database (set to use PostgreSQL; omit for JSON file storage)
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      # Logging Configuration (Phase 24)
-      - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
-      - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
-      - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
-      - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
-      - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
-      - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
+    - NODE_ENV=production
+    - RUNTIME_MODE=${RUNTIME_MODE:-combined}
+    - HOST=0.0.0.0
+    - PORT=4000
+    - TRAPMAP_DEPLOYMENT_PROFILE=${TRAPMAP_DEPLOYMENT_PROFILE:-team-monolith}
+    - OPENAI_API_KEY=${OPENAI_API_KEY}
+    - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+    - TRAPMAP_DEPLOYMENT_PRESET=${TRAPMAP_DEPLOYMENT_PRESET:-monolith}
+    - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+    - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+    - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+    - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.default}
+    - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
+    - AI_PROVIDER=${AI_PROVIDER:-}
+    - AI_BASE_URL=${AI_BASE_URL:-}
+    - AI_API_KEY=${AI_API_KEY:-}
+    - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+    - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+    - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+    - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+    - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+    - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
+    - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
+    - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
+    - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
+    - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
+    - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
+    - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
+    - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
+    - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
+    - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
+    - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
+    - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
+    - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:4000/health
       interval: 30s
       timeout: 10s
       start_period: 5s
       retries: 3
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   gateway:
     image: trap-map-server:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
     container_name: trapmap-gateway
     ports:
-      - "4000:4000"
+    - 4000:4000
     volumes:
-      - ./.data:/app/.data
-      - ./logs:/app/logs
+    - ./.data:/app/.data
+    - ./logs:/app/logs
     environment:
-      - NODE_ENV=production
-      - RUNTIME_MODE=api
-      - HOST=0.0.0.0
-      - PORT=4000
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
-      - TRAPMAP_DEPLOYMENT_PRESET=api
-      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
-      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
-      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
-      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.default}
-      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - AI_PROVIDER=${AI_PROVIDER:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
-      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
-      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
-      - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
-      - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
-      - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
-      - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
-      - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
-      - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
-      - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
-      - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      # Sentry (optional, no-op when DSN absent)
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - SENTRY_SAMPLE_RATE=${SENTRY_SAMPLE_RATE:-1}
-      # Langfuse (optional, no-op when disabled)
-      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
-      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-}
-      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
-      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
-      - LANGFUSE_FLUSH_TIMEOUT_MS=${LANGFUSE_FLUSH_TIMEOUT_MS:-5000}
-      - LANGFUSE_PRIVACY_MODE=${LANGFUSE_PRIVACY_MODE:-strict}
-      - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
-      - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
-      - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
-      - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
-      - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
-      - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
+    - NODE_ENV=production
+    - RUNTIME_MODE=api
+    - HOST=0.0.0.0
+    - PORT=4000
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+    - TRAPMAP_DEPLOYMENT_PRESET=api
+    - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+    - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+    - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+    - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.default}
+    - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
+    - OPENAI_API_KEY=${OPENAI_API_KEY}
+    - AI_PROVIDER=${AI_PROVIDER:-}
+    - AI_BASE_URL=${AI_BASE_URL:-}
+    - AI_API_KEY=${AI_API_KEY:-}
+    - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+    - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+    - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+    - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+    - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+    - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
+    - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
+    - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
+    - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
+    - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
+    - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
+    - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
+    - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - SENTRY_SAMPLE_RATE=${SENTRY_SAMPLE_RATE:-1}
+    - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
+    - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-}
+    - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+    - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+    - LANGFUSE_FLUSH_TIMEOUT_MS=${LANGFUSE_FLUSH_TIMEOUT_MS:-5000}
+    - LANGFUSE_PRIVACY_MODE=${LANGFUSE_PRIVACY_MODE:-strict}
+    - LOG_USER_OPS_ENABLED=${LOG_USER_OPS_ENABLED:-false}
+    - LOG_USER_OPS_DIR=${LOG_USER_OPS_DIR:-/app/logs/user-ops}
+    - LOG_RAG_ENABLED=${LOG_RAG_ENABLED:-false}
+    - LOG_RAG_DIR=${LOG_RAG_DIR:-/app/logs/rag}
+    - LOG_MAX_FILE_SIZE_MB=${LOG_MAX_FILE_SIZE_MB:-10}
+    - LOG_MAX_BACKUP_FILES=${LOG_MAX_BACKUP_FILES:-5}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4000/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:4000/health
       interval: 30s
       timeout: 10s
       start_period: 5s
       retries: 3
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   identity-access:
     image: trap-map-host-distributed:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
-    command: ["node", "dist/index.js", "--service", "identity-access"]
+    command:
+    - node
+    - dist/index.js
+    - --service
+    - identity-access
     working_dir: /app/apps/distributed
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=4001
-      - TRAPMAP_SERVICE_PORT=4001
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=identity-access
-      - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      # Sentry (optional, no-op when DSN absent)
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - SENTRY_SAMPLE_RATE=${SENTRY_SAMPLE_RATE:-1}
-      # Langfuse (optional, no-op when disabled)
-      - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
-      - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-}
-      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
-      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
-      - LANGFUSE_FLUSH_TIMEOUT_MS=${LANGFUSE_FLUSH_TIMEOUT_MS:-5000}
-      - LANGFUSE_PRIVACY_MODE=${LANGFUSE_PRIVACY_MODE:-strict}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - PORT=4001
+    - TRAPMAP_SERVICE_PORT=4001
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DEPLOYMENT_PRESET=identity-access
+    - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - SENTRY_SAMPLE_RATE=${SENTRY_SAMPLE_RATE:-1}
+    - LANGFUSE_ENABLED=${LANGFUSE_ENABLED:-false}
+    - LANGFUSE_BASE_URL=${LANGFUSE_BASE_URL:-}
+    - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+    - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+    - LANGFUSE_FLUSH_TIMEOUT_MS=${LANGFUSE_FLUSH_TIMEOUT_MS:-5000}
+    - LANGFUSE_PRIVACY_MODE=${LANGFUSE_PRIVACY_MODE:-strict}
+    - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
@@ -344,95 +197,47 @@ services:
       disable: true
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   knowledge-read:
     image: trap-map-host-distributed:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
-    command: ["node", "dist/index.js", "--service", "knowledge-read"]
+    command:
+    - node
+    - dist/index.js
+    - --service
+    - knowledge-read
     working_dir: /app/apps/distributed
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=4002
-      - TRAPMAP_SERVICE_PORT=4002
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=knowledge-read
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AI_PROVIDER=${AI_PROVIDER:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
-      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
-      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - PORT=4002
+    - TRAPMAP_SERVICE_PORT=4002
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DEPLOYMENT_PRESET=knowledge-read
+    - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    - AI_PROVIDER=${AI_PROVIDER:-}
+    - AI_BASE_URL=${AI_BASE_URL:-}
+    - AI_API_KEY=${AI_API_KEY:-}
+    - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+    - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+    - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+    - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+    - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
@@ -440,95 +245,47 @@ services:
       disable: true
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   knowledge-write:
     image: trap-map-host-distributed:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
-    command: ["node", "dist/index.js", "--service", "knowledge-write"]
+    command:
+    - node
+    - dist/index.js
+    - --service
+    - knowledge-write
     working_dir: /app/apps/distributed
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=4003
-      - TRAPMAP_SERVICE_PORT=4003
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=knowledge-write
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AI_PROVIDER=${AI_PROVIDER:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
-      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
-      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - PORT=4003
+    - TRAPMAP_SERVICE_PORT=4003
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DEPLOYMENT_PRESET=knowledge-write
+    - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    - AI_PROVIDER=${AI_PROVIDER:-}
+    - AI_BASE_URL=${AI_BASE_URL:-}
+    - AI_API_KEY=${AI_API_KEY:-}
+    - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+    - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+    - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+    - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+    - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
@@ -536,108 +293,60 @@ services:
       disable: true
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   candidate-worker:
     image: trap-map-host-distributed:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
-    command: ["node", "dist/index.js", "--service", "candidate-ingestion"]
+    command:
+    - node
+    - dist/index.js
+    - --service
+    - candidate-ingestion
     working_dir: /app/apps/distributed
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=4004
-      - TRAPMAP_SERVICE_PORT=4004
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
-      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
-      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
-      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
-      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.candidate}
-      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-4}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AI_PROVIDER=${AI_PROVIDER:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
-      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
-      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
-      - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
-      - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
-      - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
-      - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
-      - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
-      - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
-      - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
-      - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - PORT=4004
+    - TRAPMAP_SERVICE_PORT=4004
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
+    - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+    - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+    - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+    - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.candidate}
+    - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-4}
+    - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    - AI_PROVIDER=${AI_PROVIDER:-}
+    - AI_BASE_URL=${AI_BASE_URL:-}
+    - AI_API_KEY=${AI_API_KEY:-}
+    - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+    - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+    - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+    - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+    - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+    - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
+    - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
+    - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
+    - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
+    - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
+    - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
+    - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
+    - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
@@ -648,108 +357,60 @@ services:
       disable: true
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   governance-worker:
     image: trap-map-host-distributed:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
-    command: ["node", "dist/index.js", "--service", "governance-review"]
+    command:
+    - node
+    - dist/index.js
+    - --service
+    - governance-review
     working_dir: /app/apps/distributed
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=4005
-      - TRAPMAP_SERVICE_PORT=4005
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=governance-worker
-      - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
-      - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
-      - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
-      - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.governance}
-      - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AI_PROVIDER=${AI_PROVIDER:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
-      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
-      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
-      - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
-      - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
-      - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
-      - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
-      - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
-      - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
-      - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
-      - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - PORT=4005
+    - TRAPMAP_SERVICE_PORT=4005
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DEPLOYMENT_PRESET=governance-worker
+    - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
+    - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
+    - TRAPMAP_RABBITMQ_TASK_EXCHANGE=${TRAPMAP_RABBITMQ_TASK_EXCHANGE:-trapmap.tasks}
+    - TRAPMAP_RABBITMQ_TASK_QUEUE=${TRAPMAP_RABBITMQ_TASK_QUEUE:-trapmap.governance}
+    - TRAPMAP_RABBITMQ_PREFETCH=${TRAPMAP_RABBITMQ_PREFETCH:-1}
+    - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    - AI_PROVIDER=${AI_PROVIDER:-}
+    - AI_BASE_URL=${AI_BASE_URL:-}
+    - AI_API_KEY=${AI_API_KEY:-}
+    - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+    - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+    - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+    - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+    - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+    - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
+    - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
+    - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
+    - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
+    - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
+    - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
+    - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
+    - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
@@ -760,104 +421,56 @@ services:
       disable: true
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   outbox-worker:
     image: trap-map-host-distributed:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
-    command: ["node", "dist/index.js", "--service", "job-runtime"]
+    command:
+    - node
+    - dist/index.js
+    - --service
+    - job-runtime
     working_dir: /app/apps/distributed
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=4006
-      - TRAPMAP_SERVICE_PORT=4006
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=outbox-worker
-      - TRAPMAP_TASK_TRANSPORT=postgres
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - AI_PROVIDER=${AI_PROVIDER:-}
-      - AI_BASE_URL=${AI_BASE_URL:-}
-      - AI_API_KEY=${AI_API_KEY:-}
-      - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
-      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
-      - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
-      - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
-      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
-      - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
-      - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
-      - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
-      - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
-      - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
-      - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
-      - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
-      - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - PORT=4006
+    - TRAPMAP_SERVICE_PORT=4006
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DEPLOYMENT_PRESET=outbox-worker
+    - TRAPMAP_TASK_TRANSPORT=postgres
+    - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    - AI_PROVIDER=${AI_PROVIDER:-}
+    - AI_BASE_URL=${AI_BASE_URL:-}
+    - AI_API_KEY=${AI_API_KEY:-}
+    - AI_CHAT_MODEL=${AI_CHAT_MODEL:-}
+    - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-}
+    - EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL:-}
+    - EMBEDDING_API_KEY=${EMBEDDING_API_KEY:-}
+    - EMBEDDING_MODEL=${EMBEDDING_MODEL:-}
+    - TRAPMAP_GRAPH_DB_ENABLED=${TRAPMAP_GRAPH_DB_ENABLED:-false}
+    - TRAPMAP_GRAPH_DB_PROVIDER=${TRAPMAP_GRAPH_DB_PROVIDER:-neo4j}
+    - TRAPMAP_GRAPH_DB_URI=${TRAPMAP_GRAPH_DB_URI:-}
+    - TRAPMAP_GRAPH_DB_USERNAME=${TRAPMAP_GRAPH_DB_USERNAME:-}
+    - TRAPMAP_GRAPH_DB_PASSWORD=${TRAPMAP_GRAPH_DB_PASSWORD:-}
+    - TRAPMAP_GRAPH_DB_DATABASE=${TRAPMAP_GRAPH_DB_DATABASE:-neo4j}
+    - TRAPMAP_GRAPH_DB_FAIL_OPEN=${TRAPMAP_GRAPH_DB_FAIL_OPEN:-true}
+    - TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=${TRAPMAP_GRAPH_DB_SYNC_ON_WRITE:-true}
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
@@ -865,87 +478,39 @@ services:
       disable: true
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   cron-scheduler:
     image: trap-map-host-distributed:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/distributed/Dockerfile
-    command: ["node", "dist/index.js", "--service", "cron-scheduler"]
+    command:
+    - node
+    - dist/index.js
+    - --service
+    - cron-scheduler
     working_dir: /app/apps/distributed
     environment:
-      - NODE_ENV=production
-      - HOST=0.0.0.0
-      - PORT=4007
-      - TRAPMAP_SERVICE_PORT=4007
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
-      - TRAPMAP_DEPLOYMENT_PRESET=cron-scheduler
-      - TRAPMAP_TASK_TRANSPORT=postgres
-      - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
-      - CONSUL_HOST=${CONSUL_HOST:-consul}
-      - CONSUL_PORT=${CONSUL_PORT:-8500}
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
-      - OTEL_DISABLED=${OTEL_DISABLED:-false}
-      - SENTRY_DSN=${SENTRY_DSN:-}
-      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
-      - LOG_LEVEL=${LOG_LEVEL:-info}
+    - NODE_ENV=production
+    - HOST=0.0.0.0
+    - PORT=4007
+    - TRAPMAP_SERVICE_PORT=4007
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DEPLOYMENT_PRESET=cron-scheduler
+    - TRAPMAP_TASK_TRANSPORT=postgres
+    - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
+    - CONSUL_HOST=${CONSUL_HOST:-consul}
+    - CONSUL_PORT=${CONSUL_PORT:-8500}
+    - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}
+    - OTEL_DISABLED=${OTEL_DISABLED:-false}
+    - SENTRY_DSN=${SENTRY_DSN:-}
+    - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+    - LOG_LEVEL=${LOG_LEVEL:-info}
     depends_on:
-    
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  postgres:
+      postgres:
         condition: service_healthy
       migration:
         condition: service_completed_successfully
@@ -953,163 +518,123 @@ services:
       disable: true
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   rabbitmq:
     image: rabbitmq:3.13-management
-    profiles: ["mq"]
+    profiles:
+    - mq
     ports:
-      - "5672:5672"
-      - "15672:15672"
+    - 5672:5672
+    - 15672:15672
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
-
-  go-accelerator:
-    image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/go-accelerator
-      dockerfile: Dockerfile
-    container_name: trapmap-go-accelerator
-    ports:
-      - "4100:4100"
-    environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
-  knowledge-read-go:
-    image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
-    build:
-      context: ./services/knowledge-read-go
-      dockerfile: Dockerfile
-    container_name: trapmap-knowledge-read-go
-    ports:
-      - "4101:4101"
-    environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 5s
-      retries: 3
-    restart: unless-stopped
-    networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   postgres:
     image: pgvector/pgvector:pg16
     container_name: trapmap-postgres
     ports:
-      - "5434:5432"
+    - 5434:5432
     environment:
       POSTGRES_DB: trapmap
       POSTGRES_USER: trapmap
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trapmap}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+    - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U trapmap -d trapmap"]
+      test:
+      - CMD-SHELL
+      - pg_isready -U trapmap -d trapmap
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   migration:
     image: trap-map-migration:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: .
       dockerfile: apps/migration/Dockerfile
-    command: ["node", "dist/migrate.js"]
+    command:
+    - node
+    - dist/migrate.js
     working_dir: /app/apps/migration
     environment:
-      - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
-      - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
+    - TRAPMAP_DEPLOYMENT_PROFILE=distributed
     depends_on:
-    
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+    networks:
+    - trapmap-distributed
   go-accelerator:
     image: trap-map-go-accelerator:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: ./services/go-accelerator
       dockerfile: Dockerfile
     container_name: trapmap-go-accelerator
     ports:
-      - "4100:4100"
+    - 4100:4100
     environment:
-      - PORT=4100
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
-      - TRAPMAP_GO_ACCELERATOR_PORT=4100
+    - PORT=4100
+    - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
+    - TRAPMAP_GO_ACCELERATOR_PORT=4100
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4100/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:4100/health
       interval: 30s
       timeout: 10s
       start_period: 5s
       retries: 3
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
   knowledge-read-go:
     image: trap-map-knowledge-read-go:latest
-    profiles: ["distributed"]
+    profiles:
+    - distributed
     build:
       context: ./services/knowledge-read-go
       dockerfile: Dockerfile
     container_name: trapmap-knowledge-read-go
     ports:
-      - "4101:4101"
+    - 4101:4101
     environment:
-      - PORT=4101
-      - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
-      - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
-      - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
-      - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
-      - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
-      - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
+    - PORT=4101
+    - TRAPMAP_READ_IMPL=${TRAPMAP_READ_IMPL:-shadow}
+    - TRAPMAP_KNOWLEDGE_READ_GO_ENABLED=${TRAPMAP_KNOWLEDGE_READ_GO_ENABLED:-true}
+    - TRAPMAP_KNOWLEDGE_READ_GO_URL=http://knowledge-read-go:4101
+    - TRAPMAP_GO_ACCELERATOR_URL=http://go-accelerator:4100
+    - TRAPMAP_GO_ACCEL_CACHE_SIZE=${TRAPMAP_GO_ACCEL_CACHE_SIZE:-10000}
+    - DATABASE_URL=postgres://postgres:postgres@postgres:5432/trapmap
+    - TRAPMAP_LOG_LEVEL=${TRAPMAP_LOG_LEVEL:-info}
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4101/health"]
+      test:
+      - CMD
+      - wget
+      - --no-verbose
+      - --tries=1
+      - --spider
+      - http://127.0.0.1:4101/health
       interval: 30s
       timeout: 10s
       start_period: 5s
       retries: 3
     restart: unless-stopped
     networks:
-      - trapmap-distributed
-
-  postgres:
-        condition: service_healthy
-    restart: "no"
-    networks:
-      - trapmap-distributed
-
+    - trapmap-distributed
 volumes:
-  postgres_data:
-
+  postgres_data: null
 networks:
   trapmap-distributed:
     external: true
