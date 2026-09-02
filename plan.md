@@ -12,15 +12,16 @@
 
 ## 当前主线
 
-- 当前主线是 [Experience Gene Infrastructure and Pipeline](docs/todos/experience-gene-program-mainline.md)。该主线把已治理的 trap 与 skill/capsule 经验派生为 compact、control-oriented、evolution-ready 的 Gene，并建立独立生命周期、持久化投影、gene-native 检索和受控 rollout。
-- 执行顺序固定为：基础设施抽离整合 -> [contracts/storage](docs/todos/experience-gene-contracts-and-storage.md) -> [derivation pipeline](docs/todos/experience-gene-derivation-pipeline.md) -> [retrieval/activation](docs/todos/experience-gene-retrieval-and-activation.md) -> [governance/evaluation/rollout](docs/todos/experience-gene-governance-evaluation-rollout.md)。基础设施要求见 [infrastructure foundation](docs/todos/experience-gene-infrastructure-foundation.md)。阶段顺序、owner、证据、问题池和 closeout 记录以主细则为准。
+- 当前主线是 [Web Panel 功能补全与 UI 美化优化](docs/todos/web-panel-feature-and-ui-optimization.md)。该主线补全真实运维工作流并现代化 Web Panel UI（七路由 + RBAC + server-side auth + gateway session/cookie 偏好），所有浏览器能力继续只经 gateway 暴露，不破坏 gateway-only 架构。
+- 执行顺序固定为：Phase 0 Baseline/Design-Token → Phase 1 Session/RBAC → Phase 2 Shared Admin Contracts & Real Routes → Phase 3 Feature Completion → Phase 4 UI Polish。阶段顺序、owner、证据、问题池和 closeout 记录以主细则为准。
 
 ## 下一候选
 
-- 下一候选是 [Web Panel 功能补全与 UI 美化优化（paused successor）](docs/plans/web-panel-feature-and-ui-optimization-paused.md)。它不是并行执行面；只有在 Experience Gene 主线完成 closeout 并归档后，才由根 `plan.md` 显式切回并恢复为 active mainline。
+- 下一候选待定。Web Panel 恢复后，下一个候选将按优先级从 `docs/todos/open-debt-and-compromises.md` 与 `go-compute-hub`/`type-alignment` 并行轨中选取。
 
 ## 历史主线与入口
 
+- **Experience Gene Infrastructure and Pipeline 已完成并归档（2026-09-02）：** 5 阶段基础设施→契约→派生→检索→治理 rollout 完成 closeout，offline smoke shadow 3/3 precision 1.0 + core serve 10/10 promotion eligible true，20 Genes 治理抽样 + rollback tri-state 验证，`typecheck/docs/structure/complexity/fallow --base HEAD` 全绿，live CI deferred，细则见 [experience-gene-program-mainline-archived.md](docs/archived/archived-plans/experience-gene-program-mainline-archived.md)。
 - **Skill Lookup 契约漂移修复已完成并归档（2026-08-22）：** 集成验证与 deferred 问题处置记录见 [skill-lookup-surface-mainline-archived.md](docs/archived/archived-plans/skill-lookup-surface-mainline-archived.md)。
 - **债务全量派发 + Agent MCP 接入 + 微服务平台化已完成并归档（2026-08-22）：** 见 [历史归档总表](docs/archived/README.md) 中 `debt-mcp-platformization-mainline-archived.md` 行；残余项以长期登记册为准。
 - **判断类节点契约（D8）收编已完成并归档（2026-08-16）：** 细则见 [judgment-node-contracts-d8-archived.md](docs/archived/archived-plans/judgment-node-contracts-d8-archived.md)；llm/hybrid 生产变体收编保留在 [长期债务登记册](docs/todos/open-debt-and-compromises.md)。

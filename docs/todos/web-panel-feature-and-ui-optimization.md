@@ -2,9 +2,9 @@
 
 ## Status
 
-- **Paused / Deferred Successor。**
-- 本细则已于 2026-08-23 启动首批实现；2026-08-25 起暂停，等待 Experience Gene Infrastructure and Pipeline 主线完成 closeout 后恢复。
-- 恢复时不得直接把本文件当作 active checklist 使用；必须由根 `plan.md` 显式切换回 Web Panel 主线，并按需将细则迁回 `docs/todos/` 或创建新的 active 细则。
+- **Active mainline（2026-09-02 从 Gene 恢复）。**
+- 本细则已于 2026-08-23 启动首批实现；2026-08-25 起暂停，2026-09-02 随 Experience Gene 完成 closeout（`docs/archived/archived-plans/experience-gene-program-mainline-archived.md`）后由根 `plan.md` 显式切回并恢复为 active mainline。
+- 原 paused 文件 `docs/plans/web-panel-feature-and-ui-optimization-paused.md` 已 `git mv` 至本路径；后续执行顺序、owner、证据和回写记录以本文件为准。
 
 ## Product Stance
 

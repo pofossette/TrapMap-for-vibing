@@ -131,8 +131,15 @@
 | `archived-plans/architecture-remediation-review-archived.md` | 2026-09-02 | 二次审阅 5 Reco+4 Review→619行 |
 | `archived-plans/architecture-remediation-review-final-archived.md` | 2026-09-02 | 终版 Review 4 reviewers, 8 gaps deferred |
 
+| `archived-plans/experience-gene-program-mainline-archived.md` | 2026-09-02 | Experience Gene Infrastructure and Pipeline 主线完成 closeout：5 阶段基础设施→契约→派生→检索→治理 rollout，offline smoke shadow 3/3 precision 1.0 + core serve 10/10 precision 1.0 promotion eligible true，20 Genes 治理抽样 tri-source + rollback tri-state 验证，`pnpm typecheck/docs/structure/complexity/fallow --base HEAD` 全绿，live task-quality 与 eval:smoke CI deferred，已归档 6 文件 |
+| `archived-plans/experience-gene-infrastructure-foundation-archived.md` | 2026-09-02 | Gene Phase 1 基础设施抽离：@trapmap/infra 向量/structured generation/derivation 骨架，tri-state 组装 |
+| `archived-plans/experience-gene-contracts-and-storage-archived.md` | 2026-09-02 | Gene Phase 2 契约与存储：ExperienceGene 四表模型、repository 与 migration |
+| `archived-plans/experience-gene-derivation-pipeline-archived.md` | 2026-09-02 | Gene Phase 3 派生管线：snapshot loaders、rule/LLM extractors、validation/safety/duplicate gates、stale handling |
+| `archived-plans/experience-gene-retrieval-and-activation-archived.md` | 2026-09-02 | Gene Phase 4 检索与激活：gene-native recall adapters、RouteDefs 双宿主、CLI/MCP <strategy-gene> |
+| `archived-plans/experience-gene-governance-evaluation-rollout-archived.md` | 2026-09-02 | Gene Phase 5 治理评测 rollout：metrics、offline eval harness、governance sampling 20、rollback verification |
+
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。
 
-当前根 `plan.md` 的 active mainline 是 Experience Gene Infrastructure and Pipeline。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 的 active mainline 是 Web Panel 功能补全与 UI 美化优化（2026-09-02 从 Gene 恢复）。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

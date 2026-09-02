@@ -8,14 +8,10 @@
 
 | 文件 | 角色 | 状态 |
 |---|---|---|
-| [experience-gene-program-mainline.md](experience-gene-program-mainline.md) | Experience Gene Infrastructure and Pipeline 的 owner mainline | Active mainline；2026-08-25 启动 |
-| [experience-gene-infrastructure-foundation.md](experience-gene-infrastructure-foundation.md) | Gene 主线阶段 1：向量、structured generation 与 derivation 骨架 | Delegated active surface |
-| [experience-gene-contracts-and-storage.md](experience-gene-contracts-and-storage.md) | Gene 主线阶段 2：共享契约与 PostgreSQL 投影 | Delegated active surface |
-| [experience-gene-derivation-pipeline.md](experience-gene-derivation-pipeline.md) | Gene 主线阶段 3：trap/skill/capsule 派生与治理门禁 | Delegated active surface |
-| [experience-gene-retrieval-and-activation.md](experience-gene-retrieval-and-activation.md) | Gene 主线阶段 4：gene-native 检索与 agent 注入 | Delegated active surface |
-| [experience-gene-governance-evaluation-rollout.md](experience-gene-governance-evaluation-rollout.md) | Gene 主线阶段 5：治理、评测和灰度 rollout | Delegated active surface |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
+| [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Active mainline；2026-08-23 启动，2026-09-02 从 paused 恢复 |
+| [experience-gene-program-mainline-archived.md](../archived/archived-plans/experience-gene-program-mainline-archived.md) | Experience Gene Infrastructure and Pipeline | 已完成并归档（2026-09-02，offline precision 1.0 + promotion eligible true，live CI deferred）；6 文件 mainline+5 phases |
 | [go-accelerator-mainline.md](go-accelerator-mainline.md) | Go 加速服务 scaffold（已合入 `pre`） | 已合入 `pre@a9b413b5`；见 `go-compute-hub-mainline.md` 深化 |
 | [performance-infra-mainline.md](performance-infra-mainline.md) | **性能与压测基建**：bench harness + stress (k6/autocannon) + 可观测（Go metrics/pprof, Node OTEL） | 待归档；设施已建不自动跑 |
 | [go-compute-hub-mainline.md](go-compute-hub-mainline.md) | **Go 计算中枢深化**：剩余重计算全量盘点与批处理迁移 | 并行主线（待激活）；分布式-only，`infra` fallback 一致性门禁 |
@@ -51,7 +47,7 @@
 
 ## 当前状态说明
 
-**当前 active mainline 是 Experience Gene Infrastructure and Pipeline。** owner 细则见 [experience-gene-program-mainline.md](experience-gene-program-mainline.md)；五个 delegated phase 文档只能作为该主线的执行切片推进，不构成并行主线。[Web Panel 功能补全与 UI 美化优化](../plans/web-panel-feature-and-ui-optimization-paused.md) 已暂停，是 Gene closeout 后的第一个恢复候选。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。其余主线均只能作为历史证据查找；Dead Code and Architecture Order Cleanup（原 docs/todos/dead-code-and-architecture-order-cleanup.md）已于 2026-08-30 归档至 [`dead-code-and-architecture-order-cleanup-archived.md`](../archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md)。
+**当前 active mainline 是 Web Panel 功能补全与 UI 美化优化。** owner 细则见 [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md)；Gene 主线已于 2026-09-02 完成 closeout 并归档至 `docs/archived/archived-plans/experience-gene-program-mainline-archived.md`（含 5 个 delegated phase）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪（当前 34 处豁免，见 Wave 6 清理）。其余主线均只能作为历史证据查找；Dead Code and Architecture Order Cleanup（原 docs/todos/dead-code-and-architecture-order-cleanup.md）已于 2026-08-30 归档至 [`dead-code-and-architecture-order-cleanup-archived.md`](../archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md)。
 
 并行双轨（已合入 `pre` 待深化）：
 - **Go 计算中枢**：`go-accelerator-mainline.md` scaffold 已合入 `pre@a9b413b5`，深化见 [`go-compute-hub-mainline.md`](go-compute-hub-mainline.md)（P0 批余弦/回退向量/hash 接线 → P1 ranking/keyword 批处理 → P2 dedup/派生管线 → P3 缓存/proto 可选）。
