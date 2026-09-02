@@ -13,7 +13,7 @@
 
 **Owner:** host-local + host-distributed + backend-core + service-* + infra + assembly + contracts + db
 
-**探针证据:** [`architecture-probe-report.md`](architecture-probe-report.md)（Phase1 68 条无观点广度 → Phase2 同角 20 份深研 → 去重 38 项）
+**探针证据:** [`architecture-probe-report.md`](../archived/archived-plans/architecture-remediation-probe-report-archived.md)（Phase1 68 条无观点广度 → Phase2 同角 20 份深研 → 去重 38 项）
 
 ## 原则（全 Phase 共用）
 
@@ -40,20 +40,20 @@ flowchart LR
 | Phase | 细则 | 聚焦 |
 |---|---|---|
 | P0 | 本文 §P0 | 基线冻结与预算 |
-| P1 | [phase1-route-retrieval.md](architecture-remediation-phase1-route-retrieval.md) | `914/826/586/391` 解耦，删 `fallow-ignore` |
-| P2 | [phase2-host-assembly.md](architecture-remediation-phase2-host-assembly.md) | God Composition 根治，三档 profile 统一 |
-| P3 | [phase3-go-convergence.md](architecture-remediation-phase3-go-convergence.md) | 双 Go 收敛为 compute + 读服务绞杀器 |
-| P4 | [phase4-persistence.md](architecture-remediation-phase4-persistence.md) | 42 表 Owner-Local，`conflict_relations` 收敛 |
-| P5 | [phase5-cache-index.md](architecture-remediation-phase5-cache-index.md) | 统一 Cache Port 与 HNSW/tsvector/GIN |
-| P6 | [phase6-contracts.md](architecture-remediation-phase6-contracts.md) | `operations 5187` 拆分与类型链路门禁 |
-| P7 | [phase7-deploy-config.md](architecture-remediation-phase7-deploy-config.md) | envconfig 单源与一键分布式 |
+| P1 | [phase1-route-retrieval.md](../archived/archived-plans/architecture-remediation-phase1-route-retrieval-archived.md) | `914/826/586/391` 解耦，删 `fallow-ignore` |
+| P2 | [phase2-host-assembly.md](../archived/archived-plans/architecture-remediation-phase2-host-assembly-archived.md) | God Composition 根治，三档 profile 统一 |
+| P3 | [phase3-go-convergence.md](../archived/archived-plans/architecture-remediation-phase3-go-convergence-archived.md) | 双 Go 收敛为 compute + 读服务绞杀器 |
+| P4 | [phase4-persistence.md](../archived/archived-plans/architecture-remediation-phase4-persistence-archived.md) | 42 表 Owner-Local，`conflict_relations` 收敛 |
+| P5 | [phase5-cache-index.md](../archived/archived-plans/architecture-remediation-phase5-cache-index-archived.md) | 统一 Cache Port 与 HNSW/tsvector/GIN |
+| P6 | [phase6-contracts.md](../archived/archived-plans/architecture-remediation-phase6-contracts-archived.md) | `operations 5187` 拆分与类型链路门禁 |
+| P7 | [phase7-deploy-config.md](../archived/archived-plans/architecture-remediation-phase7-deploy-config-archived.md) | envconfig 单源与一键分布式 |
 | P8 | 本文 §P8 | 全量守卫与归档 |
 
-> 仅本文件为 owner，`phase1-7` 为 delegated active surface（`docs/todos/README.md` 声明），可独立派 subagent 并行。`architecture-probe-report.md` 为只读证据。
+> 仅本文件为 owner，`phase1-7` 为 delegated active surface（`docs/todos/README.md` 声明），可独立派 subagent 并行。`archived/architecture-remediation-probe-report-archived.md` 为只读证据。
 
 ## 阅读顺序
 
-1. 先读 [`architecture-probe-report.md`](architecture-probe-report.md) 38 项输入 → 2. 本主纲 → 3. 按 P1→P7 顺序
+1. 先读 [`architecture-probe-report.md`](../archived/archived-plans/architecture-remediation-probe-report-archived.md) 38 项输入 → 2. 本主纲 → 3. 按 P1→P7 顺序
 
 ## 术语
 
@@ -96,7 +96,7 @@ flowchart LR
 
 - `docs/architecture/ARCHITECTURE.md` / `SYSTEM_TRUTH_SOURCES.md` / `BOUNDARIES.md` / `GO_TECH_STACK.md` / `GO-ACCELERATOR.md`
 - `docs/reference/DATABASE_SCHEMA.md` / `packages/db/src/schema/`
-- `docs/todos/architecture-probe-report.md`（38 项全量输入）
+- `docs/archived/archived-plans/architecture-remediation-probe-report-archived.md`（38 项全量输入）
 
 
 ## B 真收敛（Deferred 8 gaps → 零 1500 豁免）— 2026-09-02
