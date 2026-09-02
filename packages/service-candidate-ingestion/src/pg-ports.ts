@@ -402,12 +402,16 @@ export function createCandidateIngestionPgOwnerBundle(
           fingerprint: String((a as Record<string, unknown>).fingerprint),
           keywords: ((a as Record<string, unknown>).keywords as string[]) ?? [],
           tokens: ((a as Record<string, unknown>).tokens as string[]) ?? [],
-          duplicateTrace: (a as Record<string, unknown>).duplicateTrace as AnalysisSnapshot['duplicateTrace'] ?? undefined,
+          duplicateTrace:
+            ((a as Record<string, unknown>).duplicateTrace as AnalysisSnapshot['duplicateTrace']) ??
+            undefined,
         };
       }
       const [duplicate, manualResult] = await Promise.all([
         readDuplicateCaseByCandidate(pool, candidateId),
-        pool.query("SELECT * FROM candidate_outcomes WHERE candidate_id = $1 AND kind='manual'", [candidateId]),
+        pool.query("SELECT * FROM candidate_outcomes WHERE candidate_id = $1 AND kind='manual'", [
+          candidateId,
+        ]),
       ]);
       if (duplicate) candidate.duplicateCase = duplicate;
       if (manualResult.rows[0])
@@ -422,11 +426,14 @@ export function createCandidateIngestionPgOwnerBundle(
     async attachAnalysis(candidateId, snapshot) {
       await withTransaction(pool, async (client) => {
         await lockCandidate(client, candidateId);
-        const { rows } = await client.query('SELECT analysis FROM candidates WHERE id = $1', [candidateId]);
+        const { rows } = await client.query('SELECT analysis FROM candidates WHERE id = $1', [
+          candidateId,
+        ]);
         const existing = rows[0]?.analysis as AnalysisSnapshot | null;
         if (existing && sameAnalysis(existing as unknown as AnalysisSnapshot, snapshot)) return;
         // fallback for legacy row shape
-        if (rows[0] && rows[0].fingerprint && sameAnalysis(rowToAnalysis(rows[0] as Row), snapshot)) return;
+        if (rows[0] && rows[0].fingerprint && sameAnalysis(rowToAnalysis(rows[0] as Row), snapshot))
+          return;
         await writeAnalysis(client, candidateId, snapshot);
       });
     },

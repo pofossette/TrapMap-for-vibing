@@ -186,8 +186,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
       manual_result: null,
     };
     const { pool } = createPool((sql) => {
-      if (sql.includes("analysis->>'fingerprint'"))
-        return { rows: [{ id: candidate.id }] };
+      if (sql.includes("analysis->>'fingerprint'")) return { rows: [{ id: candidate.id }] };
       if (sql.includes('FROM candidates')) return { rows: [row] };
       return { rows: [] };
     });
@@ -269,7 +268,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     const submittedAt = '2026-07-16T00:04:00.000Z';
     const { calls, client, pool } = createPool((sql) => {
       if (sql.includes('FOR UPDATE')) return { rows: [{ id: candidate.id }] };
-      if (sql.includes("FROM candidate_outcomes") && sql.includes("kind='manual'")) {
+      if (sql.includes('FROM candidate_outcomes') && sql.includes("kind='manual'")) {
         return {
           rows: [
             {
@@ -299,7 +298,7 @@ describe('candidate-ingestion PostgreSQL owner bundle', () => {
     );
 
     expectNoSql(calls, 'UPDATE candidates SET analysis');
-    expectNoSql(calls, "INSERT INTO candidate_outcomes");
+    expectNoSql(calls, 'INSERT INTO candidate_outcomes');
     // analysis case already handled elsewhere
     expect(calls).toContain('COMMIT');
     expect(client.release).toHaveBeenCalledOnce();

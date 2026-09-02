@@ -21,12 +21,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import type { Boundary, LifecycleState } from '@trapmap/contracts';
-import {
-  auditTimestamps,
-  lifecycleEventColumns,
-
-  revisionColumns,
-} from './column-factories.js';
+import { auditTimestamps, lifecycleEventColumns, revisionColumns } from './column-factories.js';
 
 // =============================================================================
 // Sequences
@@ -95,8 +90,6 @@ export const knowledgeEmbeddings = pgTable(
     index('idx_knowledge_embeddings_status').on(table.status),
   ],
 );
-
-
 
 /**
  * Knowledge search documents for PostgreSQL full-text search using tsvector.
@@ -303,8 +296,6 @@ export const knowledgeSubmissions = pgTable(
   ],
 );
 
-
-
 /**
  * Lifecycle events table for audit trail of state transitions.
  * Each row records a state change with actor and context.
@@ -379,8 +370,6 @@ export const knowledgeLabels = pgTable(
  * Boundary evidence references for knowledge entries.
  * Stores links to external sources that validate the boundary.
  */
-
-
 
 // =============================================================================
 // Feedback Tables (Round 6: Structural Refactoring)

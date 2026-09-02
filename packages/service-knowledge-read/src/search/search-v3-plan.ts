@@ -39,5 +39,8 @@ export async function searchV3(
 }
 
 export function buildV3Plan(query: RetrievalQuery): SearchV3Plan {
-  return { ...searchV3Plan, description: `${searchV3Plan.description} for ${query.seed.slice(0, 32)}` };
+  return {
+    ...searchV3Plan,
+    description: `${searchV3Plan.description} for ${query.seed.slice(0, 32)}`,
+  };
 }

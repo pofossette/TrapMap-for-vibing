@@ -1,5 +1,10 @@
 // @ts-nocheck
-import { InvocationError, type RouteContext, type RouteDef, routeResponse } from '@trapmap/backend-core';
+import {
+  InvocationError,
+  type RouteContext,
+  type RouteDef,
+  routeResponse,
+} from '@trapmap/backend-core';
 import { knowledgeWriteRouteDef } from './helpers.js';
 import type { KnowledgeWriteRouteDeps } from './helpers.js';
 import {
@@ -31,9 +36,12 @@ import { z } from 'zod';
 const emptyRecord = z.record(z.string(), z.unknown());
 const headersSchema = z.record(z.string(), z.unknown());
 
-export function createKnowledgeSubmissionRouteDefs(): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+export function createKnowledgeSubmissionRouteDefs(): RouteDef<
+  RouteContext,
+  KnowledgeWriteRouteDeps
+>[] {
   return [
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge/review/approve',
       schema: reviewDecisionSchema,
@@ -42,7 +50,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge/review/reject',
       schema: reviewDecisionSchema,
@@ -51,7 +59,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge/review/return-for-correction',
       schema: reviewDecisionSchema,
@@ -60,7 +68,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge/maintenance',
       schema: maintenanceDecisionSchema,
@@ -69,7 +77,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge/decay',
       schema: maintenanceDecisionSchema,
@@ -78,7 +86,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/candidates/publish',
       schema: publishCandidateSchema,
@@ -88,7 +96,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/experience-genes/derive',
       schema: experienceGeneDerivationSchema,
@@ -100,7 +108,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/experience-genes/derivation-plan',
       schema: z.object({
@@ -117,7 +125,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/experience-genes/stale',
       schema: experienceGeneStalenessSchema,
@@ -129,7 +137,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/rpc/knowledge-write',
       schema: rpcSchema,
@@ -140,7 +148,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/health',
       schema: healthSchema,
@@ -152,35 +160,35 @@ knowledgeWriteRouteDef({
       }),
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/live',
       schema: healthSchema,
       handler: async () => ({ status: 'alive', service: 'knowledge-write' }),
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/readiness',
       schema: healthSchema,
       handler: async (_ctx, module) => readinessHandler(module, 'knowledge-write')(),
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/ready',
       schema: healthSchema,
       handler: async (_ctx, module) => readinessHandler(module, 'knowledge-write')(),
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/ownership',
       schema: healthSchema,
       handler: async () => KNOWLEDGE_WRITE_OWNERSHIP,
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/operator-status',
       schema: healthSchema,
@@ -202,7 +210,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/api/admin/artifacts',
       schema: adminArtifactListSchema,
@@ -246,7 +254,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/api/admin/artifacts/:id',
       schema: adminArtifactDetailSchema,

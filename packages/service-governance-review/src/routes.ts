@@ -8,21 +8,37 @@ import { createGovernanceMaintenanceRouteDefs } from './routes/maintenance.route
 import { createGovernanceAdminRouteDefs as createAdminDefs } from './routes/admin.routes.js';
 import type { GovernanceReviewRouteDeps } from './routes/helpers.js';
 
-export type { GovernanceReviewRouteDeps, GovernanceReviewRouteModule, GovernanceReviewReadinessOptions } from './routes/helpers.js';
+export type {
+  GovernanceReviewRouteDeps,
+  GovernanceReviewRouteModule,
+  GovernanceReviewReadinessOptions,
+} from './routes/helpers.js';
 
-export function createGovernanceAdminRouteDefs(deps: GovernanceReviewRouteDeps): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
+export function createGovernanceAdminRouteDefs(
+  deps: GovernanceReviewRouteDeps,
+): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
   return [...createGovernanceQueueRouteDefs(), ...createAdminDefs()];
 }
 
-export function createGovernanceReviewRouteDefsInternal(deps: GovernanceReviewRouteDeps): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
+export function createGovernanceReviewRouteDefsInternal(
+  deps: GovernanceReviewRouteDeps,
+): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
   return [...createGovernanceMaintenanceRouteDefs(), ...createGovernanceFeedbackRouteDefs()];
 }
 
-export function createGovernanceReviewRouteDefs(deps: GovernanceReviewRouteDeps): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
-  return [...createGovernanceReviewRouteDefsInternal(deps), ...createGovernanceAdminRouteDefs(deps)];
+export function createGovernanceReviewRouteDefs(
+  deps: GovernanceReviewRouteDeps,
+): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
+  return [
+    ...createGovernanceReviewRouteDefsInternal(deps),
+    ...createGovernanceAdminRouteDefs(deps),
+  ];
 }
 
-export function registerGovernanceReviewRoutes(app: FastifyInstance, deps: GovernanceReviewRouteDeps): void {
+export function registerGovernanceReviewRoutes(
+  app: FastifyInstance,
+  deps: GovernanceReviewRouteDeps,
+): void {
   registerFastifyRoutes(app, createGovernanceReviewRouteDefs(deps), deps);
 }
 

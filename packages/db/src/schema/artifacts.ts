@@ -28,7 +28,6 @@ import {
   auditTimestamps,
   capsuleIndexColumns,
   lifecycleEventColumns,
-
   revisionColumns,
 } from './column-factories.js';
 
@@ -310,9 +309,7 @@ export const skillArtifactCapsules = pgTable(
     requiredLevel: integer('required_level').notNull(),
     /** Consolidated keyword tokens (was skill_artifact_capsule_keywords text[] GIN) */
     keywordTokens: jsonb('keyword_tokens').$type<string[]>().default([]),
-    fieldKeywordTokens: jsonb('field_keyword_tokens')
-      .$type<Record<string, string[]>>()
-      .default({}),
+    fieldKeywordTokens: jsonb('field_keyword_tokens').$type<Record<string, string[]>>().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -322,8 +319,6 @@ export const skillArtifactCapsules = pgTable(
     check('ck_skill_artifact_capsules_scope', sql`${table.scope} IN ('global', 'project')`),
   ],
 );
-
-
 
 /**
  * Capsule embedding vectors for PostgreSQL semantic search.
@@ -397,8 +392,6 @@ export const skillArtifactManifestItems = pgTable(
   ],
 );
 
-
-
 export const skillArtifactAgentReviews = pgTable(
   'skill_artifact_agent_reviews',
   {
@@ -431,8 +424,6 @@ export const skillArtifactAgentReviews = pgTable(
     ),
   ],
 );
-
-
 
 /**
  * Artifact lifecycle events table for audit trail of state transitions.

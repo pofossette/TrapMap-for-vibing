@@ -180,9 +180,7 @@ describe('PostgreSQL experience gene repository', () => {
     const result = await new PgExperienceGeneRepository({ pool }).solidify('gene-1');
 
     expect(result.status).toBe('solidified');
-    expect(
-      queries.some(({ sql }) => sql.includes('UPDATE experience_gene_embeddings')),
-    ).toBe(true);
+    expect(queries.some(({ sql }) => sql.includes('UPDATE experience_gene_embeddings'))).toBe(true);
     expect(queries.some(({ sql }) => sql.includes('INSERT INTO domain_event_outbox'))).toBe(true);
     expect(queries[0]?.sql).toBe('BEGIN');
     expect(queries.at(-1)?.sql).toBe('COMMIT');

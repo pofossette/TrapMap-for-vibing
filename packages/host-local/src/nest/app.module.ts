@@ -12,6 +12,8 @@ export class AppModule implements NestModule {
     return { module: AppModule, imports, providers, exports };
   }
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(RequestContextMiddleware, HttpMetricsMiddleware, LoggingMiddleware).forRoutes('*');
+    consumer
+      .apply(RequestContextMiddleware, HttpMetricsMiddleware, LoggingMiddleware)
+      .forRoutes('*');
   }
 }

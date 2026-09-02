@@ -75,5 +75,3 @@ export const graphIndexDocuments = pgTable(
     check('ck_graph_index_documents_scope', sql`${table.scope} IN ('global', 'project')`),
   ],
 );
-
-

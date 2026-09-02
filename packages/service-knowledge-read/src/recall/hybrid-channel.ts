@@ -6,7 +6,12 @@ import { keywordRecall, normalizeQuery } from '../retrieval-keyword.js';
 import { getQueryEmbedding } from '../retrieval-semantic.js';
 import type { KnowledgeRecord } from '../store.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
-import { getDbSearchConfig, versionMultiplierFor, rerankRecallResults, computeSemanticCandidates } from './recall-helpers.js';
+import {
+  getDbSearchConfig,
+  versionMultiplierFor,
+  rerankRecallResults,
+  computeSemanticCandidates,
+} from './recall-helpers.js';
 
 // fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B
 export async function hybridRecall(
@@ -37,7 +42,8 @@ export async function hybridRecall(
           parsed.maxResults * 2,
         ),
       ]);
-      const dbScopeFilter = parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
+      const dbScopeFilter =
+        parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbVectorResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2,
@@ -51,7 +57,10 @@ export async function hybridRecall(
         .map((r) => {
           const entry = entryMap.get(r.entryId);
           if (!entry) return null;
-          return createSemanticCandidate(entry, r.similarity * versionMultiplierFor(infra!, entry, parsed));
+          return createSemanticCandidate(
+            entry,
+            r.similarity * versionMultiplierFor(infra!, entry, parsed),
+          );
         })
         .filter((c): c is NonNullable<ReturnType<typeof createSemanticCandidate>> => c !== null);
       const keywordCandidates: Awaited<ReturnType<typeof keywordRecall>> = [];
@@ -59,16 +68,30 @@ export async function hybridRecall(
         if (!eligibleIds.has(result.entryId)) continue;
         const entry = entryMap.get(result.entryId);
         if (!entry) continue;
-        keywordCandidates.push({ entry, channel: 'keyword', score: result.score, tokenMatches: result.tokenMatches });
+        keywordCandidates.push({
+          entry,
+          channel: 'keyword',
+          score: result.score,
+          tokenMatches: result.tokenMatches,
+        });
       }
-      const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
+      const mergedCandidates = infra!.scoring.mergeCandidates(
+        semanticCandidates,
+        keywordCandidates,
+      );
       return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
     } catch (error) {
       console.error('[hybridRecall] DB search failed, falling back to in-memory:', error);
     }
   }
   const [semanticCandidates, keywordCandidates] = await Promise.all([
-    computeSemanticCandidates(services!, seed, eligibleEntries, parsed.filters, parsed.boundaryContext?.versions),
+    computeSemanticCandidates(
+      services!,
+      seed,
+      eligibleEntries,
+      parsed.filters,
+      parsed.boundaryContext?.versions,
+    ),
     keywordRecall(seed, eligibleEntries),
   ]);
   const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);

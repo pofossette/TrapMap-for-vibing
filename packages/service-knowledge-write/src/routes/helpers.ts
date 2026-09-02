@@ -451,4 +451,3 @@ export async function fetchArtifactById(
   const all = await fetchAllArtifacts(deps);
   return all.find((artifact) => artifact.id === id) ?? null;
 }
-

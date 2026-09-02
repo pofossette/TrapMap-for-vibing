@@ -29,9 +29,19 @@ export async function graphAssistedHybridRecall(
   const eligibleEntriesMap = new Map<string, KnowledgeRecord>();
   for (const entry of eligibleEntries) eligibleEntriesMap.set(entry.id, entry);
   const [semanticCandidates, keywordCandidates, graphCandidates] = await Promise.all([
-    computeSemanticCandidates(services!, seed, eligibleEntries, parsed.filters, parsed.boundaryContext?.versions),
+    computeSemanticCandidates(
+      services!,
+      seed,
+      eligibleEntries,
+      parsed.filters,
+      parsed.boundaryContext?.versions,
+    ),
     keywordRecall(seed, eligibleEntries),
-    infra!.pgRecall.graphAssistedRecall(seed, eligibleEntriesMap, services?.graphQueryBackend ? { graphQueryBackend: services.graphQueryBackend } : undefined),
+    infra!.pgRecall.graphAssistedRecall(
+      seed,
+      eligibleEntriesMap,
+      services?.graphQueryBackend ? { graphQueryBackend: services.graphQueryBackend } : undefined,
+    ),
   ]);
   const governedGraphCandidates = graphCandidates
     .map((candidate) => {
@@ -39,10 +49,28 @@ export async function graphAssistedHybridRecall(
       if (!eligibleEntry) return null;
       return candidate.entry === eligibleEntry ? candidate : { ...candidate, entry: eligibleEntry };
     })
-    .filter((candidate): candidate is Awaited<ReturnType<ReturnType<typeof getRetrievalInfra>['pgRecall']['graphAssistedRecall']>>[number] => candidate !== null);
+    .filter(
+      (
+        candidate,
+      ): candidate is Awaited<
+        ReturnType<ReturnType<typeof getRetrievalInfra>['pgRecall']['graphAssistedRecall']>
+      >[number] => candidate !== null,
+    );
   const hybridMerged = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
-  const channelMerge: ChannelMergePort<KnowledgeRecord> = services?.channelMerge ?? createRuleChannelMerge();
-  const finalMerged = await channelMerge.merge({ hybridCandidates: hybridMerged, graphCandidates: governedGraphCandidates });
+  const channelMerge: ChannelMergePort<KnowledgeRecord> =
+    services?.channelMerge ?? createRuleChannelMerge();
+  const finalMerged = await channelMerge.merge({
+    hybridCandidates: hybridMerged,
+    graphCandidates: governedGraphCandidates,
+  });
   const reranked = await rerankRecallResults(infra!, finalMerged, queryTokens, parsed);
-  return { ...reranked, trace: { graph: createGraphRecallTrace(services?.graphQueryBackend?.getRuntimeState() ?? services?.graphQuery, governedGraphCandidates.length) } };
+  return {
+    ...reranked,
+    trace: {
+      graph: createGraphRecallTrace(
+        services?.graphQueryBackend?.getRuntimeState() ?? services?.graphQuery,
+        governedGraphCandidates.length,
+      ),
+    },
+  };
 }

@@ -6,7 +6,12 @@ import { getRetrievalInfra } from '../retrieval-infra.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from '../retrieval-semantic.js';
 import type { KnowledgeRecord } from '../store.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
-import { getDbSearchConfig, finalizeSemanticResults, toScoredEntry, versionMultiplierFor } from './recall-helpers.js';
+import {
+  getDbSearchConfig,
+  finalizeSemanticResults,
+  toScoredEntry,
+  versionMultiplierFor,
+} from './recall-helpers.js';
 import type { ScoredEntry } from '../retrieval-types.js';
 
 // fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B
@@ -22,7 +27,8 @@ export async function semanticRecall(
   if (dbConfig.enabled && dbConfig.pool && auth) {
     try {
       const queryVector = await getQueryEmbedding(services!, seed);
-      const scopeFilter = parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
+      const scopeFilter =
+        parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
         limit: parsed.maxResults * 2,
@@ -37,10 +43,17 @@ export async function semanticRecall(
         if (!eligibleIds.has(result.entryId)) continue;
         const entry = entryMap.get(result.entryId);
         if (!entry) continue;
-        const boundaryDelta = infra!.scoring.computeBoundaryScoreDelta(entry, parsed.boundaryContext);
-        const boostedScore = computeScore(result.similarity, entry, parsed.filters, seed) * versionMultiplierFor(infra!, entry, parsed);
+        const boundaryDelta = infra!.scoring.computeBoundaryScoreDelta(
+          entry,
+          parsed.boundaryContext,
+        );
+        const boostedScore =
+          computeScore(result.similarity, entry, parsed.filters, seed) *
+          versionMultiplierFor(infra!, entry, parsed);
         const finalScore = Math.min(1, Math.max(0, boostedScore + boundaryDelta));
-        const boundaryExplanation = parsed.boundaryContext ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta) : undefined;
+        const boundaryExplanation = parsed.boundaryContext
+          ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
+          : undefined;
         scoredEntries.push(toScoredEntry(entry, finalScore, boundaryExplanation));
       }
       return finalizeSemanticResults(infra!, scoredEntries, parsed);
@@ -49,11 +62,20 @@ export async function semanticRecall(
     }
   }
   const queryVector = await getQueryEmbedding(services!, seed);
-  const { scoredEntries: rawScoredEntries } = await optimizedSemanticRecall(services!, queryVector, eligibleEntries, parsed.filters, seed, parsed.boundaryContext?.versions);
+  const { scoredEntries: rawScoredEntries } = await optimizedSemanticRecall(
+    services!,
+    queryVector,
+    eligibleEntries,
+    parsed.filters,
+    seed,
+    parsed.boundaryContext?.versions,
+  );
   const scoredEntries: ScoredEntry[] = rawScoredEntries.map(({ entry, score }) => {
     const boundaryDelta = infra!.scoring.computeBoundaryScoreDelta(entry, parsed.boundaryContext);
     const finalScore = Math.min(1, Math.max(0, score + boundaryDelta));
-    const boundaryExplanation = parsed.boundaryContext ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta) : undefined;
+    const boundaryExplanation = parsed.boundaryContext
+      ? infra!.scoring.buildBoundaryExplanation(entry, parsed.boundaryContext, boundaryDelta)
+      : undefined;
     return toScoredEntry(entry, finalScore, boundaryExplanation);
   });
   return finalizeSemanticResults(infra!, scoredEntries, parsed);

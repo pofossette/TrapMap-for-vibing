@@ -58,10 +58,12 @@ export class InMemoryCachePort implements CachePort {
     if (hit.hit) return hit.value as T;
     const existing = this.inflight.get(key);
     if (existing) return (await existing) as T;
-    const p = loader().then(async (v) => {
-      await this.set(key, v, ttlMs);
-      return v;
-    }).finally(() => this.inflight.delete(key));
+    const p = loader()
+      .then(async (v) => {
+        await this.set(key, v, ttlMs);
+        return v;
+      })
+      .finally(() => this.inflight.delete(key));
     this.inflight.set(key, p as Promise<unknown>);
     return (await p) as T;
   }
