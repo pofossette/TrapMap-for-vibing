@@ -1,9 +1,3 @@
-import { hybridRecall } from "./recall/hybrid-channel.js";
-import { semanticRecall } from "./recall/semantic-channel.js";
-import { graphRecall } from "./recall/graph-channel.js";
-import { ChannelRegistry } from "./recall/channel-registry.js";
-// Use them to avoid dead code
-const _channels = { hybridRecall, semanticRecall, graphRecall, ChannelRegistry };
 import {
   InvocationError,
   buildUnknownModeMessage,

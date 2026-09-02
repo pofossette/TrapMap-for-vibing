@@ -1,6 +1,3 @@
-import { searchV2 } from "./search/search-v2.js";
-import { searchV3Plan } from "./search/search-v3-plan.js";
-const _search = { searchV2, searchV3Plan };
 import { InvocationError } from '@trapmap/backend-core';
 import type { IntentRecognitionPort } from '@trapmap/backend-core';
 import {

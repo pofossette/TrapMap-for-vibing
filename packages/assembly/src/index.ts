@@ -30,5 +30,3 @@ export {
   labelAlignmentContract,
   channelMergeContract,
 } from './contracts/judgment-contracts.js';
-import './capabilities/otel.capability.js';
-import { otelCapability } from './capabilities/otel.capability.js';
