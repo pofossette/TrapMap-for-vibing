@@ -22,6 +22,7 @@
 | [type-alignment-mainline.md](type-alignment-mainline.md) | **跨语言类型对齐**：Zod->JSON Schema->Go / OpenAPI / proto 三期选型与门禁 | 并行主线（待激活）；为计算中枢提供 `contracts->Go` 编译期约束 |
 | [skill-registry-mainline.md](skill-registry-mainline.md) | Skill Registry 版本管理器抽离（已合入 `pre`） | 已合入 `pre@a9b413b5`；`@trapmap/skill-registry` 子包 |
 | [architecture-remediation-mainline-archived.md](../archived/archived-plans/architecture-remediation-mainline-archived.md) | **架构收敛与渐进 Go 化一次性根治** (2026-09-02, PR #8) | 已完成并归档；38项探针→7阶段，69+165+123 tests, 42表, budgets 37, typecheck/mermaid/docs green |
+| [architecture-remediation-mainline.md](architecture-remediation-mainline.md) | **架构收敛 B 真收敛** (2026-09-02, deferred 8 gaps) | Active parallel；B1 recall真拆 95+61+138, B4 cache-port real, B2 AppModule 287→16 via assembly 已落地，余 P4/P5/P6/host 真拆进行中 |
 | [go-service-gradual-migration-archived.md](../archived/archived-plans/go-service-gradual-migration-archived.md) | **服务渐进 Go 化**：读路径整段绞杀 + 模块化（query/recall/ranking/assembly/cache）+ 其余服务按 RICE 排期 | 已完成并归档（2026-09-01，`main@d5f18c43`，`PR #3/#4`）；原 `docs/todos/go-service-gradual-migration-mainline.md` 已归档 |
 
 ## 归档主线索引

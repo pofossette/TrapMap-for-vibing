@@ -151,4 +151,3 @@ export const entityLineage = pgTable(
     check('ck_entity_lineage_target_type', sql`${table.targetType} IN ('trap', 'skill')`),
   ],
 );
-

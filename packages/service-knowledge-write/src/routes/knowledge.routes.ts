@@ -13,9 +13,12 @@ import {
   createTrapSchema,
 } from './helpers.js';
 
-export function createKnowledgeKnowledgeRouteDefs(): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+export function createKnowledgeKnowledgeRouteDefs(): RouteDef<
+  RouteContext,
+  KnowledgeWriteRouteDeps
+>[] {
   return [
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge',
       schema: submitSchema,
@@ -32,7 +35,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/knowledge/:entryId/conflict-candidates',
       schema: conflictCandidatesSchema,
@@ -56,7 +59,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'PUT',
       path: '/internal/knowledge/:entryId',
       schema: entryMutationSchema,
@@ -67,7 +70,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge/:entryId/resubmit',
       schema: entryMutationSchema,
@@ -78,7 +81,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/knowledge/:entryId/supersede',
       schema: supersedeSchema,
@@ -89,7 +92,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'POST',
       path: '/internal/traps',
       schema: createTrapSchema,
@@ -105,7 +108,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/traps',
       schema: listTrapsSchema,
@@ -114,7 +117,7 @@ knowledgeWriteRouteDef({
       },
     }),
 
-knowledgeWriteRouteDef({
+    knowledgeWriteRouteDef({
       method: 'GET',
       path: '/internal/traps/:trapId',
       schema: getTrapSchema,

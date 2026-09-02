@@ -54,7 +54,9 @@ export interface GovernanceReviewReadinessOptions {
 export type GovernanceReviewRouteDeps = GovernanceReviewRouteModule &
   Partial<GovernanceReviewReadinessOptions> & {
     knowledgeOwner?: {
-      listByFilter(filter: Record<string, unknown>): Promise<{ items: KnowledgeEntry[]; total: number } | KnowledgeEntry[]>;
+      listByFilter(
+        filter: Record<string, unknown>,
+      ): Promise<{ items: KnowledgeEntry[]; total: number } | KnowledgeEntry[]>;
       getById(entryId: string): Promise<KnowledgeEntry | null>;
     };
     listReviewEntries?: () => Promise<KnowledgeEntry[]>;
@@ -66,12 +68,36 @@ export type GovernanceReviewRouteDeps = GovernanceReviewRouteModule &
 const GOVERNANCE_REVIEW_OWNERSHIP = {
   service: 'governance-review',
   boundedContext: 'governance-review',
-  dataOwner: ['review-queue', 'feedback-record', 'remediation-workbench', 'maintenance-decay-workbench', 'governance-audit'],
-  projectionOwner: ['review-queue-projection', 'feedback-operator-projection', 'maintenance-decay-operator-projection'],
-  doesNotOwn: ['knowledge-aggregate-final-mutation', 'knowledge-lifecycle-authoritative-tables', 'retrieval-read-projection'],
-  syncBoundary: 'governance-review only owns governance command receipt, eligibility check, flow interpretation, and audit. Final aggregate mutation must be delegated through KnowledgeWritePort.',
-  asyncBoundary: 'Post-approval/rejection/maintenance/decay follow-up actions enter outbox/queue/workflow as async follow-up and never return to the synchronous command path.',
-  commandSurface: ['approve', 'reject', 'returnForCorrection', 'applyMaintenance', 'applyDecay', 'reviewArtifact', 'submitFeedback'],
+  dataOwner: [
+    'review-queue',
+    'feedback-record',
+    'remediation-workbench',
+    'maintenance-decay-workbench',
+    'governance-audit',
+  ],
+  projectionOwner: [
+    'review-queue-projection',
+    'feedback-operator-projection',
+    'maintenance-decay-operator-projection',
+  ],
+  doesNotOwn: [
+    'knowledge-aggregate-final-mutation',
+    'knowledge-lifecycle-authoritative-tables',
+    'retrieval-read-projection',
+  ],
+  syncBoundary:
+    'governance-review only owns governance command receipt, eligibility check, flow interpretation, and audit. Final aggregate mutation must be delegated through KnowledgeWritePort.',
+  asyncBoundary:
+    'Post-approval/rejection/maintenance/decay follow-up actions enter outbox/queue/workflow as async follow-up and never return to the synchronous command path.',
+  commandSurface: [
+    'approve',
+    'reject',
+    'returnForCorrection',
+    'applyMaintenance',
+    'applyDecay',
+    'reviewArtifact',
+    'submitFeedback',
+  ],
   delegateTo: 'knowledge-write',
 } as const;
 
@@ -110,14 +136,27 @@ export const conflictDetectSchema = z.object({
 export const reviewArtifactSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
-  body: z.object({ artifactId: z.string(), decision: z.string(), actorId: z.string(), note: z.string().optional() }),
+  body: z.object({
+    artifactId: z.string(),
+    decision: z.string(),
+    actorId: z.string(),
+    note: z.string().optional(),
+  }),
 });
 
 export const feedbackSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
   headers: headersSchema.optional(),
-  body: z.object({ entryId: z.string(), problemType: z.string(), description: z.string(), actorId: z.string().optional(), entryType: z.string().optional() }).passthrough(),
+  body: z
+    .object({
+      entryId: z.string(),
+      problemType: z.string(),
+      description: z.string(),
+      actorId: z.string().optional(),
+      entryType: z.string().optional(),
+    })
+    .passthrough(),
 });
 
 export const remediationReactivationSchema = z.object({
@@ -198,28 +237,74 @@ export const adminReviewDecisionSchema = z.object({
   params: z.object({ id: z.string() }),
   query: emptyRecord,
   headers: headersSchema,
-  body: z.object({ decision: z.string(), notes: z.string().optional(), note: z.string().optional(), evidence: z.record(z.string(), z.unknown()).optional() }),
+  body: z.object({
+    decision: z.string(),
+    notes: z.string().optional(),
+    note: z.string().optional(),
+    evidence: z.record(z.string(), z.unknown()).optional(),
+  }),
 });
 
-export function reviewCommandArgs(ctx: RouteContext): { entryId: string; actorId: string; note?: string; evidence?: Record<string, unknown> } {
-  const body = ctx.body as { entryId: string; actorId: string; note?: string; evidence?: Record<string, unknown> };
-  return { entryId: body.entryId, actorId: body.actorId, ...(body.note !== undefined ? { note: body.note } : {}), ...(body.evidence !== undefined ? { evidence: body.evidence } : {}) };
+export function reviewCommandArgs(ctx: RouteContext): {
+  entryId: string;
+  actorId: string;
+  note?: string;
+  evidence?: Record<string, unknown>;
+} {
+  const body = ctx.body as {
+    entryId: string;
+    actorId: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  };
+  return {
+    entryId: body.entryId,
+    actorId: body.actorId,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+    ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+  };
 }
 
-export function maintenanceCommandArgs(ctx: RouteContext): { entryId: string; actorId: string; action: string; note?: string; evidence?: Record<string, unknown> } {
-  const body = ctx.body as { entryId: string; actorId: string; action: string; note?: string; evidence?: Record<string, unknown> };
-  return { entryId: body.entryId, actorId: body.actorId, action: body.action, ...(body.note !== undefined ? { note: body.note } : {}), ...(body.evidence !== undefined ? { evidence: body.evidence } : {}) };
+export function maintenanceCommandArgs(ctx: RouteContext): {
+  entryId: string;
+  actorId: string;
+  action: string;
+  note?: string;
+  evidence?: Record<string, unknown>;
+} {
+  const body = ctx.body as {
+    entryId: string;
+    actorId: string;
+    action: string;
+    note?: string;
+    evidence?: Record<string, unknown>;
+  };
+  return {
+    entryId: body.entryId,
+    actorId: body.actorId,
+    action: body.action,
+    ...(body.note !== undefined ? { note: body.note } : {}),
+    ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
+  };
 }
 
-export function readAdminActor(headers: Record<string, unknown>, body: unknown): string | RouteSuccess {
-  const actor = (headers['x-trapmap-actor-id'] ?? (body as Record<string, unknown>)?.actorId) as unknown;
+export function readAdminActor(
+  headers: Record<string, unknown>,
+  body: unknown,
+): string | RouteSuccess {
+  const actor = (headers['x-trapmap-actor-id'] ??
+    (body as Record<string, unknown>)?.actorId) as unknown;
   if (typeof actor !== 'string' || actor.length === 0) {
     return routeResponse(401, { error: 'Missing actor' }) as RouteSuccess;
   }
   return actor;
 }
 
-export function withAdminActor<T>(module: GovernanceReviewRouteDeps, ctx: RouteContext, fn: (admin: GovernanceReviewAdminPort, actorId: string) => Promise<T>): Promise<T> {
+export function withAdminActor<T>(
+  module: GovernanceReviewRouteDeps,
+  ctx: RouteContext,
+  fn: (admin: GovernanceReviewAdminPort, actorId: string) => Promise<T>,
+): Promise<T> {
   const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
   if (isRouteResponse(actor)) return actor as unknown as Promise<T>;
   if (!module.admin) throw InvocationError.unavailable('Admin unavailable');
@@ -241,15 +326,40 @@ export function readinessHandler(deps: GovernanceReviewRouteDeps) {
   });
 }
 
-export function governanceRouteDef<Ctx extends RouteContext>(def: { method: string; path: string; schema: ZodType; successStatus?: number; handler: (ctx: Ctx, deps: GovernanceReviewRouteDeps) => Promise<unknown> }): RouteDef<Ctx, GovernanceReviewRouteDeps> {
+export function governanceRouteDef<Ctx extends RouteContext>(def: {
+  method: string;
+  path: string;
+  schema: ZodType;
+  successStatus?: number;
+  handler: (ctx: Ctx, deps: GovernanceReviewRouteDeps) => Promise<unknown>;
+}): RouteDef<Ctx, GovernanceReviewRouteDeps> {
   return def as unknown as RouteDef<Ctx, GovernanceReviewRouteDeps>;
 }
 
-export function getGovernanceAuth(headers: Record<string, unknown>): { subjectType: 'user' | 'system-admin'; activeTeamId: string | null; securityLevel: number } {
-  const subjectType = headers['x-trapmap-subject-type'] === 'system-admin' ? 'system-admin' as const : 'user' as const;
-  const activeTeamId = typeof headers['x-trapmap-team-id'] === 'string' ? (headers['x-trapmap-team-id'] as string) : typeof headers['x-trapmap-active-team-id'] === 'string' ? (headers['x-trapmap-active-team-id'] as string) : null;
-  const rawLevel = (headers as Record<string, unknown>)['x-trapmap-security-level'] ?? (headers as Record<string, unknown>)['x-trapmap-securityLevel'];
-  const securityLevel = typeof rawLevel === 'string' ? Number.parseInt(rawLevel, 10) : typeof rawLevel === 'number' ? rawLevel : 0;
+export function getGovernanceAuth(headers: Record<string, unknown>): {
+  subjectType: 'user' | 'system-admin';
+  activeTeamId: string | null;
+  securityLevel: number;
+} {
+  const subjectType =
+    headers['x-trapmap-subject-type'] === 'system-admin'
+      ? ('system-admin' as const)
+      : ('user' as const);
+  const activeTeamId =
+    typeof headers['x-trapmap-team-id'] === 'string'
+      ? (headers['x-trapmap-team-id'] as string)
+      : typeof headers['x-trapmap-active-team-id'] === 'string'
+        ? (headers['x-trapmap-active-team-id'] as string)
+        : null;
+  const rawLevel =
+    (headers as Record<string, unknown>)['x-trapmap-security-level'] ??
+    (headers as Record<string, unknown>)['x-trapmap-securityLevel'];
+  const securityLevel =
+    typeof rawLevel === 'string'
+      ? Number.parseInt(rawLevel, 10)
+      : typeof rawLevel === 'number'
+        ? rawLevel
+        : 0;
   const clamped = Number.isFinite(securityLevel) ? Math.max(0, Math.min(10, securityLevel)) : 0;
   return { subjectType, activeTeamId, securityLevel: clamped };
 }
@@ -258,42 +368,72 @@ export function toReviewQueueItem(entry: KnowledgeEntry) {
   return {
     entry,
     agentReview: (entry as unknown as Record<string, unknown>).agentReview ?? null,
-    submittedBy: (entry as unknown as Record<string, unknown>).latestSubmission ? ((entry as unknown as Record<string, unknown>).latestSubmission as Record<string, unknown>).submittedBy ?? (entry as unknown as Record<string, unknown>).owner : (entry as unknown as Record<string, unknown>).owner,
-    lastDecision: ((entry as unknown as Record<string, unknown>).reviewHistory as unknown[] | undefined)?.at(-1) ?? null,
+    submittedBy: (entry as unknown as Record<string, unknown>).latestSubmission
+      ? (((entry as unknown as Record<string, unknown>).latestSubmission as Record<string, unknown>)
+          .submittedBy ?? (entry as unknown as Record<string, unknown>).owner)
+      : (entry as unknown as Record<string, unknown>).owner,
+    lastDecision:
+      ((entry as unknown as Record<string, unknown>).reviewHistory as unknown[] | undefined)?.at(
+        -1,
+      ) ?? null,
     latestSubmission: (entry as unknown as Record<string, unknown>).latestSubmission ?? null,
     reviewNotes: (entry as unknown as Record<string, unknown>).reviewNotes ?? [],
   };
 }
 
-export async function fetchAllReviewEntries(deps: GovernanceReviewRouteDeps): Promise<KnowledgeEntry[]> {
+export async function fetchAllReviewEntries(
+  deps: GovernanceReviewRouteDeps,
+): Promise<KnowledgeEntry[]> {
   if (deps.knowledgeOwner && typeof deps.knowledgeOwner.listByFilter === 'function') {
     const r = await deps.knowledgeOwner.listByFilter({});
     return Array.isArray(r) ? r : r.items;
   }
   if (typeof deps.listReviewEntries === 'function') return deps.listReviewEntries();
   const anyDeps = deps as Record<string, unknown>;
-  if (anyDeps.reviewQueue && typeof (anyDeps.reviewQueue as { list?: unknown }).list === 'function') {
+  if (
+    anyDeps.reviewQueue &&
+    typeof (anyDeps.reviewQueue as { list?: unknown }).list === 'function'
+  ) {
     const res = await (anyDeps.reviewQueue as { list: () => Promise<KnowledgeEntry[]> }).list();
     return res;
   }
   return [];
 }
 
-export async function fetchReviewEntryById(deps: GovernanceReviewRouteDeps, id: string): Promise<KnowledgeEntry | null> {
-  if (deps.knowledgeOwner && typeof deps.knowledgeOwner.getById === 'function') return deps.knowledgeOwner.getById(id);
+export async function fetchReviewEntryById(
+  deps: GovernanceReviewRouteDeps,
+  id: string,
+): Promise<KnowledgeEntry | null> {
+  if (deps.knowledgeOwner && typeof deps.knowledgeOwner.getById === 'function')
+    return deps.knowledgeOwner.getById(id);
   if (typeof deps.getReviewEntry === 'function') return deps.getReviewEntry(id);
   const anyDeps = deps as Record<string, unknown>;
-  if (anyDeps.reviewQueue && typeof (anyDeps.reviewQueue as { getById?: unknown }).getById === 'function') {
-    return (anyDeps.reviewQueue as { getById: (id: string) => Promise<KnowledgeEntry | null> }).getById(id);
+  if (
+    anyDeps.reviewQueue &&
+    typeof (anyDeps.reviewQueue as { getById?: unknown }).getById === 'function'
+  ) {
+    return (
+      anyDeps.reviewQueue as { getById: (id: string) => Promise<KnowledgeEntry | null> }
+    ).getById(id);
   }
   return null;
 }
 
-export async function fetchActivityEvents(deps: GovernanceReviewRouteDeps): Promise<AdminActivityEvent[]> {
+export async function fetchActivityEvents(
+  deps: GovernanceReviewRouteDeps,
+): Promise<AdminActivityEvent[]> {
   if (typeof deps.listActivityEvents === 'function') return deps.listActivityEvents();
   const anyDeps = deps as Record<string, unknown>;
-  if (anyDeps.activityFeed && typeof (anyDeps.activityFeed as { list?: unknown }).list === 'function') return (anyDeps.activityFeed as { list: () => Promise<AdminActivityEvent[]> }).list();
-  if (anyDeps.activity && typeof (anyDeps.activity as { listEvents?: unknown }).listEvents === 'function') return (anyDeps.activity as { listEvents: () => Promise<AdminActivityEvent[]> }).listEvents();
+  if (
+    anyDeps.activityFeed &&
+    typeof (anyDeps.activityFeed as { list?: unknown }).list === 'function'
+  )
+    return (anyDeps.activityFeed as { list: () => Promise<AdminActivityEvent[]> }).list();
+  if (
+    anyDeps.activity &&
+    typeof (anyDeps.activity as { listEvents?: unknown }).listEvents === 'function'
+  )
+    return (anyDeps.activity as { listEvents: () => Promise<AdminActivityEvent[]> }).listEvents();
   return [];
 }
 

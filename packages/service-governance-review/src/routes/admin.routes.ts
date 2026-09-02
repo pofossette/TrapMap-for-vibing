@@ -1,22 +1,39 @@
 // @ts-nocheck
 import { InvocationError, isRouteResponse, routeResponse } from '@trapmap/backend-core';
 import type { RouteContext, RouteDef } from '@trapmap/backend-core';
-import { governanceRouteDef, readAdminActor, healthSchema, feedbackAdminRemediationCompleteSchema, readinessHandler, GOVERNANCE_REVIEW_OWNERSHIP } from './helpers.js';
+import {
+  governanceRouteDef,
+  readAdminActor,
+  healthSchema,
+  feedbackAdminRemediationCompleteSchema,
+  readinessHandler,
+  GOVERNANCE_REVIEW_OWNERSHIP,
+} from './helpers.js';
 import type { GovernanceReviewRouteDeps } from './helpers.js';
 import { z } from 'zod';
 
 const emptyRecord = z.record(z.string(), z.unknown());
 
-export function createGovernanceAdminRouteDefs(): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
+export function createGovernanceAdminRouteDefs(): RouteDef<
+  RouteContext,
+  GovernanceReviewRouteDeps
+>[] {
   return [
     governanceRouteDef({
       method: 'GET',
       path: '/internal/feedback/admin/remediation',
-      schema: z.object({ params: emptyRecord, query: z.object({ limit: z.coerce.number().optional(), cursor: z.string().optional() }), body: z.unknown(), headers: z.record(z.string(), z.unknown()).optional() }),
+      schema: z.object({
+        params: emptyRecord,
+        query: z.object({ limit: z.coerce.number().optional(), cursor: z.string().optional() }),
+        body: z.unknown(),
+        headers: z.record(z.string(), z.unknown()).optional(),
+      }),
       handler: (ctx, module) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const admin = (module as unknown as Record<string, unknown>).admin as { listRemediation?: (a: unknown)=>Promise<unknown> } | undefined;
+        const admin = (module as unknown as Record<string, unknown>).admin as
+          | { listRemediation?: (a: unknown) => Promise<unknown> }
+          | undefined;
         if (!admin?.listRemediation) throw InvocationError.unavailable('Admin unavailable');
         return admin.listRemediation({ actorId: actor as string, query: ctx.query });
       },
@@ -24,13 +41,23 @@ export function createGovernanceAdminRouteDefs(): RouteDef<RouteContext, Governa
     governanceRouteDef({
       method: 'GET',
       path: '/internal/feedback/admin/remediation/:entryId',
-      schema: z.object({ params: z.object({ entryId: z.string() }), query: emptyRecord, body: z.unknown(), headers: z.record(z.string(), z.unknown()).optional() }),
+      schema: z.object({
+        params: z.object({ entryId: z.string() }),
+        query: emptyRecord,
+        body: z.unknown(),
+        headers: z.record(z.string(), z.unknown()).optional(),
+      }),
       handler: (ctx, module) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const admin = (module as unknown as Record<string, unknown>).admin as { getRemediation?: (a: unknown)=>Promise<unknown> }|undefined;
+        const admin = (module as unknown as Record<string, unknown>).admin as
+          | { getRemediation?: (a: unknown) => Promise<unknown> }
+          | undefined;
         if (!admin?.getRemediation) throw InvocationError.unavailable('Admin unavailable');
-        return admin.getRemediation({ actorId: actor as string, entryId: (ctx.params as { entryId: string }).entryId });
+        return admin.getRemediation({
+          actorId: actor as string,
+          entryId: (ctx.params as { entryId: string }).entryId,
+        });
       },
     }),
     governanceRouteDef({
@@ -40,15 +67,21 @@ export function createGovernanceAdminRouteDefs(): RouteDef<RouteContext, Governa
       handler: async (ctx, module) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const admin = (module as unknown as Record<string, unknown>).admin as { completeRemediation?: (a: unknown)=>Promise<unknown> }|undefined;
+        const admin = (module as unknown as Record<string, unknown>).admin as
+          | { completeRemediation?: (a: unknown) => Promise<unknown> }
+          | undefined;
         if (!admin?.completeRemediation) throw InvocationError.unavailable('Admin unavailable');
         // Original expects { actorId, entryId, command: body } and validates strict: only notes allowed
         const body = ctx.body as Record<string, unknown>;
         // Validate no unexpected keys: only notes/note/evidence? For remediation-complete, only notes allowed
         const allowed = new Set(['notes', 'note', 'evidence']);
-        const extra = Object.keys(body).filter(k => !allowed.has(k));
+        const extra = Object.keys(body).filter((k) => !allowed.has(k));
         if (extra.length > 0) throw InvocationError.validation(`Unexpected key: ${extra[0]}`);
-        return admin.completeRemediation({ actorId: actor as string, entryId: (ctx.params as { entryId: string }).entryId, command: body });
+        return admin.completeRemediation({
+          actorId: actor as string,
+          entryId: (ctx.params as { entryId: string }).entryId,
+          command: body,
+        });
       },
     }),
     governanceRouteDef({
@@ -92,7 +125,10 @@ export function createGovernanceAdminRouteDefs(): RouteDef<RouteContext, Governa
       schema: healthSchema,
       handler: async (_ctx, module) => {
         try {
-          const details = (await (module as unknown as Record<string, unknown>).getOperatorStatus?.call(module)) ?? {};
+          const details =
+            (await (module as unknown as Record<string, unknown>).getOperatorStatus?.call(
+              module,
+            )) ?? {};
           return {
             service: 'governance-review',
             owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,

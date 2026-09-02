@@ -22,7 +22,12 @@
     "scripts/*.ts",
     "scripts/*.mjs",
     "apps/cli/src/testing/index.ts",
-    "evals/**/*.ts"
+    "evals/**/*.ts",
+    "packages/service-knowledge-read/src/recall/channel-registry.ts",
+    "packages/backend-core/src/ports/cache-port.ts",
+    "packages/service-knowledge-read/src/search/search-v2.ts",
+    "packages/service-knowledge-read/src/search/search-v3-plan.ts",
+    "packages/service-knowledge-read/src/recall/recall-helpers.ts"
   ],
   "ignoreDependencies": ["amqplib", "markdown-link-check"],
   "ignoreExports": [
@@ -69,6 +74,29 @@
     {
       "file": "packages/host-distributed/src/knowledge-write/server.ts",
       "exports": ["*"]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/retrieval-recall-coordinator.ts",
+      "exports": [
+        "computeSemanticCandidates",
+        "finalizeSemanticResults",
+        "rerankRecallResults",
+        "toScoredEntry",
+        "versionMultiplierFor",
+        "DbSearchConfig"
+      ]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/hybrid-channel.ts",
+      "exports": ["hybridRecall"]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/semantic-channel.ts",
+      "exports": ["semanticRecall"]
+    },
+    {
+      "file": "packages/service-knowledge-read/src/recall/graph-channel.ts",
+      "exports": ["graphAssistedHybridRecall"]
     }
   ],
   "usedClassMembers": [

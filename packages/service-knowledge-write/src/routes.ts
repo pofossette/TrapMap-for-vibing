@@ -8,20 +8,32 @@ import type { KnowledgeWriteRouteDeps } from './routes/helpers.js';
 
 export type { KnowledgeWriteRouteDeps, KnowledgeWriteReadinessOptions } from './routes/helpers.js';
 
-export function createKnowledgeAdminRouteDefs(deps: KnowledgeWriteRouteDeps): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+export function createKnowledgeAdminRouteDefs(
+  deps: KnowledgeWriteRouteDeps,
+): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
   // For now, admin artifacts are in submission
-  return createKnowledgeSubmissionRouteDefs().filter(r => r.path.startsWith('/api/admin'));
+  return createKnowledgeSubmissionRouteDefs().filter((r) => r.path.startsWith('/api/admin'));
 }
 
-export function createKnowledgeWriteRouteDefsInternal(deps: KnowledgeWriteRouteDeps): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
-  return [...createKnowledgeKnowledgeRouteDefs(), ...createKnowledgeSubmissionRouteDefs().filter(r => !r.path.startsWith('/api/admin'))];
+export function createKnowledgeWriteRouteDefsInternal(
+  deps: KnowledgeWriteRouteDeps,
+): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+  return [
+    ...createKnowledgeKnowledgeRouteDefs(),
+    ...createKnowledgeSubmissionRouteDefs().filter((r) => !r.path.startsWith('/api/admin')),
+  ];
 }
 
-export function createKnowledgeWriteRouteDefs(deps: KnowledgeWriteRouteDeps): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
+export function createKnowledgeWriteRouteDefs(
+  deps: KnowledgeWriteRouteDeps,
+): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
   return [...createKnowledgeWriteRouteDefsInternal(deps), ...createKnowledgeAdminRouteDefs(deps)];
 }
 
-export function registerKnowledgeWriteRoutes(app: FastifyInstance, deps: KnowledgeWriteRouteDeps): void {
+export function registerKnowledgeWriteRoutes(
+  app: FastifyInstance,
+  deps: KnowledgeWriteRouteDeps,
+): void {
   registerFastifyRoutes(app, createKnowledgeWriteRouteDefs(deps), deps);
 }
 
