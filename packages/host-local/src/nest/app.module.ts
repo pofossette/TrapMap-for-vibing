@@ -8,7 +8,8 @@ import { RequestContextMiddleware } from './runtime/request-context.middleware.j
 @Module({})
 export class AppModule implements NestModule {
   static forRuntime(runtime: HostLocalRuntime) {
-    return buildHostLocalModule(runtime);
+    const { imports, providers, exports } = buildHostLocalModule(runtime);
+    return { module: AppModule, imports, providers, exports };
   }
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(RequestContextMiddleware, HttpMetricsMiddleware, LoggingMiddleware).forRoutes('*');

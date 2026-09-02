@@ -26,7 +26,6 @@ import { HOST_LOCAL_RUNTIME_TOKEN, type HostLocalRuntime } from './runtime/host-
 import { buildKnowledgeProjection } from './runtime/knowledge-projection.js';
 import { RequestContextService } from './runtime/request-context.service.js';
 import { ConsulModule } from './service-discovery/index.js';
-import { AppModule } from './app.module.js';
 
 export function buildHostLocalModule(runtime: HostLocalRuntime) {
 
@@ -173,7 +172,6 @@ export function buildHostLocalModule(runtime: HostLocalRuntime) {
     const config = loadHostLocalConfig();
 
       return {
-    module: AppModule,
 
       imports: [
         ConfigModule.forRoot({

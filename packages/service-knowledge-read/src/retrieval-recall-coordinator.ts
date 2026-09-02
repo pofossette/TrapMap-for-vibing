@@ -47,6 +47,12 @@ export async function dispatchByMode(
   return strategy.execute(parsed, channelRegistry, eligibleEntries, services, auth);
 }
 
-export const hybridRecall = _hybrid;
-export const semanticRecall = _semantic;
-export const graphAssistedHybridRecall = _graph;
+export async function hybridRecall(...args: Parameters<typeof _hybrid>): ReturnType<typeof _hybrid> {
+  return _hybrid(...args);
+}
+export async function semanticRecall(...args: Parameters<typeof _semantic>): ReturnType<typeof _semantic> {
+  return _semantic(...args);
+}
+export async function graphAssistedHybridRecall(...args: Parameters<typeof _graph>): ReturnType<typeof _graph> {
+  return _graph(...args);
+}
