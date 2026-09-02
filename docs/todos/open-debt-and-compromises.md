@@ -11,14 +11,15 @@
 
 ## 长期问题池
 
-### web-panel real admin 路径不可运行（刷新于 2026-08-22）
+### web-panel real admin 路径不可运行（刷新于 2026-09-02，Phase2 部分闭环）
 
-- 来源/影响/边界：同原登记（5 个 `/api/admin/*` 无后端实现，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
+- 来源/影响/边界：同原登记（原 5 个 `/api/admin/*` 无后端实现，2026-09-02 已闭环 2 个：`GET /api/admin/runtime-overview` 与 `POST /api/admin/reviews/:id/json-edits` 经 `service-governance-review` 双宿主 RouteDef + `contracts` Zod 实现并验证 `typecheck`/`check:docs` 全绿；剩余 3 个 `/api/admin/*` 仍 mock，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
 - 2026-08-23 刷新：面板侧已完成 design-token、Dashboard snapshot 绑定、队列 filtered/total 计数区分和 route-level splitting 第一批工作；这不改变 real admin 路由缺失、bearer provider 为 null 或 RBAC 缺失的债务状态。
 - 2026-08-23 追加：治理审核的 `return-for-correction` 已接入 contracts、governance/knowledge owner 和双宿主网关；Web Panel 不再把它伪装成 reject。real admin surface 与 RBAC 债务继续保留。
 - 2026-08-23 追加：Activity 的 actor/type/time/search/cursor 查询已在 mock seam 与页面完成，UI 常显 mock 标识；这不改变 `/api/admin/activity` 生产 RouteDef 缺失或 bearer/RBAC 债务。
 - 2026-08-23 追加：Artifacts 的 level/search/lifecycle/scope 过滤、确定性排序和 cursor 分页已在 mock seam 与页面完成；这不改变 `/api/admin/artifacts` 生产 RouteDef 缺失或 bearer/RBAC 债务。
 - 2026-08-23 追加：Trap/Skill 图谱的深度、搜索和模式状态已完成接线；Skill 工件选择器仍受最多 100 个 snapshot 工件约束，且不改变生产 admin graph/artifact RouteDef 缺失或 bearer/RBAC 债务。
+- 2026-09-02 追加（Phase2 真收敛）：`packages/contracts/src/domain/admin.ts` 新增 `adminRuntimeOverviewResponseSchema` + `adminManualJsonEditRequest/ResponseSchema`（`contracts 955`），`service-governance-review` 新增 `runtime.routes.ts` + `json-edit.routes.ts` 并聚合入 `createGovernanceAdminRouteDefs`，`host-distributed` 网关 `shared.ts`+`governance.ts`+`internal-client` 双宿主转发已落地，`typecheck`/`check:docs`/`check:complexity` 全绿；剩余 3 个 mock 债务保留。
 - 2026-08-26 追加（user-authorized tranche）：`browserSessionProvider` 已改为 token-bearing（`useSessionStore`），新增 `/login` 守卫与 `read-only-operator` 导航/操作区分，mock `login`/`logout` 与 bearer 透传已补回归；这不改变 `/api/admin/*` 生产 RouteDef 缺失与 server-side authorization tests 债务。
 - 进入条件：需要真实管理控制台时。
 - 后续落点：Gene 主线 closeout 后恢复 [`../plans/web-panel-feature-and-ui-optimization-paused.md`](../plans/web-panel-feature-and-ui-optimization-paused.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
