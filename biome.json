@@ -49,7 +49,8 @@
       "packages/*/src/**/*.js.map",
       "packages/*/src/**/*.d.ts",
       "packages/*/src/**/*.d.ts.map",
-      "scripts/codemods"
+      "scripts/codemods",
+      "benchmarks"
     ]
   },
   "javascript": {
