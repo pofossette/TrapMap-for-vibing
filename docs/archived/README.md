@@ -138,6 +138,8 @@
 | `archived-plans/experience-gene-retrieval-and-activation-archived.md` | 2026-09-02 | Gene Phase 4 检索与激活：gene-native recall adapters、RouteDefs 双宿主、CLI/MCP <strategy-gene> |
 | `archived-plans/experience-gene-governance-evaluation-rollout-archived.md` | 2026-09-02 | Gene Phase 5 治理评测 rollout：metrics、offline eval harness、governance sampling 20、rollback verification |
 
+| `archived-plans/performance-infra-mainline-archived.md` | 2026-09-02 | 性能与压测基建完成 closeout：bench harness（4 文件 + 3 脚本）+ stress（Go `cmd/stress` 4 场景 + k6 legacy）+ Go 可观测（metrics/middleware/cache/pprof）+ `GO_ACCELERATOR_BENCH.md` 阈值（BatchCosine 2.5×）已归档 |
+
 ## 归档原则
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。

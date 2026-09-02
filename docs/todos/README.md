@@ -13,7 +13,7 @@
 | [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Active mainline；2026-08-23 启动，2026-09-02 从 paused 恢复 |
 | [experience-gene-program-mainline-archived.md](../archived/archived-plans/experience-gene-program-mainline-archived.md) | Experience Gene Infrastructure and Pipeline | 已完成并归档（2026-09-02，offline precision 1.0 + promotion eligible true，live CI deferred）；6 文件 mainline+5 phases |
 | [go-accelerator-mainline.md](go-accelerator-mainline.md) | Go 加速服务 scaffold（已合入 `pre`） | 已合入 `pre@a9b413b5`；见 `go-compute-hub-mainline.md` 深化 |
-| [performance-infra-mainline.md](performance-infra-mainline.md) | **性能与压测基建**：bench harness + stress (k6/autocannon) + 可观测（Go metrics/pprof, Node OTEL） | 待归档；设施已建不自动跑 |
+| [performance-infra-mainline-archived.md](../archived/archived-plans/performance-infra-mainline-archived.md) | **性能与压测基建**：bench harness + stress + 可观测 | 已完成并归档（2026-09-02，设施 5 链路 bench + 4 场景 stress + Go metrics/pprof，`pnpm bench:compute`/`go test -bench`） |
 | [go-compute-hub-mainline.md](go-compute-hub-mainline.md) | **Go 计算中枢深化**：剩余重计算全量盘点与批处理迁移 | 并行主线（待激活）；分布式-only，`infra` fallback 一致性门禁 |
 | [type-alignment-mainline.md](type-alignment-mainline.md) | **跨语言类型对齐**：Zod->JSON Schema->Go / OpenAPI / proto 三期选型与门禁 | 并行主线（待激活）；为计算中枢提供 `contracts->Go` 编译期约束 |
 | [skill-registry-mainline.md](skill-registry-mainline.md) | Skill Registry 版本管理器抽离（已合入 `pre`） | 已合入 `pre@a9b413b5`；`@trapmap/skill-registry` 子包 |
