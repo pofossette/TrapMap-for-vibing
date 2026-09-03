@@ -2,9 +2,9 @@
 
 ## Status
 
-- **Paused / Deferred Successor。**
-- 本细则已于 2026-08-23 启动首批实现；2026-08-25 起暂停，等待 Experience Gene Infrastructure and Pipeline 主线完成 closeout 后恢复。
-- 恢复时不得直接把本文件当作 active checklist 使用；必须由根 `plan.md` 显式切换回 Web Panel 主线，并按需将细则迁回 `docs/todos/` 或创建新的 active 细则。
+- **Active mainline（2026-09-03 恢复）。**
+- 本细则是根 `plan.md` 当前唯一链接的 owner execution surface，承接原 `docs/plans/web-panel-feature-and-ui-optimization-paused.md` 的 paused successor 状态（2026-08-23 启动首批实现，2026-08-25 暂停）。
+- Experience Gene 主线已于 2026-09-03 完成 closeout 并归档（`docs/archived/archived-plans/experience-gene-program-mainline-archived.md`），本主线经 `git mv` 迁回 `docs/todos/` 恢复执行，后续执行顺序、owner、证据与问题池以本细则为准。
 
 ## Product Stance
 
@@ -53,9 +53,9 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 
 ### Phase 2: Shared Admin Contracts and Real Routes
 
-- [ ] Add shared Zod schemas in `packages/contracts`.
-- [ ] Add routes through `create<X>RouteDefs(deps)` factories in the owning service packages.
-- [ ] Consume those RouteDefs through both host-local Nest and host-distributed gateway surfaces.
+- [x] Add shared Zod schemas in `packages/contracts`. (`packages/contracts/src/domain/admin.ts` 393 行 + `enum-types/admin.ts` 覆盖 `adminReviewQueueQuerySchema`/`adminActivityQuerySchema`/`adminArtifactQuerySchema`/`adminGraphQuerySchema`/boundary search 等全部 Web Panel 查询契约，已于 `6c086bb8 feat(contracts): add admin shared Zod schemas for web-panel` 落地并经 `packages/contracts/src/index.ts` barrel 导出；`pnpm --filter @trapmap/contracts test` / `pnpm typecheck` 均绿)
+- [x] Add routes through `create<X>RouteDefs(deps)` factories in the owning service packages. (`89a8f24e feat(admin-routes): implement real admin RouteDefs in service owners` — `packages/service-governance-review/src/routes/queue.routes.ts` `GET /api/admin/reviews|/:id|/activity + POST /:id/decision`, `service-knowledge-read/src/routes.ts` `GET /api/admin/graph/traps|/skills|/graphs/*`, `service-knowledge-write/src/routes.ts` `GET /api/admin/artifacts|/:id`; all `create<X>RouteDefs(deps)` factory, reuse `packages/contracts/src/domain/admin.ts` Zod, `pnpm test:deployment-smoke` 443 tests + `service-*-test/routes.test.ts` admin suites 均绿)
+- [x] Consume those RouteDefs through both host-local Nest and host-distributed gateway surfaces. (`a77e062b feat(host): wire admin RouteDefs and close gateway parity gaps` — host-local `app.module.ts` injects `artifactReadProjection/knowledgeOwner/GraphIndex` + `KnowledgeWriteModule.forTesting` + `serviceRouteDefsForMonolith` for `/api/admin/artifacts`, host-distributed `gateway/route-defs.ts` + `internal-client.ts` forwards `adminReview|adminArtifacts|adminGraph|reviewQueue` via `x-trapmap-*` headers + `queryStringValues`; both hosts share same `create<X>RouteDefs` factory via `createNestAdapter`/`registerFastifyRoutes`, `GET /v1/knowledge/review-queue` parity + `POST /v3/retrieval/search` parity closed, `pnpm check:route-surface` + `check:docs` + `fallow audit --base HEAD --no-cache` 绿)
 - [ ] Cover runtime overview, review detail/activity, manual JSON edits, artifact list/detail, trap graph, and skill graph.
 - [ ] Add audit coverage for governance-relevant reads where required and mutations throughout.
 - [x] Propagate session tokens through `SessionProvider` (`services/admin-panel-service-context.ts:browserSessionProvider` now bearer-aware, verified by `admin-panel-service-context.test.ts:attaches bearer token`, `README.md` endpoint table updated).
@@ -167,7 +167,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - 新增 `apps/web-panel/src/services/admin-panel-session-cookie-preference.test.ts` 4 个测试：env `cookie` 时即使有 bearer 也 `credentials:include`；env `bearer` 时有 token 则 `Authorization: Bearer` 且无 `credentials`；无 env 但 `document.cookie` 含 `trapmap_session` 时自动切 cookie 且 `getSessionToken` 回退解码；无 token 无 cookie 时 opportunistic `include`；验证 `isCookieTransportPreferred/resolveSessionTransportPreference/isGatewayCookieModePreferred`。
 - `apps/web-panel/src/vite-env.d.ts` 新增 `VITE_ADMIN_PANEL_SESSION_MODE` 类型，`docs/operations/ENVIRONMENT.md` 新增 conditional `Gateway session / cookie 偏好（P4B）` 小节说明 `SESSION_TRANSPORT` 与 `VITE_ADMIN_PANEL_SESSION_MODE` 需两端同时切 `cookie` 才形成 `httpOnly` 闭环；当前 `host-local` `auth-context.ts` + `host-distributed` `registerAuthHook` 仍仅 Bearer，故为条件偏好。
 - 当前取证：`pnpm --filter @trapmap/web-panel test --run` 31 files 102 tests、`pnpm --filter @trapmap/web-panel typecheck` 0、`pnpm --filter @trapmap/web-panel build` 3659 modules（首屏与 G6 保持 P4A 基线）；`pnpm typecheck` 0；`docs/plans/web-panel-feature-and-ui-optimization-paused.md` Phase1 `Prefer gateway session/cookie` 勾选为条件完成；commit `feat(web-panel): prefer gateway cookie session when available`。
-- 仍保留：`Phase 2` 生产 `/api/admin/*` RouteDef 与截图证据。
+- Phase 2 `/api/admin/*` RouteDef 已于 `89a8f24e`/`a77e062b` 完成；剩余仅截图证据与审计覆盖。
 
 ### 2026-08-31: server-side authorization tranche (P4A off mainline)
 
