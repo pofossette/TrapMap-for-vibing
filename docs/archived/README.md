@@ -118,6 +118,12 @@
 | `archived-plans/debt-mcp-platformization-mainline-archived.md` | 2026-08-22 | 债务全量派发 + Agent MCP 接入 + 微服务平台化主线完成 closeout：交付物、残余运营验证与开放债务分流记录见该归档细则和 debt register |
 | `archived-plans/dead-code-and-architecture-order-cleanup-archived.md` | 2026-08-30 | Dead Code and Architecture Order Cleanup 完成 closeout 并归档（实现已提交 2026-08-16，归档 2026-08-30）：约 3000 行死代码删除、契约/宿主/图算法与 SQL 下沉、4 类防复发守卫与 closeout 回写完成；历史细则见归档路径 |
 | `archived-plans/go-service-gradual-migration-archived.md` | 2026-09-01 | 服务渐进 Go 化主线完成 closeout：读路径整段 `knowledge-read-go` 模块化（`query 75/32/47 / recall 78/58/62/38/27 / ranking 35/33/56/24 / assembly 21/29/23 / cache 61 / api 134/25/11`，单文件 max 134 ≤300，模块 max 292 ≤600），网关 `off/shadow/dual/go` 绞杀器，契约 Zod→JSON Schema→Go 21/22 schemas，`go-accelerator` 检索/排序 `394 行` 已拆并 `410 Gone + X-Deprecated` 及时退出，`fallback` 直通本地；`main@d5f18c43 PR #3/#4` 已合入，门禁 `typecheck/structure/complexity/fallow 0/go vet/test` 全绿 |
+| `archived-plans/experience-gene-program-mainline-archived.md` | 2026-09-03 | Experience Gene Infrastructure and Pipeline 完成 closeout：5 阶段串行（infra → contracts/storage → derivation → retrieval/activation → governance/evaluation/rollout），deterministic offline `pnpm eval:experience-gene --tier smoke/shadow (3/1/precision 1.0)` + `core/serve (10/9/precision 1.0/promotionEligible true)`，20-Gene 治理抽样 + rollback tri-state 全绿，架构已标注两篇论文灵感（2604.15097v2 + 2604.17870），`typecheck/check:docs:blocking green/check:structure/passed/fallow --base HEAD 6 files ✓` |
+| `archived-plans/experience-gene-infrastructure-foundation-archived.md` | 2026-09-03 | Gene 阶段 1：`@trapmap/infra` 抽离 pgvector/embedding/derivation-task 骨架，Fallow 基线冻结 `5cbb2f93` |
+| `archived-plans/experience-gene-contracts-and-storage-archived.md` | 2026-09-03 | Gene 阶段 2：`ExperienceGene` 契约 + PG 四表 + repository 同事务 |
+| `archived-plans/experience-gene-derivation-pipeline-archived.md` | 2026-09-03 | Gene 阶段 3：三源 snapshot + rule/LLM 抽取 + validation/safety/duplicate + index retry + stale |
+| `archived-plans/experience-gene-retrieval-and-activation-archived.md` | 2026-09-03 | Gene 阶段 4：gene-native recall/select + 双宿主 RouteDef + `<strategy-gene>` 渲染 |
+| `archived-plans/experience-gene-governance-evaluation-rollout-archived.md` | 2026-09-03 | Gene 阶段 5：`evals/experience-gene` smoke3/core10 + metrics + 离线治理抽样 + rollback，live 转 CI |
 | `archived-plans/architecture-remediation-mainline-archived.md` | 2026-09-02 | 架构收敛与渐进 Go 化一次性根治主线 (P0-P8, 38项, 619行, budgets 37, 42表, 69+165+123 tests, PR #8 8f32928b) |
 | `archived-plans/architecture-remediation-mainline-b-true-convergence-archived.md` | 2026-09-02 | 架构收敛 B 真收敛 (58 budgets, internal-client 1307->6, route-defs 1460->8, operations 658->4, adapters 360->6, 955 tests, PR #10 0d754b73, B3 deferred) |
 | `archived-plans/architecture-remediation-phase1-route-retrieval-archived.md` | 2026-09-02 | Phase1 路由与检索解耦 (gov 914→5, kw 826→3, recall/search seeded) |
@@ -135,4 +141,4 @@
 
 文档归档而非删除，保留历史决策背景供参考。归档文档不应被其他文档当作当前执行入口引用；归档文档内部链接不再维护。
 
-当前根 `plan.md` 的 active mainline 是 Experience Gene Infrastructure and Pipeline。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。
+当前根 `plan.md` 的 active mainline 已于 2026-09-03 由 Experience Gene Infrastructure and Pipeline 切至 Web Panel 功能补全与 UI 美化优化（`docs/plans/web-panel-feature-and-ui-optimization-paused.md` 待迁回 `docs/todos/`）。历史主线、空白清单和已完成 closeout 若需追溯，统一通过本页或相应 archived plan 查找；若未来重新启动归档主题，应新建 active 细则，而不是直接恢复旧归档文档承担执行面。

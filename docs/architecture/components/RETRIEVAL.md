@@ -2,6 +2,13 @@
 
 > 真源：`packages/service-knowledge-read` 与 `packages/contracts/src/domain/retrieval.ts`；图索引真相在 `packages/db/src/schema/retrieval.ts` 与 `packages/db/src/schema/knowledge.ts`。
 
+## 设计灵感
+
+本检索系统的两个近期演进直接以论文为出发点：
+
+- **Experience Gene 检索（gene-native）** — 论文 *From Procedural Skills to Strategy Genes: Towards Experience-Driven Test-Time Evolution*（HTML: https://arxiv.org/html/2604.15097v2 · ABS: https://arxiv.org/abs/2604.15097）。该文证明：文档型 Skill（~2500 tokens, -1.1pp）的控制信号稀疏，而紧凑的 control-oriented Gene（~230 tokens, +3.0pp, 45 scenarios / 4590 trials，`g=(m,u,π,α,c,v)`）更利于 test-time 控制。TrapMap 将其 1:1 落为 `ExperienceGene{ signalsMatch=m, summary=u, strategy=π, avoid=α, constraints=c, validation=v }`（`packages/contracts/src/domain/experience-gene.ts`），经 `trap / skill-artifact(bounded 16k) / skill-capsule` 三源派生，以 `gene-native` 投影独立于 `RetrievalMatch / SkillCapsule` 检索池提供 `POST /v1/retrieval/genes/search`（`off|shadow|serve`）与 `<strategy-gene>` 注入块（`packages/lib/src/strategy-gene.ts`）。详见主线 `docs/archived/archived-plans/experience-gene-program-mainline-archived.md`。
+- **v3 Trap-First Plan 图编排 / ExecutionPlan** — 论文 *GraSP (arXiv:2604.17870, PDF: https://arxiv.org/pdf/2604.17870)* 的 DAG 编译（`state / data / order` 边）与 *SkillGraph (2605.12039)* 的 `R_ret = TopoSort(...)` 拓扑排序。TrapMap 在 `TrapFirstPlan` 中新增 `executionPlan: ExecutionStep[]`（`packages/contracts/src/domain/plans.ts`），由 `plan-compiler.ts` 的 `buildExecutionPlan()` 对 `mitigates / requires / order` 边执行 Kahn 排序，输出 `{ rank, nodeId, label, kind:trap-mitigation|skill, blockedBy }`，供 CLI/MCP 直接消费；详见 `docs/superpowers/plans/2026-05-25-topological-execution-plan.md`。
+
 ## 概述
 
 TrapMap 提供分层检索：
@@ -88,7 +95,9 @@ searchKnowledgeV2
 | keyword | 0.17 |
 | contextualPrefix | 0.15 |
 
-## v3 陷阱优先计划
+## v3 陷阱优先计划（灵感：GraSP arXiv:2604.17870 + SkillGraph 2605.12039）
+
+> 出发点论文：*GraSP* PDF https://arxiv.org/pdf/2604.17870（DAG 编译 + state/data/order 边 + 拓扑序执行）与 *SkillGraph* `R_ret = TopoSort(R_seed ∪ R_BFS ∪ R_beam)`（prerequisite / enhancement 边）。TrapMap 的 `executionPlan` 即该思想在 `TrapFirstPlan` 上的工程化：`mitigates / requires / order → Kahn → ExecutionStep[]`。
 
 ```mermaid
 flowchart TB
