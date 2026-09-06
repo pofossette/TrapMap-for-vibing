@@ -140,7 +140,7 @@ AI 预审结果：`agent-pass | agent-rejected`，含 `duplicateRisk/correctness
 
 | 术语 | 说明 |
 |------|------|
-| **Smoke / Core Test** | `evals/retrieval/` 的 `smoke`（快速）与 `core`（全量）两档，`pnpm eval:smoke` |
+| **Smoke / Core Test** | `evals/retrieval/` 的 `smoke`（快速）与 `core`（全量）两档，`pnpm --filter @trapmap/evals eval:smoke` |
 | **Governance Failure** | 治理阶段可标准化失败分类，见 `docs/architecture/components/GOVERNANCE.md` |
 | **Groundedness/Coverage** | 摘要评估指标，见 `evals/summary/` |
 

@@ -133,6 +133,7 @@ pnpm dev -- gateway
 pnpm dev -- candidate-worker
 pnpm dev -- governance-worker
 pnpm dev -- outbox-worker
+pnpm dev:web                   # Web Panel 前端 Vite 4173
 ```
 
 根级开发命令现在优先通过 `pnpm dev -- <target>` 分发；旧别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍保留兼容。
@@ -162,28 +163,28 @@ curl http://127.0.0.1:4000/health
 
 ```bash
 # 运行 smoke 层级统一评测
-pnpm eval -- smoke
+pnpm --filter @trapmap/evals eval -- smoke
 
 # 运行 CI smoke tier baseline-aware eval
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # 运行检索评估
-pnpm eval -- retrieval
+pnpm --filter @trapmap/evals eval -- retrieval
 
 # 运行摘要评估
-pnpm eval -- summary
+pnpm --filter @trapmap/evals eval -- summary
 
 # 运行 agent 路径规划评估
-pnpm eval -- agent-planning --tier smoke
+pnpm --filter @trapmap/evals eval -- agent-planning --tier smoke
 
 # 运行标签对齐评估
-pnpm eval -- label-alignment --tier smoke --mode live
+pnpm --filter @trapmap/evals eval -- label-alignment --tier smoke --mode live
 
 # 运行所有 CI 评估（默认 smoke；core 使用独立入口）
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # 运行 CI core tier
-pnpm eval:ci:core
+pnpm --filter @trapmap/evals eval:ci:core
 
 # 运行仓库聚合 CI 本地脚本
 pnpm run ci
@@ -208,9 +209,9 @@ pnpm run ci
 - [测试指南](operations/TESTING.md) — 测试架构、运行方法和用例编写规范
 - [CI/CD 流水线](operations/CI_CD.md) — GitHub Actions 流水线、评测质量门
 
-当前 CI/testing 命令真相以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 为准，具体语义由 `package.json` 与 `reference/SYSTEM_TRUTH_SOURCES.md` 冻结。
+当前 CI/testing 命令真相以 `pnpm run ci`、`pnpm --filter @trapmap/evals eval:smoke`、`pnpm --filter @trapmap/evals eval:ci`、`pnpm --filter @trapmap/evals eval:ci:core` 为准，具体语义由 `package.json` 与 `reference/SYSTEM_TRUTH_SOURCES.md` 冻结。
 
-日常本地运行推荐改用 `pnpm eval -- <suite> ...`；兼容别名继续保留给现有文档、CI 和历史工作流。
+日常本地运行推荐改用 `pnpm --filter @trapmap/evals eval -- <suite> ...`；兼容别名继续保留给现有文档、CI 和历史工作流。
 
 deployment flexibility 最小验证矩阵：
 - `pnpm test:observability-closeout`

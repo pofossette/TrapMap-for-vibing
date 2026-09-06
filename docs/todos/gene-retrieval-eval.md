@@ -12,7 +12,7 @@
 
 ### 1.1 为什么现在做
 
-- **大量架构调整已落地**：2026-08-10 以来完成 docs/archived/archived-plans/architecture-remediation-mainline-archived.md（P0-P8）与 architecture-remediation-mainline-b-true-convergence-archived.md（B 真收敛，58 budgets / 955 tests / fallow audit --base main 0 issues @0d754b73），涉及 host-* 真拆、@trapmap/* 边界、pgvector 治理统一、cache-port 真实现、route-surface 校验等。**在此之后，evals 体系未被系统性复测**，存在“看起来能 pnpm eval:smoke --dry-run，实际隔离/归一/治理语义漂移”的风险。
+- **大量架构调整已落地**：2026-08-10 以来完成 docs/archived/archived-plans/architecture-remediation-mainline-archived.md（P0-P8）与 architecture-remediation-mainline-b-true-convergence-archived.md（B 真收敛，58 budgets / 955 tests / fallow audit --base main 0 issues @0d754b73），涉及 host-* 真拆、@trapmap/* 边界、pgvector 治理统一、cache-port 真实现、route-surface 校验等。**在此之后，evals 体系未被系统性复测**，存在“看起来能 pnpm --filter @trapmap/evals eval:smoke --dry-run，实际隔离/归一/治理语义漂移”的风险。
 - **文档口径有轻度失真**：`docs/README.md` 的 active 主线仍为旧 Gene，`EVALUATION.md` 示例为旧接口。本次仅修正入口必要口径，其余随 T6 回写。
 
 - **Gene 检索已上线但评测缺口明显**：POST /v1/retrieval/genes/search（packages/service-knowledge-read/src/experience-gene-routes.ts:toExperienceGeneSearchContext / packages/service-knowledge-read/src/experience-gene-retrieval.ts:createPgExperienceGeneSearchPort）已在两宿主网关注册（packages/host-local/src/nest/gateway/gateway.module.ts:createHostLocalExperienceGeneGatewayDefs、packages/host-distributed/src/gateway/routes.ts:createExperienceGeneGatewayDeps），并由 apps/light/src/composition/experience-gene.ts / apps/distributed/src/composition/experience-gene.ts 薄组装 PgExperienceGeneSearchPort（@trapmap/infra:embedWithFallback）。但仓库内仅有**确定性 domain 评测** evals/experience-gene/（evals/experience-gene/lib/runner.ts:selectExperienceGenes 的 primarySelectionPrecision / knownPitfallAvoidanceRate 离线模型），**没有对真实 PG 链路（含 governance、keyword+vector 混合召回、tri-state mode、supplementaryAvoid、safety 扫描）的端到端检索评测**。与 retrieval 的 v1/v2/v3 四路相比，gene 侧是“有实现、无对抗性评测”。
@@ -75,10 +75,10 @@
 
 - **基座**：evals/scripts/eval-all.ts 串联 retrieval+summary 等，scripts/run-postgres-coordinated.ts:28 要求 docker.sock 可用；evals/promptfoo/runner.ts + bridge.ts 已切到 promptfoo 为默认 runner（evals/retrieval/run.ts:parseArgs_ 的 --runner promptfoo 默认）。pnpm check:docs/check:structure/check:asserts/typecheck 为守卫。
 - **待证风险**（需 T0 实测证实）：
-  1. pnpm eval:smoke --dry-run 在当前工作区曾因 docker sock 缺失而直接失败（2026-09-06 实测 dial unix /var/run/docker.sock: connect: no such file or directory），并非 eval 逻辑失败，但会阻塞 eval:smoke 作为健康探针。
+  1. pnpm --filter @trapmap/evals eval:smoke --dry-run 在当前工作区曾因 docker sock 缺失而直接失败（2026-09-06 实测 dial unix /var/run/docker.sock: connect: no such file or directory），并非 eval 逻辑失败，但会阻塞 eval:smoke 作为健康探针。
   2. B 真收敛后的 packages/host-* 真拆与 @trapmap/infra 抽离是否导致 evals/retrieval/lib/adapters.ts 的 buildPostgresComposedServer 导入路径/服务装配漂移（需 T0 的 pnpm check:structure + fallow audit --base main 复核）。
   3. gene 相关表的 pgvector 索引与 experience_gene_search_documents 投影是否在新 schema 下仍与 PgExperienceGeneSearchPort 的 SQL 保持一致（keywordRecall 的 p.document @@ websearch_to_tsquery + vectorRecall 的 <=>）；此一致性只能通过真正的 PG smoke 证明。
-  4. evals/experience-gene 的 promotionEligible 在新 scanExperienceGeneSafety 规则（packages/backend-core/src/knowledge-write/domain/experience-gene-safety.ts）下是否仍为 deterministic 1.0（需重跑 pnpm eval:experience-gene --tier core --mode serve）。
+  4. evals/experience-gene 的 promotionEligible 在新 scanExperienceGeneSafety 规则（packages/backend-core/src/knowledge-write/domain/experience-gene-safety.ts）下是否仍为 deterministic 1.0（需重跑 pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve）。
 
 ### 3.4 文档失真清单（最小口径，随评测同交付）
 
@@ -107,7 +107,7 @@
 - **交付**：
   - `reports/eval-health-baseline-2026-09-06.md` 的“文档基线”小节：罗列 §3.4 的失真清单在审计时刻的 `check:docs` diff（blocking vs non-blocking 分离）与各二级文档的入口一致性（`docs/README.md` vs `plan.md` 的 active mainline、`EVALUATION.md` 的接口示例 vs `evals/types/retrieval.ts` 的真实 schema、`REPO_STRUCTURE.md` 的评估清单 vs 实际 `evals/` 目录）
   - reports/eval-health-baseline-2026-09-06.md（或 docs/archived/reports/EVAL_HEALTH_BASELINE_2026-09-06.md，以 docs/reference/REPO_STRUCTURE.md 的生成目录规则为准——reports/ 为本地生成，docs/archived/reports/ 为归档 narrative；本任务先落 reports/，T6 归档时再 git mv）
-  - 内容：pnpm check:docs / check:structure / typecheck / check:asserts 结果；pnpm eval:smoke --dry-run 与各 suite 的 --dry-run 逐项结果（retrieval/summary/experience-gene/ingestion/graph-extraction/agent-planning/label-alignment）；若本机有 DB，则追加 pnpm eval:smoke 的真实 smoke 通过率与失败 case 归因；若无 DB，则明确记录"因 Docker/DB 门控未跑 live"并附 eval:experience-gene --tier core --mode serve（无 DB 可跑）的 deterministic 报告作为有效性旁证；fallow audit --base main 的边界合规结论。
+  - 内容：pnpm check:docs / check:structure / typecheck / check:asserts 结果；pnpm --filter @trapmap/evals eval:smoke --dry-run 与各 suite 的 --dry-run 逐项结果（retrieval/summary/experience-gene/ingestion/graph-extraction/agent-planning/label-alignment）；若本机有 DB，则追加 pnpm --filter @trapmap/evals eval:smoke 的真实 smoke 通过率与失败 case 归因；若无 DB，则明确记录"因 Docker/DB 门控未跑 live"并附 eval:experience-gene --tier core --mode serve（无 DB 可跑）的 deterministic 报告作为有效性旁证；fallow audit --base main 的边界合规结论。
 - **验收**：
   - [ ] pnpm check:docs / check:structure / typecheck（至少 contracts 与 service-knowledge-read 子集）PASS 或失败原因已归档为已知债务
   - [ ] evals/retrieval --tier smoke --dry-run、evals/experience-gene --tier smoke --mode shadow 等离线 dry-run 全部 green（load/validate 阶段无抛错）
@@ -123,7 +123,7 @@
   pnpm exec tsx --tsconfig tsconfig.base.json evals/experience-gene/run.ts --tier smoke --mode shadow
   pnpm exec tsx --tsconfig tsconfig.base.json evals/experience-gene/run.ts --tier core --mode serve
   # 有 DB 时补：
-  pnpm eval:smoke --dry-run 2>&1 | head -n 100
+  pnpm --filter @trapmap/evals eval:smoke --dry-run 2>&1 | head -n 100
   pnpm exec fallow audit --base main --no-cache 2>&1 | tail -n 30
   ```
 - **文件归属**：仅新增 reports/ 与/或 docs/archived/reports/，不改 evals/ 源码；因此与后续 T 无写入冲突。
@@ -278,7 +278,7 @@
   - 新增 evals/gene-retrieval/README.md：明确 deterministic evals/experience-gene vs PG evals/gene-retrieval 的分工、tri-state 与治理过滤行为、一键运行入口。
   - 按需在 docs/reference/api-surface.md 的 gene 行补充"已由 evals/gene-retrieval 覆盖"标记。
 - **验收**：
-  - [ ] pnpm eval:gene-retrieval --tier smoke --dry-run 在无 DB 机器上可通过（仅 load/validate）
+  - [ ] pnpm --filter @trapmap/evals eval:gene-retrieval --tier smoke --dry-run 在无 DB 机器上可通过（仅 load/validate）
   - [ ] promptfoo runner 与 native 的 buildDryRunResult 等价
   - [ ] `pnpm check:docs` blocking 全绿
   - [ ] pnpm check:docs / check:structure 绿；fallow audit --base main 无新增边界违规

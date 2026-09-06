@@ -38,9 +38,9 @@ go build -o /tmp/stress-go ./services/go-accelerator/cmd/stress
 /tmp/stress-go -scenario ranking-batch -duration 10s -check   # 阈值失败则 exit 1
 
 # pnpm 快捷（封装 Go）
-pnpm stress:go:batch-cosine
-pnpm stress:go:all
-pnpm stress:go -- -scenario dedup-flood -vus 100 -duration 10s
+pnpm --filter @trapmap/benchmarks stress:go:batch-cosine
+pnpm --filter @trapmap/benchmarks stress:go:all
+pnpm --filter @trapmap/benchmarks stress:go -- -scenario dedup-flood -vus 100 -duration 10s
 ```
 
 ## 输出
@@ -53,7 +53,7 @@ pnpm stress:go -- -scenario dedup-flood -vus 100 -duration 10s
 ## 与旧基建关系
 
 - `benchmarks/stress/k6/*.js` 与 `autocannon-batch-cosine.js` 保留为 `legacy`，标记 deprecated，`package.json` 的 `stress:*` 旧脚本仍可手工调用 `k6`，默认 `stress:go:*` 为主
-- `pnpm stress:all` 仍串行四场景，但内部已改为调用 Go 二进制（见 `package.json`）
+- `pnpm --filter @trapmap/benchmarks stress:all` 仍串行四场景，但内部已改为调用 Go 二进制（见 `package.json`）
 
 ## 与 Bench 的关系
 

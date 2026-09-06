@@ -10,7 +10,7 @@
 | 请求方式 | `app.inject()` | 真实 HTTP 请求 |
 | 隔离模型 | 每 case 独立 context + TRUNCATE | 共享 snapshot，全量恢复后依次执行 |
 | 数据控制 | fixture 直写 | 命名 snapshot 版本恢复 |
-| CI 集成 | `pnpm eval:smoke` 纳入 | 独立脚本，不默认纳入 CI |
+| CI 集成 | `pnpm --filter @trapmap/evals eval:smoke` 纳入 | 独立脚本，不默认纳入 CI |
 
 ## 快速开始
 
@@ -18,16 +18,16 @@
 
 ```bash
 # 运行 smoke 层级评测
-pnpm eval:retrieval:smoke
+pnpm --filter @trapmap/evals eval:retrieval:smoke
 
 # 运行 core 层级评测
-pnpm eval:retrieval:core
+pnpm --filter @trapmap/evals eval:retrieval:core
 
 # 空跑（验证布局，不执行）
-pnpm eval:retrieval:dry-run
+pnpm --filter @trapmap/evals eval:retrieval:dry-run
 
 # 带选项运行
-pnpm eval:retrieval --tier smoke --endpoint /v2/retrieval/search
+pnpm --filter @trapmap/evals eval:retrieval --tier smoke --endpoint /v2/retrieval/search
 ```
 
 ## 端点范围
@@ -170,7 +170,7 @@ expected: {
 2. 修正内容并完成 remediation
 3. 调用 `/v1/operations/badcases/:feedbackId/export` 或运行 `scripts/archived/export-badcase-to-eval.ts`
 4. 审核导出的 draft JSON，并补成 retrieval eval case
-5. 至少运行 `pnpm eval:retrieval:smoke` 或 `pnpm eval:smoke`，确保问题转化为固定回归题
+5. 至少运行 `pnpm --filter @trapmap/evals eval:retrieval:smoke` 或 `pnpm --filter @trapmap/evals eval:smoke`，确保问题转化为固定回归题
 
 当前仍未自动化的部分：
 
@@ -360,10 +360,10 @@ pnpm exec tsx evals/retrieval/run.ts --tier smoke --dry-run --allow-empty
 
 ```bash
 # 写入新基线
-pnpm eval:retrieval --tier smoke --write-baseline --baseline ./reports/baseline.json
+pnpm --filter @trapmap/evals eval:retrieval --tier smoke --write-baseline --baseline ./reports/baseline.json
 
 # 与基线比较
-pnpm eval:retrieval --tier smoke --baseline ./reports/baseline.json
+pnpm --filter @trapmap/evals eval:retrieval --tier smoke --baseline ./reports/baseline.json
 ```
 
 基线工件存储在 `--baseline` 指定的路径。比较显示每个切片的回归状态：
@@ -394,11 +394,11 @@ LLM 意图解析扩展了 `semanticQuery` 字段，用于优化语义召回通�
 
 ```bash
 # 运行 smoke 获取 baseline（regex 解析，semanticQuery 为 null）
-pnpm eval:retrieval:smoke
+pnpm --filter @trapmap/evals eval:retrieval:smoke
 
 # 若需对比 LLM 解析效果，在服务配置中启用 AI chat 后再次运行
 # 检查 RAG log metadata 中的 parseMethod 字段确认解析方式
-pnpm eval:retrieval:core
+pnpm --filter @trapmap/evals eval:retrieval:core
 ```
 
 效果对比维度：
@@ -431,5 +431,5 @@ PG 模式下的评测 harness 必须与 JSON 模式产生完全相同的 auth/gr
 
 - **Owner**：检索召回/路由 owner（service-knowledge-read 检索面）
 - **Tier 状态**：smoke 是 CI 门禁 tier；core tier 保留为 active（`evals/retrieval/datasets/core/`、`scenarios/core/`）
-- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（快照 parity，需 postgres coordinator）+ `pnpm eval:retrieval:smoke`
-- 修改 case/scenario/断言后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）
+- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（快照 parity，需 postgres coordinator）+ `pnpm --filter @trapmap/evals eval:retrieval:smoke`
+- 修改 case/scenario/断言后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm --filter @trapmap/evals eval:snapshots`）

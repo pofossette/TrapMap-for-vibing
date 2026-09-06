@@ -11,8 +11,8 @@ TrapMap 采用两级评估体系（Wave 8 收敛后，非核心 suite 的 core t
 ```mermaid
 flowchart TB
     subgraph 评估层级["评估层级"]
-        Smoke["Smoke 层<br/>CI 门禁，验证核心路径正确性<br/>命令: pnpm eval:smoke"]
-        Core["Core 层<br/>全面覆盖，验证边界条件和治理规则<br/>命令: pnpm eval:core"]
+        Smoke["Smoke 层<br/>CI 门禁，验证核心路径正确性<br/>命令: pnpm --filter @trapmap/evals eval:smoke"]
+        Core["Core 层<br/>全面覆盖，验证边界条件和治理规则<br/>命令: pnpm --filter @trapmap/evals eval:core"]
         ArchivedCore["归档 Core 层<br/>agent-planning / label-alignment / ingestion<br/>数据在 evals/&lt;suite&gt;/archived/，手动运行"]
 
         Smoke --> Core
@@ -26,8 +26,8 @@ tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 
 - **agent-planning / label-alignment / ingestion**：core tier 已于 Wave 8 归档（`evals/<suite>/archived/`），
   `core.ts` 聚合器 re-export archived 数据，`--tier core` 仍可手动运行（manual tier），但不进 CI；
   归档文件不再维护内部链接。
-- **CI 门禁**：`pnpm eval:smoke`（eval-all aggregate）+ `pnpm eval:ci`（baseline-aware runner）+
-  `pnpm eval:snapshots` 生成的六套 parity 快照（`eval-parity` job 逐 case 比对）。
+- **CI 门禁**：`pnpm --filter @trapmap/evals eval:smoke`（eval-all aggregate）+ `pnpm --filter @trapmap/evals eval:ci`（baseline-aware runner）+
+  `pnpm --filter @trapmap/evals eval:snapshots` 生成的六套 parity 快照（`eval-parity` job 逐 case 比对）。
 
 ### 评估类型
 
@@ -43,14 +43,14 @@ tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 
 
 当前 platform mirror 入口约定：
 
-- unified aggregate runner（`pnpm eval -- smoke|core|all`）是当前唯一的 platform mirror 验证入口。
+- unified aggregate runner（`pnpm --filter @trapmap/evals eval -- smoke|core|all`）是当前唯一的 platform mirror 验证入口。
 - `retrieval`、`summary`、`agent-planning` 平台事件都已从 suite 侧各自的 `lib/platform-events.ts` 导出。
 - aggregate runner 只负责 adapter 选择、事件发布和 warning-only 失败处理；native TrapMap report 仍是 truth source。
 - dry-run 或缺配置 warning 只能证明 mirror 通道与失败语义不漂移，不能替代真实 Langfuse 目标的 live closeout。
 
 **Graph Extraction Eval Reporting:**
-- `pnpm eval:graph-extraction` — live mode, requires chat provider config
-- `pnpm eval:graph-extraction --dry-run` — runner validation only, no baseline extraction
+- `pnpm --filter @trapmap/evals eval:graph-extraction` — live mode, requires chat provider config
+- `pnpm --filter @trapmap/evals eval:graph-extraction --dry-run` — runner validation only, no baseline extraction
 - Treat a run as truly live only when the aggregate output shows all cases in `Live`
 - If the output contains `DEGRADED`, `Unavailable`, `Error`, or `Empty`, the run is not a clean live proof
 - A dry-run or unavailable run should NOT be used to evaluate LLM extraction quality
@@ -179,13 +179,13 @@ tier 归属（owner 与变更门禁详见各 suite README 与 `evals/README.md` 
   - `pnpm check:asserts`
   - `pnpm check:deps`
   - `pnpm check:complexity`
-  - `pnpm eval:smoke`
+  - `pnpm --filter @trapmap/evals eval:smoke`
 - 验证重点：Phase 7 只冻结 current active execution surface、historical/deferred doc role、CI job truth、eval command semantics、以及 deferred landing spot wording；不引入新的 runtime behavior。
 - CI/testing truth 解释：
   - `pnpm run ci` 是当前仓库聚合 CI 本地入口。
-  - `pnpm eval:smoke` 是 smoke tier 的统一 eval 聚合器。
-  - `pnpm eval:ci` 是 baseline-aware CI eval runner 的默认 smoke tier 入口。
-  - `pnpm eval:ci:core` 是同一 CI runner 的 core tier 入口；secondary docs 不应改写为别的用户面命令。
+  - `pnpm --filter @trapmap/evals eval:smoke` 是 smoke tier 的统一 eval 聚合器。
+  - `pnpm --filter @trapmap/evals eval:ci` 是 baseline-aware CI eval runner 的默认 smoke tier 入口。
+  - `pnpm --filter @trapmap/evals eval:ci:core` 是同一 CI runner 的 core tier 入口；secondary docs 不应改写为别的用户面命令。
 - 关闭条件：只有在 remediation detail plan、`SYSTEM_TRUTH_SOURCES.md`、`docs/README.md`、`docs/todos/README.md`、`docs/archived/README.md`、`CI_CD.md`、必要时 `REPO_STRUCTURE.md` 已同步更新，且四条 focused checks 实际通过并记录到 phase report 后，才能勾选 Wave 7A-7C。
 
 ### 目录结构
@@ -288,7 +288,7 @@ pnpm test:observability-closeout
 
 - 真实库快照导出：运行 `pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --output <path> [--teamId <teamId>]`，确认输出 JSON 只包含 retrieval eval 回放所需的 knowledge/artifact/graph 文档，而不是全库转储。
 - 快照场景回放：让某个 retrieval scenario 使用 `snapshot.kind='retrieval-db-snapshot'` + `snapshot.path`，确认 runner 会先恢复快照再执行 case，并且 scenario actor 可以覆盖快照自带 actor。
-- 最小验证：至少运行相关 contracts 测试与 `pnpm test:file -- evals/retrieval/lib/adapters.test.ts`；如果快照被接入 smoke/core 数据集，再补 `pnpm eval:retrieval:smoke` 或 `pnpm eval:smoke`。
+- 最小验证：至少运行相关 contracts 测试与 `pnpm test:file -- evals/retrieval/lib/adapters.test.ts`；如果快照被接入 smoke/core 数据集，再补 `pnpm --filter @trapmap/evals eval:retrieval:smoke` 或 `pnpm --filter @trapmap/evals eval:smoke`。
 
 ### Live Retrieval Eval（真实后端）
 
@@ -309,7 +309,7 @@ Live eval 在真实 TrapMap 服务实例上运行检索评测，使用命名 sna
 | Live eval contracts 测试 | `pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts` |
 | Snapshot fixture 加载 | `pnpm test:file -- evals/retrieval-live/lib/live-eval.test.ts`（loadSnapshot 测试） |
 | Snapshot 版本导出 | `pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version test-export --output /dev/null` |
-| Live eval dry-run | `pnpm eval:retrieval:live --snapshot-version test-smoke-baseline --base-url http://localhost:3000 --dry-run` |
+| Live eval dry-run | `pnpm --filter @trapmap/evals eval:retrieval:live --snapshot-version test-smoke-baseline --base-url http://localhost:3000 --dry-run` |
 
 **全量验证**（需要运行中的 TrapMap 服务）：
 
@@ -321,13 +321,13 @@ pnpm dev
 pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db-snapshot.ts --version 2026-07-baseline --teamId <teamId>
 
 # 3. 运行 live eval
-TRAPMAP_LIVE_EVAL_TOKEN=<token> pnpm eval:retrieval:live:smoke \
+TRAPMAP_LIVE_EVAL_TOKEN=<token> pnpm --filter @trapmap/evals eval:retrieval:live:smoke \
   --snapshot-version 2026-07-baseline \
   --base-url http://localhost:3000 \
   --json --json-path ./reports/live-smoke.json
 
 # 4. 对比两个版本
-pnpm eval:retrieval:live:compare \
+pnpm --filter @trapmap/evals eval:retrieval:live:compare \
   --baseline ./reports/live-baseline.json \
   --current ./reports/live-current.json
 ```
@@ -471,7 +471,7 @@ capability parity with `light`.
 | pgTable 单源守卫 | `pnpm check:pgtable-single-source` | service 包 src 内禁止直接 `pgTable(...)`，schema.ts 只允许 re-export `@trapmap/db` |
 | Eval import 边界守卫 | `pnpm check:eval-imports` | evals 只允许经 `@trapmap/*` 包名、`packages/contracts/**`、host-local allowlist、`@eval-only` 模块接入 packages |
 | @eval-only 标记守卫 | `pnpm check:eval-only` | 仅被 evals 引用且无产品消费者的模块必须带 `@eval-only` 头注释 |
-| Eval smoke | `pnpm eval:smoke` | **仅在**检索/摘要/治理/feedback/eval runner 相关改动时纳入 |
+| Eval smoke | `pnpm --filter @trapmap/evals eval:smoke` | **仅在**检索/摘要/治理/feedback/eval runner 相关改动时纳入 |
 
 `packages/host-local/src/nest/**` 若有改动，应额外运行其包级测试或 focused Nest 相关测试；但它当前不是 root `dev:local-agent` / `dev:team-monolith` 的直接入口（可执行组装入口在 `apps/light`）。
 
@@ -513,7 +513,7 @@ capability parity with `light`.
 5. `pnpm test:discovery-closeout`
 6. `pnpm test:distributed-closeout`（含 runtime closeout 层）
 7. `pnpm check:docs` + `pnpm check:structure`
-8. `pnpm eval:smoke`（仅在检索/摘要/治理/feedback/eval runner 相关改动时）
+8. `pnpm --filter @trapmap/evals eval:smoke`（仅在检索/摘要/治理/feedback/eval runner 相关改动时）
 
 Phase 4 最小真实落地补充：
 
@@ -532,7 +532,7 @@ Phase 4 最小真实落地补充：
 5. `pnpm test:file -- packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts`
 6. `pnpm typecheck`
 7. `pnpm check:docs` + `pnpm check:structure`
-8. `pnpm eval:smoke`
+8. `pnpm --filter @trapmap/evals eval:smoke`
 
 ### 评测（Eval）
 
@@ -540,65 +540,65 @@ Phase 4 最小真实落地补充：
 
 ```bash
 # Smoke 层（快速，~10s）
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # Core 层（完整，~60s）
-pnpm eval:core
+pnpm --filter @trapmap/evals eval:core
 
 # 仅检索评估
-pnpm eval:retrieval:smoke
-pnpm eval:retrieval:core
+pnpm --filter @trapmap/evals eval:retrieval:smoke
+pnpm --filter @trapmap/evals eval:retrieval:core
 
 # 仅摘要评估
-pnpm eval:summary:smoke
-pnpm eval:summary:core
+pnpm --filter @trapmap/evals eval:summary:smoke
+pnpm --filter @trapmap/evals eval:summary:core
 
 # 仅路径规划评估
-pnpm eval:agent-planning:smoke
-pnpm eval:agent-planning:core
+pnpm --filter @trapmap/evals eval:agent-planning:smoke
+pnpm --filter @trapmap/evals eval:agent-planning:core
 
 # 仅 Experience Gene selection/safety 评估
-pnpm eval:experience-gene --tier smoke --mode shadow
-pnpm eval:experience-gene --tier core --mode serve
+pnpm --filter @trapmap/evals eval:experience-gene --tier smoke --mode shadow
+pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve
 
 **`--runner promptfoo` 引擎（native 已移除）**
 
 - 六个 suite 全部运行在 promptfoo 执行引擎（SuiteBridge），自研 native case 循环与
   `runner-api.ts` 执行循环已删除；`--runner` 默认 `promptfoo`（保留该 flag 仅为向后兼容，
   传入 `native` 也走 promptfoo 引擎）。
-- `pnpm eval` 分发默认注入 `--runner promptfoo`；各 suite 的 `run.ts` CLI 同样默认 promptfoo。
+- `pnpm --filter @trapmap/evals eval` 分发默认注入 `--runner promptfoo`；各 suite 的 `run.ts` CLI 同样默认 promptfoo。
 - 快照 parity：`evals/promptfoo/snapshots/*-smoke.json` 为各 suite smoke 判定快照，
   `evals/promptfoo/parity-*.test.ts` 重跑 bridge 并与快照逐 case 比对（不再依赖 native 代码）。
   CI 中 `eval.yml` 的 `eval-parity` job 为 blocking。
 - 验证命令：
-  - `pnpm eval -- agent-planning --tier smoke --dry-run`
+  - `pnpm --filter @trapmap/evals eval -- agent-planning --tier smoke --dry-run`
   - `pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts`
   - `pnpm test:file -- scripts/__tests__/run-eval.test.ts`
-  - `pnpm eval:graph-extraction --dry-run`
-  - `pnpm eval:ingestion --tier smoke --dry-run`（注意用 `--tier smoke`，run-eval 不接受 `--smoke`）
+  - `pnpm --filter @trapmap/evals eval:graph-extraction --dry-run`
+  - `pnpm --filter @trapmap/evals eval:ingestion --tier smoke --dry-run`（注意用 `--tier smoke`，run-eval 不接受 `--smoke`）
   - `pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts`
   - `pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts`
-  - `pnpm eval -- label-alignment --tier smoke --mode dry-run`
+  - `pnpm --filter @trapmap/evals eval -- label-alignment --tier smoke --mode dry-run`
   - `pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`
-  - `pnpm eval -- summary --tier smoke --dry-run`
+  - `pnpm --filter @trapmap/evals eval -- summary --tier smoke --dry-run`
   - `pnpm test:file -- evals/promptfoo/parity-summary.test.ts`
-  - `pnpm eval -- retrieval --tier smoke --dry-run`
+  - `pnpm --filter @trapmap/evals eval -- retrieval --tier smoke --dry-run`
   - `pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts`（需 PostgreSQL：parity-retrieval 测试自
     `TRAPMAP_POSTGRES_COORDINATOR_URL` 临时建库执行，无 coordinator 时自动 skip）
-  - `pnpm eval:snapshots`（在 postgres coordinator 下重新生成全部快照）
+  - `pnpm --filter @trapmap/evals eval:snapshots`（在 postgres coordinator 下重新生成全部快照）
 
 # 仅标签对齐评估
-pnpm eval:label-alignment:smoke
-pnpm eval:label-alignment:core
+pnpm --filter @trapmap/evals eval:label-alignment:smoke
+pnpm --filter @trapmap/evals eval:label-alignment:core
 
 # 仅图提取评估
-pnpm eval:graph-extraction:smoke
+pnpm --filter @trapmap/evals eval:graph-extraction:smoke
 
 # 仅摄取评估
-pnpm eval:ingestion:smoke
+pnpm --filter @trapmap/evals eval:ingestion:smoke
 
 # 详细输出（逐用例结果）
-pnpm eval:smoke -- --verbose
+pnpm --filter @trapmap/evals eval:smoke -- --verbose
 
 # Dry-run（验证用例格式，不执行）
 pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
@@ -608,10 +608,10 @@ pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 
 ```bash
 # 模拟 CI smoke
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # 模拟 CI core
-pnpm eval:ci:core
+pnpm --filter @trapmap/evals eval:ci:core
 
 # 查看 JSON 报告
 cat reports/eval-report.json
@@ -628,18 +628,18 @@ cat reports/eval-report.json
 set -a && source .env && set +a
 
 # 检索 core 评测（PG-backed，JSON 报告）
-pnpm eval:retrieval --tier core --json --json-path reports/eval/retrieval-core-postgres.json
+pnpm --filter @trapmap/evals eval:retrieval --tier core --json --json-path reports/eval/retrieval-core-postgres.json
 
 # 摘要 core 评测（fallback provider，JSON 报告）
-pnpm eval:summary --tier core --provider fallback --json --json-path reports/eval/summary-core-postgres.json
+pnpm --filter @trapmap/evals eval:summary --tier core --provider fallback --json --json-path reports/eval/summary-core-postgres.json
 
 # 图提取 smoke（捕获 live/fallback 文本证据）
-pnpm eval:graph-extraction --smoke | tee reports/eval/graph-extraction-smoke-live.txt
+pnpm --filter @trapmap/evals eval:graph-extraction --smoke | tee reports/eval/graph-extraction-smoke-live.txt
 
 # Duplicate eval（Phase 3 trap+skill duplicate recall）
-pnpm eval:dedup --dry-run | rg 'real-trap-exact-rmrf-quill'
-pnpm eval:dedup --dry-run | rg 'real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'
-pnpm eval:dedup --dry-run | rg 'real-trap-exact-rmrf-quill|real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'
+pnpm --filter @trapmap/evals eval:dedup --dry-run | rg 'real-trap-exact-rmrf-quill'
+pnpm --filter @trapmap/evals eval:dedup --dry-run | rg 'real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'
+pnpm --filter @trapmap/evals eval:dedup --dry-run | rg 'real-trap-exact-rmrf-quill|real-semantic-handoff-vs-doccoauthoring|real-none-postgres-tuning-vs-backup'
 
 # Queue dedupe + duplicate trace（Phase 4）
 pnpm exec vitest run \
@@ -655,7 +655,7 @@ pnpm exec vitest run \
   归档旧实现/src/lib/persistence/__tests__/schema-candidates.test.ts
 
 # 摄取 smoke（捕获文本证据）
-pnpm eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
+pnpm --filter @trapmap/evals eval:ingestion:smoke | tee reports/eval/ingestion-smoke-postgres.txt
 ```
 
 **注意：** eval runner 通过 `loadAiProviderConfig()` 读取环境变量，不会自动加载 `.env` 文件。
@@ -765,7 +765,7 @@ pnpm check:structure
 | 命令范围变更 | `pnpm check:docs` + smoke 测试（验证包级 DB 命令和 JSON 回退路径） |
 | 环境默认值变更 | `pnpm check:docs` + smoke 测试（验证 ENVIRONMENT.md 中的默认值正确） |
 | 深层架构文档变更 | `pnpm check:docs` + smoke 测试（验证 ARCHITECTURE.md / PERSISTENCE.md 中的运行时默认值和表计数） |
-| Schema 变更 (retrieval/artifact/eval) | `pnpm test` + `pnpm --filter @trapmap/contracts typecheck` + `pnpm eval:smoke` + `pnpm check:docs` + 更新 `DATABASE_SCHEMA.md` 表计数 |
+| Schema 变更 (retrieval/artifact/eval) | `pnpm test` + `pnpm --filter @trapmap/contracts typecheck` + `pnpm --filter @trapmap/evals eval:smoke` + `pnpm check:docs` + 更新 `DATABASE_SCHEMA.md` 表计数 |
 
 ### 后端工程化总控阶段最小验证矩阵
 
@@ -777,9 +777,9 @@ pnpm check:structure
 | `Phase 3` | `pnpm check:docs` + `pnpm check:structure` |
 | `Phase 4` | 本轮相关测试 + `pnpm check:docs` + `pnpm check:structure`；只有在 truth-source、计划边界和 closeout 规则回写完成后才能勾选根 `plan.md` |
 | CI 配置变更 | `pnpm check:docs` + 更新 `CI_CD.md` |
-| 架构变更 | `pnpm check:docs` + `pnpm check:complexity` + `pnpm eval:smoke` |
+| 架构变更 | `pnpm check:docs` + `pnpm check:complexity` + `pnpm --filter @trapmap/evals eval:smoke` |
 | 脚本/守卫变更 | `pnpm test -- --run scripts/__tests__/check-doc-drift.test.ts` + `pnpm check:docs` |
-| 摘要生成变更 (`summary.ts`) | `pnpm test -- --run 归档旧实现/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm eval:summary:smoke` |
+| 摘要生成变更 (`summary.ts`) | `pnpm test -- --run 归档旧实现/src/lib/retrieval/response/summary.test.ts evals/summary/__tests__/runner-api.test.ts` + `pnpm --filter @trapmap/evals eval:summary:smoke` |
 | 评测命令变更 | `pnpm check:docs` + smoke 测试（验证 EVALUATION.md / TESTING.md 中的 eval 命令正确） |
 | 贡献指南变更 | `pnpm check:docs` + smoke 测试（验证 CONTRIBUTING.md 中的 DB 命令格式） |
 
@@ -1010,7 +1010,7 @@ Phase 4 的重点不是让 Neo4j 改变召回哲学，而是验证同一 mixed r
 
 ```bash
 # 1. 默认 memory / disabled baseline
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # 2. healthy neo4j enabled
 TRAPMAP_GRAPH_DB_ENABLED=true \
@@ -1018,7 +1018,7 @@ TRAPMAP_GRAPH_DB_PROVIDER=neo4j \
 TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687 \
 TRAPMAP_GRAPH_DB_USERNAME=neo4j \
 TRAPMAP_GRAPH_DB_PASSWORD=neo4j \
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # 3. fail-open fallback
 TRAPMAP_GRAPH_DB_ENABLED=true \
@@ -1027,7 +1027,7 @@ TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:65535 \
 TRAPMAP_GRAPH_DB_USERNAME=neo4j \
 TRAPMAP_GRAPH_DB_PASSWORD=neo4j \
 TRAPMAP_GRAPH_DB_FAIL_OPEN=true \
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 ```
 
 检查点：
@@ -1081,10 +1081,10 @@ PG → Memory fallback:
 | `pnpm typecheck` | No errors found |
 | `pnpm lint` | Checked 629 files, no fixes |
 | `pnpm test` | 检索层 185 tests + route 78 tests 全通过 |
-| `pnpm eval:retrieval:smoke` | 32/32 (100%), v2 Hit@1=0.82 |
-| `pnpm eval:retrieval:core` | v2 Hit@1=0.86, Hit@5=0.93, MRR=0.89, nDCG=0.91 |
-| `pnpm eval:experience-gene --tier smoke --mode shadow` | 1 selected, 2 expected empty; precision=1.00, avoidance=1.00, safety violations=0 |
-| `pnpm eval:experience-gene --tier core --mode serve` | 9 selected, 1 expected empty; precision=1.00, avoidance=1.00, safety violations=0, token cost ratio≈0.90 |
+| `pnpm --filter @trapmap/evals eval:retrieval:smoke` | 32/32 (100%), v2 Hit@1=0.82 |
+| `pnpm --filter @trapmap/evals eval:retrieval:core` | v2 Hit@1=0.86, Hit@5=0.93, MRR=0.89, nDCG=0.91 |
+| `pnpm --filter @trapmap/evals eval:experience-gene --tier smoke --mode shadow` | 1 selected, 2 expected empty; precision=1.00, avoidance=1.00, safety violations=0 |
+| `pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve` | 9 selected, 1 expected empty; precision=1.00, avoidance=1.00, safety violations=0, token cost ratio≈0.90 |
 
 **Phase 7 Baseline 对比** (v2 Core):
 
@@ -1311,7 +1311,7 @@ pnpm typecheck
 pnpm test
 
 # Smoke 评估
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # 结构守卫
 pnpm test -- --run 归档旧实现/src/__tests__/snapshot-usage-guard.test.ts

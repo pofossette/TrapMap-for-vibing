@@ -14,10 +14,10 @@
 
 | 场景 | 路径 | 负载 | 阈值 | Go 命令 | k6 命令（legacy） |
 |------|------|------|------|---------|-------------------|
-| `batch-cosine` | `POST /v1/vector/batch-cosine` 1k×384 | 50VU 10s | p95 <15ms p99 <30ms 0% 5xx | `pnpm stress:go:batch-cosine` | `k6 run k6/batch-cosine.js` |
-| `ranking-batch` | `POST /v1/retrieval/ranking-batch` 1k entries | 30VU 10s | p95 <20ms | `pnpm stress:go:ranking` | `k6 run k6/ranking-batch.js` |
-| `dedup-flood` | `POST /v1/dedup/fingerprint` | 100VU 10s | p95 <10ms | `pnpm stress:go:dedup` | `k6 run k6/dedup-flood.js` |
-| `gene-derive` | `POST /v1/gene/derive-batch` 200 traps | 10VU 10s | p95 <50ms | `pnpm stress:go:gene-derive` | `k6 run k6/gene-derive.js` |
+| `batch-cosine` | `POST /v1/vector/batch-cosine` 1k×384 | 50VU 10s | p95 <15ms p99 <30ms 0% 5xx | `pnpm --filter @trapmap/benchmarks stress:go:batch-cosine` | `k6 run k6/batch-cosine.js` |
+| `ranking-batch` | `POST /v1/retrieval/ranking-batch` 1k entries | 30VU 10s | p95 <20ms | `pnpm --filter @trapmap/benchmarks stress:go:ranking` | `k6 run k6/ranking-batch.js` |
+| `dedup-flood` | `POST /v1/dedup/fingerprint` | 100VU 10s | p95 <10ms | `pnpm --filter @trapmap/benchmarks stress:go:dedup` | `k6 run k6/dedup-flood.js` |
+| `gene-derive` | `POST /v1/gene/derive-batch` 200 traps | 10VU 10s | p95 <50ms | `pnpm --filter @trapmap/benchmarks stress:go:gene-derive` | `k6 run k6/gene-derive.js` |
 
 Payload 1:1：Go 侧 `cmd/stress` 内 `rand.Seed(42)` 确定性生成，与 `k6` 的 `vec()` / `entry()` / `traps` 一致；输出 `benchmarks/results/stress-go-*.json`（聚合 `stress-go-all.json`）。
 
@@ -33,12 +33,12 @@ go run ./services/go-accelerator/cmd/stress -scenario batch-cosine -vus 5 -durat
 go run ./services/go-accelerator/cmd/stress -scenario batch-cosine -check # 阈值失败 exit 1
 
 # pnpm 快捷（封装 Go）
-pnpm stress:batch-cosine      # Go
-pnpm stress:go:all
-pnpm stress:go -- -scenario dedup-flood -vus 100 -duration 10s
+pnpm --filter @trapmap/benchmarks stress:batch-cosine      # Go
+pnpm --filter @trapmap/benchmarks stress:go:all
+pnpm --filter @trapmap/benchmarks stress:go -- -scenario dedup-flood -vus 100 -duration 10s
 
 # legacy（手工）
-pnpm stress:batch-cosine:legacy   # autocannon
+pnpm --filter @trapmap/benchmarks stress:batch-cosine:legacy   # autocannon
 k6 run benchmarks/stress/k6/batch-cosine.js
 ```
 
@@ -53,4 +53,4 @@ k6 run benchmarks/stress/k6/batch-cosine.js
 - Go `chi` 已有 `middleware.Timeout(10s)` + `Recoverer` + `RequestID`/`RealIP`
 - 新增 `middleware.RateLimit(100 rps)` 为 P1 建议（见性能审视），压测时通过 `RATE_LIMIT=200` 覆盖
 - Node 侧对 Go 批请求做 `p-limit(5)` 并发上限（见审视），**Go 压测直连 Go**，不走 Node，仅测加速面
-- Vitest 隔离：`benchmarks/stress/*.bench.ts` 不入 `pnpm test`，仅 `pnpm stress:*`（现 Go）
+- Vitest 隔离：`benchmarks/stress/*.bench.ts` 不入 `pnpm test`，仅 `pnpm --filter @trapmap/benchmarks stress:*`（现 Go）

@@ -34,23 +34,23 @@ pnpm exec tsx --tsconfig tsconfig.base.json scripts/archived/export-retrieval-db
 
 ```bash
 # Full smoke tier
-pnpm eval:retrieval:live:smoke --snapshot-version 2026-07-baseline --base-url http://localhost:3000
+pnpm --filter @trapmap/evals eval:retrieval:live:smoke --snapshot-version 2026-07-baseline --base-url http://localhost:3000
 
 # Filter by endpoint
-pnpm eval:retrieval:live --snapshot-version 2026-07-baseline --base-url http://localhost:3000 --endpoint /v2/retrieval/search
+pnpm --filter @trapmap/evals eval:retrieval:live --snapshot-version 2026-07-baseline --base-url http://localhost:3000 --endpoint /v2/retrieval/search
 
 # JSON report output
-pnpm eval:retrieval:live:smoke --snapshot-version 2026-07-baseline --base-url http://localhost:3000 --json --json-path ./reports/live-smoke.json
+pnpm --filter @trapmap/evals eval:retrieval:live:smoke --snapshot-version 2026-07-baseline --base-url http://localhost:3000 --json --json-path ./reports/live-smoke.json
 
 # Dry run (validate snapshot + load cases, skip execution)
-pnpm eval:retrieval:live --snapshot-version 2026-07-baseline --base-url http://localhost:3000 --dry-run
+pnpm --filter @trapmap/evals eval:retrieval:live --snapshot-version 2026-07-baseline --base-url http://localhost:3000 --dry-run
 ```
 
 ### Compare Versions
 
 ```bash
 # Run both versions, then compare
-pnpm eval:retrieval:live:compare --baseline ./reports/live-baseline.json --current ./reports/live-current.json
+pnpm --filter @trapmap/evals eval:retrieval:live:compare --baseline ./reports/live-baseline.json --current ./reports/live-current.json
 ```
 
 ## Snapshot Version Format

@@ -411,7 +411,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run smoke evaluation
-        run: pnpm eval:ci
+        run: pnpm --filter @trapmap/evals eval:ci
         env:
           NODE_ENV: test
       - name: Upload eval report
@@ -427,7 +427,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run core evaluation
-        run: pnpm eval:ci:core
+        run: pnpm --filter @trapmap/evals eval:ci:core
         env:
           NODE_ENV: test
           WRITE_BASELINE: 'true'
@@ -437,19 +437,19 @@ jobs:
 
 ```bash
 # Run all smoke tests (fast)
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # Run all core tests (comprehensive)
-pnpm eval:core
+pnpm --filter @trapmap/evals eval:core
 
 # Run specific evaluation
-pnpm eval:retrieval:smoke
-pnpm eval:summary:smoke
-pnpm eval:graph-extraction:smoke
-pnpm eval:ingestion:smoke
+pnpm --filter @trapmap/evals eval:retrieval:smoke
+pnpm --filter @trapmap/evals eval:summary:smoke
+pnpm --filter @trapmap/evals eval:graph-extraction:smoke
+pnpm --filter @trapmap/evals eval:ingestion:smoke
 
 # Run with report
-pnpm eval:ci:core
+pnpm --filter @trapmap/evals eval:ci:core
 ```
 
 ---
@@ -545,13 +545,13 @@ pnpm eval:ci:core
 1. 在 `evals/retrieval/datasets/<tier>/` 创建 TS 文件
 2. 导出 `RetrievalTestCase[]`，定义 query、expected、filter
 3. 在对应的 `smoke.ts` 或 `core.ts` 中 re-export
-4. 运行 `pnpm eval:retrieval:<tier>` 验证
+4. 运行 `pnpm --filter @trapmap/evals eval:retrieval:<tier>` 验证
 
 ### 创建摘要测试
 
 1. 在 `evals/summary/datasets/<tier>/` 创建 TS 文件
 2. 提供 sourceContent、summary、requiredFacts、forbiddenClaims
-3. 运行 `pnpm eval:summary:<tier>` 验证
+3. 运行 `pnpm --filter @trapmap/evals eval:summary:<tier>` 验证
 
 ---
 
@@ -585,21 +585,21 @@ pnpm eval:ci:core
 
 ```bash
 # 运行烟雾测试
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # 运行核心测试
-pnpm eval:core
+pnpm --filter @trapmap/evals eval:core
 
 # 运行特定评估类型
-pnpm eval:retrieval:smoke
-pnpm eval:retrieval:core
-pnpm eval:summary:smoke
-pnpm eval:summary:core
-pnpm eval:graph-extraction:smoke
-pnpm eval:ingestion:smoke
+pnpm --filter @trapmap/evals eval:retrieval:smoke
+pnpm --filter @trapmap/evals eval:retrieval:core
+pnpm --filter @trapmap/evals eval:summary:smoke
+pnpm --filter @trapmap/evals eval:summary:core
+pnpm --filter @trapmap/evals eval:graph-extraction:smoke
+pnpm --filter @trapmap/evals eval:ingestion:smoke
 
 # CI 网关
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 ```
 
 ## 测试用例管理

@@ -144,8 +144,8 @@ cases because the graph index wasn't populated.
 
 ### 评估相关变更
 
-- 评估用例添加/修改后，运行 `pnpm eval:smoke` 验证
-- CI 评估变更需确保 `pnpm eval:ci` 通过
+- 评估用例添加/修改后，运行 `pnpm --filter @trapmap/evals eval:smoke` 验证
+- CI 评估变更需确保 `pnpm --filter @trapmap/evals eval:ci` 通过
 
 ### 评测质量门
 

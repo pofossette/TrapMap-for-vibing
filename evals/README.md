@@ -8,13 +8,13 @@
 
 ```bash
 # 运行 smoke 层级（快速反馈）
-pnpm eval -- smoke
+pnpm --filter @trapmap/evals eval -- smoke
 
 # 运行 core 层级（更广泛覆盖）
-pnpm eval -- core
+pnpm --filter @trapmap/evals eval -- core
 
 # 运行完整评测，带 JSON 输出
-pnpm eval -- all --tier core --json --json-path ./reports/eval-report.json
+pnpm --filter @trapmap/evals eval -- all --tier core --json --json-path ./reports/eval-report.json
 
 # 空跑验证，不执行
 pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
@@ -23,52 +23,52 @@ pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 pnpm exec tsx evals/scripts/eval-all.ts --tier core --json --json-path ./reports/eval-report.json
 
 # aggregate runner 启用 Langfuse mirror
-pnpm eval -- smoke --platform langfuse
+pnpm --filter @trapmap/evals eval -- smoke --platform langfuse
 
 # aggregate runner 落本地平台事件 archive
-pnpm eval -- all --tier core --platform json-archive --platform-output-dir ./reports/platform-events
+pnpm --filter @trapmap/evals eval -- all --tier core --platform json-archive --platform-output-dir ./reports/platform-events
 
 # CI 模式（带基线对比）
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # CI core 模式
-pnpm eval:ci:core
+pnpm --filter @trapmap/evals eval:ci:core
 ```
 
 为特定类型运行评测：
 
 ```bash
 # 仅检索
-pnpm eval -- retrieval --tier smoke
-pnpm eval -- retrieval --tier core
+pnpm --filter @trapmap/evals eval -- retrieval --tier smoke
+pnpm --filter @trapmap/evals eval -- retrieval --tier core
 
 # 仅摘要
-pnpm eval -- summary --tier smoke
-pnpm eval -- summary --tier core
+pnpm --filter @trapmap/evals eval -- summary --tier smoke
+pnpm --filter @trapmap/evals eval -- summary --tier core
 
 # 仅 agent 路径规划
-pnpm eval -- agent-planning --tier smoke --dry-run
-pnpm eval -- agent-planning --tier core --dry-run
+pnpm --filter @trapmap/evals eval -- agent-planning --tier smoke --dry-run
+pnpm --filter @trapmap/evals eval -- agent-planning --tier core --dry-run
 
 # 仅标签对齐
-pnpm eval -- label-alignment --tier smoke --mode dry-run
-pnpm eval -- label-alignment --tier core --mode dry-run
+pnpm --filter @trapmap/evals eval -- label-alignment --tier smoke --mode dry-run
+pnpm --filter @trapmap/evals eval -- label-alignment --tier core --mode dry-run
 
 # 仅 Experience Gene selection/safety
-pnpm eval:experience-gene --tier smoke --mode shadow
-pnpm eval:experience-gene --tier core --mode serve
+pnpm --filter @trapmap/evals eval:experience-gene --tier smoke --mode shadow
+pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve
 
 # 从持久化 badcase trace 导出 eval draft
 pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
 ```
 
-兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:retrieval:*`、`pnpm eval:summary:*`、`pnpm eval:agent-planning:*`、`pnpm eval:label-alignment:*` 仍可用；统一入口由 `scripts/run-eval.ts` 提供，完整选项可通过 `pnpm eval -- --help` 查看。
+兼容别名 `pnpm --filter @trapmap/evals eval:smoke`、`pnpm --filter @trapmap/evals eval:core`、`pnpm --filter @trapmap/evals eval:retrieval:*`、`pnpm --filter @trapmap/evals eval:summary:*`、`pnpm --filter @trapmap/evals eval:agent-planning:*`、`pnpm --filter @trapmap/evals eval:label-alignment:*` 仍可用；统一入口由 `scripts/run-eval.ts` 提供，完整选项可通过 `pnpm --filter @trapmap/evals eval -- --help` 查看。
 
 `--platform` 与 `--platform-output-dir` 只对 aggregate suite（`smoke`、`core`、`all`）生效。当前 unified runner 的 platform mirror 验证入口也是 aggregate runner；其中 `retrieval`、`summary`、`agent-planning` 事件都已由 suite 侧导出，aggregate runner 只做发布。
 
 配置齐全并成功发送时，aggregate runner 会打印三条 live evidence：adapter enabled、suite event mirrored without publish warnings、flush completed without close warnings。若缺少配置或外部平台失败，则继续走 warning-only fallback，不改变 TrapMap native report 或退出码。
 
-截至 2026-07-07 23:25 CST，这条平台 mirror 主线的真实 Langfuse 目标验证已经完成：目标为本地 Docker Compose 启动的官方 Langfuse v3 实例 `http://127.0.0.1:3000`，同轮 `pnpm eval -- smoke --platform langfuse` 输出了 adapter enabled、`mirrored 1041 suite events without publish warnings`、flush completed 三条 success evidence，且 native smoke eval 仍以 81/81 passed 成功结束。`MLflow` 与第二平台切换验证继续属于 deferred work。
+截至 2026-07-07 23:25 CST，这条平台 mirror 主线的真实 Langfuse 目标验证已经完成：目标为本地 Docker Compose 启动的官方 Langfuse v3 实例 `http://127.0.0.1:3000`，同轮 `pnpm --filter @trapmap/evals eval -- smoke --platform langfuse` 输出了 adapter enabled、`mirrored 1041 suite events without publish warnings`、flush completed 三条 success evidence，且 native smoke eval 仍以 81/81 passed 成功结束。`MLflow` 与第二平台切换验证继续属于 deferred work。
 
 复跑这条 closeout 时，若本地 self-host 覆盖了 `MINIO_ROOT_PASSWORD`，记得同步对齐 `LANGFUSE_S3_*_SECRET_ACCESS_KEY`；否则 Langfuse 可能在 API health 正常时仍因 blob upload `SignatureDoesNotMatch` 失败。
 
@@ -160,17 +160,17 @@ evals/
 
 | Directory | Contents | Entry Command |
 |---|---|---|
-| `retrieval/` | Retrieval datasets, scenarios, metrics, and runner | `pnpm eval:retrieval:smoke` |
-| `summary/` | Summary datasets, scenarios, assertions, judge, and runner | `pnpm eval:summary:smoke` |
-| `agent-planning/` | Agent planning comparison datasets, scenarios, and runner | `pnpm eval:agent-planning:smoke` |
-| `label-alignment/` | Label alignment fixtures, recall/decision evaluation, and runner | `pnpm eval:label-alignment:smoke` |
-| `graph-extraction/` | Graph extraction, dedup, and conflict evaluation | `pnpm eval:graph-extraction:smoke` |
-| `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm eval:ingestion:smoke` |
+| `retrieval/` | Retrieval datasets, scenarios, metrics, and runner | `pnpm --filter @trapmap/evals eval:retrieval:smoke` |
+| `summary/` | Summary datasets, scenarios, assertions, judge, and runner | `pnpm --filter @trapmap/evals eval:summary:smoke` |
+| `agent-planning/` | Agent planning comparison datasets, scenarios, and runner | `pnpm --filter @trapmap/evals eval:agent-planning:smoke` |
+| `label-alignment/` | Label alignment fixtures, recall/decision evaluation, and runner | `pnpm --filter @trapmap/evals eval:label-alignment:smoke` |
+| `graph-extraction/` | Graph extraction, dedup, and conflict evaluation | `pnpm --filter @trapmap/evals eval:graph-extraction:smoke` |
+| `ingestion/` | Skill ingestion fixtures, assertions, adapter, and runner | `pnpm --filter @trapmap/evals eval:ingestion:smoke` |
 | `fixtures/` | Shared trap fixtures | Imported by eval suites |
 | `promptfoo/` | Shared promptfoo execution substrate (SuiteBridge, runner, providers) | Used by suite bridges |
-| `promptfoo/snapshots/` | Committed per-case smoke judgment snapshots for parity | `pnpm eval:snapshots` regenerates |
+| `promptfoo/snapshots/` | Committed per-case smoke judgment snapshots for parity | `pnpm --filter @trapmap/evals eval:snapshots` regenerates |
 | `promptfoo/scripts/generate-snapshots.ts` | Snapshot generator + per-suite case extractors | Used by parity tests |
-| `scripts/` | Cross-eval CI and aggregate runners | `pnpm eval:ci` |
+| `scripts/` | Cross-eval CI and aggregate runners | `pnpm --filter @trapmap/evals eval:ci` |
 
 ## promptfoo 引擎与快照 parity
 
@@ -181,11 +181,11 @@ promptfoo 只做执行载体。
 
 `evals/promptfoo/snapshots/<suite>-smoke.json` 记录了各 suite smoke tier 的逐 case 判定
 （`caseId` + `passed` + suite 相关数值字段，按 `caseId` 排序、提交输出确定）。快照由
-`pnpm eval:snapshots` 生成（summary/retrieval 需 postgres coordinator）：
+`pnpm --filter @trapmap/evals eval:snapshots` 生成（summary/retrieval 需 postgres coordinator）：
 
 ```bash
 # 重新生成全部快照（在 postgres coordinator 下）
-pnpm eval:snapshots
+pnpm --filter @trapmap/evals eval:snapshots
 
 # 快照 parity 测试：重跑 bridge 并与提交快照逐 case 比对（不依赖 native 代码）
 pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts
@@ -206,13 +206,13 @@ aggregate）与 `eval-parity`（六套 parity 快照）；两者只保证 smoke 
 
 | Suite | Owner | Tier 状态 | 变更必跑门禁 |
 |-------|-------|-----------|--------------|
-| `retrieval` | 检索召回/路由 owner（service-knowledge-read 检索面） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts` + `pnpm eval:retrieval:smoke` |
-| `summary` | 摘要 owner（service-knowledge-read 摘要面） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-summary.test.ts` + `pnpm eval:summary:smoke` |
-| `graph-extraction` | 图提取 owner（service-knowledge-read graph + ai-providers） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts` + `pnpm eval:graph-extraction:smoke` |
+| `retrieval` | 检索召回/路由 owner（service-knowledge-read 检索面） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-retrieval.test.ts` + `pnpm --filter @trapmap/evals eval:retrieval:smoke` |
+| `summary` | 摘要 owner（service-knowledge-read 摘要面） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-summary.test.ts` + `pnpm --filter @trapmap/evals eval:summary:smoke` |
+| `graph-extraction` | 图提取 owner（service-knowledge-read graph + ai-providers） | smoke=CI gate；core=保留 | `pnpm test:file -- evals/promptfoo/parity-graph-extraction.test.ts` + `pnpm --filter @trapmap/evals eval:graph-extraction:smoke` |
 | `agent-planning` | agent-planning eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `pnpm test:file -- evals/promptfoo/parity-agent-planning.test.ts` + `pnpm test:file -- evals/agent-planning/runner.test.ts` |
 | `label-alignment` | label-alignment eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts` + `pnpm test:file -- evals/label-alignment/core.test.ts` |
-| `ingestion` | ingestion eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts` + `pnpm eval:ingestion:smoke` |
-| `promptfoo` 基建与快照 | 全部 suite owner 共同维护 | 快照为提交产物 | 修改 runner/provider/assertion 后：`pnpm eval:snapshots` 重生成快照并提交 + 六个 parity 测试全绿 |
+| `ingestion` | ingestion eval owner | smoke=CI gate；core=已归档（`archived/`，手动 tier） | `pnpm test:file -- evals/promptfoo/parity-ingestion.test.ts` + `pnpm --filter @trapmap/evals eval:ingestion:smoke` |
+| `promptfoo` 基建与快照 | 全部 suite owner 共同维护 | 快照为提交产物 | 修改 runner/provider/assertion 后：`pnpm --filter @trapmap/evals eval:snapshots` 重生成快照并提交 + 六个 parity 测试全绿 |
 
 tier 约定：
 
@@ -378,7 +378,7 @@ interface EvalReport {
 使用 `--verbose` 获取详细的每个用例输出：
 
 ```bash
-pnpm eval:smoke -- --verbose
+pnpm --filter @trapmap/evals eval:smoke -- --verbose
 ```
 
 统一运行器显示：
@@ -409,8 +409,8 @@ pnpm eval:smoke -- --verbose
 
 | 脚本 | 用途 |
 |------|------|
-| `pnpm eval:ci` | CI 优化运行器，带 GitHub Actions 输出，写入报告到 `reports/eval-report.json` |
-| `pnpm eval:ci:core` | Core 层级 CI 运行器（设置 `TIER=core`），用于定时运行 |
+| `pnpm --filter @trapmap/evals eval:ci` | CI 优化运行器，带 GitHub Actions 输出，写入报告到 `reports/eval-report.json` |
+| `pnpm --filter @trapmap/evals eval:ci:core` | Core 层级 CI 运行器（设置 `TIER=core`），用于定时运行 |
 
 CI 运行器（`evals/scripts/eval-ci.ts`）与本地运行器不同：
 - 将机器可读的 JSON 报告写入 `reports/eval-report.json`
@@ -424,13 +424,13 @@ CI 运行器（`evals/scripts/eval-ci.ts`）与本地运行器不同：
 
 ```bash
 # 模拟 CI smoke 运行
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # 模拟 CI core 运行
-TIER=core pnpm eval:ci
+TIER=core pnpm --filter @trapmap/evals eval:ci
 
 # 带 GitHub Actions 输出运行（用于测试）
-GITHUB_OUTPUT=/tmp/gh-output pnpm eval:ci
+GITHUB_OUTPUT=/tmp/gh-output pnpm --filter @trapmap/evals eval:ci
 ```
 
 ## 治理 vs 相关性
