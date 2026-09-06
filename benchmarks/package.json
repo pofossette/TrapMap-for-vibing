@@ -1,0 +1,27 @@
+{
+  "name": "@trapmap/benchmarks",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "bench": "pnpm run bench:compute",
+    "bench:compute": "cd .. && pnpm exec tsx benchmarks/harness/run-bench.ts --compute",
+    "bench:compare": "cd .. && pnpm exec tsx benchmarks/harness/run-bench.ts --compare",
+    "stress:batch-cosine": "cd ../services/go-accelerator && go run ./cmd/stress -scenario batch-cosine",
+    "stress:ranking": "cd ../services/go-accelerator && go run ./cmd/stress -scenario ranking-batch",
+    "stress:dedup": "cd ../services/go-accelerator && go run ./cmd/stress -scenario dedup-flood",
+    "stress:gene-derive": "cd ../services/go-accelerator && go run ./cmd/stress -scenario gene-derive",
+    "stress:all": "cd ../services/go-accelerator && go run ./cmd/stress -scenario all",
+    "stress:go": "cd ../services/go-accelerator && go run ./cmd/stress",
+    "stress:go:batch-cosine": "cd ../services/go-accelerator && go run ./cmd/stress -scenario batch-cosine",
+    "stress:go:ranking": "cd ../services/go-accelerator && go run ./cmd/stress -scenario ranking-batch",
+    "stress:go:dedup": "cd ../services/go-accelerator && go run ./cmd/stress -scenario dedup-flood",
+    "stress:go:gene-derive": "cd ../services/go-accelerator && go run ./cmd/stress -scenario gene-derive",
+    "stress:go:all": "cd ../services/go-accelerator && go run ./cmd/stress -scenario all",
+    "stress:list": "cd ../services/go-accelerator && go run ./cmd/stress -list",
+    "stress:batch-cosine:legacy": "cd .. && node benchmarks/stress/autocannon-batch-cosine.js",
+    "stress:ranking:legacy": "cd .. && node --loader ts-node/esm benchmarks/stress/k6/ranking-batch.js 2>&1 | head -n 20; echo 'use k6 run benchmarks/stress/k6/ranking-batch.js'",
+    "stress:dedup:legacy": "cd .. && node benchmarks/stress/k6/dedup-flood.js 2>&1 | head -n 20; echo 'use k6 run benchmarks/stress/k6/dedup-flood.js'",
+    "stress:gene-derive:legacy": "cd .. && node benchmarks/stress/k6/gene-derive.js 2>&1 | head -n 20; echo 'use k6 run benchmarks/stress/k6/gene-derive.js'"
+  }
+}
