@@ -9,6 +9,7 @@
 | 文件 | 角色 | 状态 |
 |---|---|---|
 | [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Active mainline；2026-09-03 恢复（原 paused successor，5 阶段：Phase 0 token → Phase 1 Session/RBAC → Phase 2 Admin Contracts/Routes → Phase 3 Feature Completion → Phase 4/5 Polish & Perf） |
+| [gene-retrieval-eval.md](gene-retrieval-eval.md) | Gene 检索评测扩展（模仿四路检索新增 gene PG 评测） | Active detail（并行，2026-09-06 落规格）；T0 健康基线门控 → T1 types → (T2 scenarios ‖ T4 adapters) → T3 datasets → T5 metrics/governance → T6 runner/bridge；后续按 subagent-driven 并行执行 |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [go-accelerator-mainline.md](go-accelerator-mainline.md) | Go 加速服务 scaffold（已合入 `pre`） | 已合入 `pre@a9b413b5`；见 `go-compute-hub-mainline.md` 深化 |
@@ -47,7 +48,7 @@
 
 ## 当前状态说明
 
-**当前 active mainline 是 Web Panel 功能补全与 UI 美化优化。** owner 细则见 [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md)（原 `../plans/web-panel-feature-and-ui-optimization-paused.md` paused successor，已于 2026-09-03 经 `git mv` 迁回恢复）。Experience Gene 已于 2026-09-03 归档至 [`experience-gene-program-mainline-archived.md`](../archived/archived-plans/experience-gene-program-mainline-archived.md) 及其 5 个 delegated phase。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。其余主线均只能作为历史证据查找。
+**当前 active mainline 是 Web Panel 功能补全与 UI 美化优化。** owner 细则见 [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md)（原 `../plans/web-panel-feature-and-ui-optimization-paused.md` paused successor，已于 2026-09-03 经 `git mv` 迁回恢复）。 并行 active detail 见 [gene-retrieval-eval.md](gene-retrieval-eval.md)（Gene PG 检索评测，T0 门控，T1-T6 待 subagent dispatch）。Experience Gene 已于 2026-09-03 归档至 [`experience-gene-program-mainline-archived.md`](../archived/archived-plans/experience-gene-program-mainline-archived.md) 及其 5 个 delegated phase。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。其余主线均只能作为历史证据查找。
 
 并行双轨（已合入 `pre` 待深化）：
 - **Go 计算中枢**：`go-accelerator-mainline.md` scaffold 已合入 `pre@a9b413b5`，深化见 [`go-compute-hub-mainline.md`](go-compute-hub-mainline.md)（P0 批余弦/回退向量/hash 接线 → P1 ranking/keyword 批处理 → P2 dedup/派生管线 → P3 缓存/proto 可选）。
