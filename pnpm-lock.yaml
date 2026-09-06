@@ -251,6 +251,10 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.13)(@types/node@25.6.0)(jiti@2.7.0)(jsdom@29.1.1)(lightningcss@1.32.0)(tsx@4.21.0)(yaml@2.8.3)
 
+  benchmarks: {}
+
+  evals: {}
+
   packages/ai-providers:
     dependencies:
       '@langchain/core':
