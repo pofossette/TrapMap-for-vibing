@@ -20,7 +20,12 @@ describe('knowledge-read deps', () => {
       listByFilter: vi.fn(async () => ({ items: [], total: 0 })),
     };
     const retrievalQuery = {
-      search: vi.fn(async () => ({ results: [] })),
+      search: vi.fn(async () => ({
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      })),
     };
 
     const deps = createKnowledgeReadDeps({
@@ -63,9 +68,21 @@ describe('knowledge-read deps', () => {
     };
     const retrievalQuery = {
       search: vi.fn(async () => ({
-        results: [{ entryId: 'entry-1', score: 0.99 }],
-        totalEstimate: 1,
-        channel: 'derived-index',
+        globalConstraints: [],
+        projectKnowledge: [
+          {
+            entryId: 'entry-1',
+            scope: 'project',
+            requiredLevel: 0,
+            shortcut: 'entry-1',
+            detail: 'entry detail',
+            labels: [],
+            score: 0.99,
+            reason: 'test match',
+          },
+        ],
+        refinementSummary: null,
+        summary: null,
       })),
     };
 
@@ -79,9 +96,21 @@ describe('knowledge-read deps', () => {
     await expect(module.getById('entry-1')).resolves.toMatchObject({ id: 'entry-1' });
     await expect(module.listMine('user-1', 'team-2')).resolves.toHaveLength(1);
     await expect(module.search({ query: 'hello', teamId: 'team-1', limit: 3 })).resolves.toEqual({
-      results: [{ entryId: 'entry-1', score: 0.99 }],
-      totalEstimate: 1,
-      channel: 'derived-index',
+      globalConstraints: [],
+      projectKnowledge: [
+        {
+          entryId: 'entry-1',
+          scope: 'project',
+          requiredLevel: 0,
+          shortcut: 'entry-1',
+          detail: 'entry detail',
+          labels: [],
+          score: 0.99,
+          reason: 'test match',
+        },
+      ],
+      refinementSummary: null,
+      summary: null,
     });
 
     expect(knowledgeRepo.getById).not.toHaveBeenCalled();
@@ -100,7 +129,12 @@ describe('knowledge-read deps', () => {
         listByFilter: vi.fn(async () => ({ items: [], total: 0 })),
       },
       retrievalQuery: {
-        search: vi.fn(async () => ({ results: [] })),
+        search: vi.fn(async () => ({
+          globalConstraints: [],
+          projectKnowledge: [],
+          refinementSummary: null,
+          summary: null,
+        })),
       },
       skillLookup: vi.fn(async () => ({ matches: [] })),
     });
@@ -187,7 +221,14 @@ describe('knowledge-read deps', () => {
             total: 1,
           }),
       },
-      retrievalQuery: { search: vi.fn(async () => ({ results: [] })) },
+      retrievalQuery: {
+        search: vi.fn(async () => ({
+          globalConstraints: [],
+          projectKnowledge: [],
+          refinementSummary: null,
+          summary: null,
+        })),
+      },
       skillLookup: vi.fn(async () => ({ matches: [] })),
     });
     const module = createKnowledgeReadServiceModule(deps);

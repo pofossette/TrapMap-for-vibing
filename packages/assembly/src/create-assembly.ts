@@ -1,8 +1,8 @@
 import { Context, type Fiber, type Plugin } from '@deepseek-ai/cordis';
 import {
+  createShutdownController,
   type ShutdownController,
   type ShutdownControllerOptions,
-  createShutdownController,
 } from './shutdown-controller.js';
 import { startupChecks } from './startup-checks.js';
 import type { AssemblyContext, CapabilityNode, ContractDescriptor } from './types.js';

@@ -1,11 +1,10 @@
 import { Button, toast } from '@heroui/react';
-import { type ReactElement, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { PageContainer, SectionHeader } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
+import { type ReactElement, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export function LoginPage(): ReactElement {
   const { t } = useI18nStore();

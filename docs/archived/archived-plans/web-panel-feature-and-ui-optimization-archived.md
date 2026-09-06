@@ -167,7 +167,7 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - 新增 `apps/web-panel/src/services/admin-panel-session-cookie-preference.test.ts` 4 个测试：env `cookie` 时即使有 bearer 也 `credentials:include`；env `bearer` 时有 token 则 `Authorization: Bearer` 且无 `credentials`；无 env 但 `document.cookie` 含 `trapmap_session` 时自动切 cookie 且 `getSessionToken` 回退解码；无 token 无 cookie 时 opportunistic `include`；验证 `isCookieTransportPreferred/resolveSessionTransportPreference/isGatewayCookieModePreferred`。
 - `apps/web-panel/src/vite-env.d.ts` 新增 `VITE_ADMIN_PANEL_SESSION_MODE` 类型，`docs/operations/ENVIRONMENT.md` 新增 conditional `Gateway session / cookie 偏好（P4B）` 小节说明 `SESSION_TRANSPORT` 与 `VITE_ADMIN_PANEL_SESSION_MODE` 需两端同时切 `cookie` 才形成 `httpOnly` 闭环；当前 `host-local` `auth-context.ts` + `host-distributed` `registerAuthHook` 仍仅 Bearer，故为条件偏好。
 - 当前取证：`pnpm --filter @trapmap/web-panel test --run` 31 files 102 tests、`pnpm --filter @trapmap/web-panel typecheck` 0、`pnpm --filter @trapmap/web-panel build` 3659 modules（首屏与 G6 保持 P4A 基线）；`pnpm typecheck` 0；`docs/plans/web-panel-feature-and-ui-optimization-paused.md` Phase1 `Prefer gateway session/cookie` 勾选为条件完成；commit `feat(web-panel): prefer gateway cookie session when available`。
-- 仍保留：`Phase 2` 生产 `/api/admin/*` RouteDef 与截图证据。
+- Phase 2 `/api/admin/*` RouteDef 已于 `89a8f24e`/`a77e062b` 完成；剩余仅截图证据与审计覆盖。
 
 ### 2026-08-31: server-side authorization tranche (P4A off mainline)
 

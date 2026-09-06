@@ -7,15 +7,15 @@
  * mounted on the public port (mirrors the distributed gateway).
  */
 
-import { InvocationError } from '@trapmap/backend-core';
 import type { RouteDef } from '@trapmap/backend-core';
+import { InvocationError } from '@trapmap/backend-core';
 import { cronJobCreateInputSchema, cronJobUpdateInputSchema } from '@trapmap/contracts';
 import { z } from 'zod';
 
 import {
-  type GatewayRouteDeps,
   authContextSchema,
   emptyRecord,
+  type GatewayRouteDeps,
   gatewayRouteDef,
 } from './gateway.route-kit.js';
 

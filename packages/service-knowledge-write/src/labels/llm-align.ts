@@ -9,14 +9,13 @@
  * or treated as alignment failures (not silent raw-text fallbacks).
  */
 
+import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 import type {
   LabelAlignmentCandidate,
   LabelAlignmentDecision,
   LabelAlignmentInput,
 } from '@trapmap/contracts';
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
-
-import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 import { prefixedId } from '@trapmap/lib';
 import type { ZodType } from 'zod';
 

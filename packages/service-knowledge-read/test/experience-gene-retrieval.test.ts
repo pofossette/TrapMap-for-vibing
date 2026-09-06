@@ -1,7 +1,6 @@
+import { createExperienceGeneFixture } from '@trapmap/backend-core/testing/index.js';
 import { Pool } from 'pg';
 import { describe, expect, it, vi } from 'vitest';
-
-import { createExperienceGeneFixture } from '@trapmap/backend-core/testing/index.js';
 
 import { createPgExperienceGeneSearchPort } from '../src/experience-gene-retrieval.js';
 

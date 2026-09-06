@@ -1,8 +1,7 @@
 import { Card, ListBox } from '@heroui/react';
-import { type ReactElement, type ReactNode, useCallback, useState } from 'react';
-
 import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import { type ReactElement, type ReactNode, useCallback, useState } from 'react';
 
 import { G6GraphComponent } from './g6-graph-component';
 

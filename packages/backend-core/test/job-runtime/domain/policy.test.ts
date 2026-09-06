@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isRetryExhausted,
   OUTBOX_CLAIM_BATCH_SIZE,
   OUTBOX_LEASE_MS,
   OUTBOX_MAX_ATTEMPTS,
@@ -9,6 +10,8 @@ import {
   OUTBOX_STATUS_FAILED,
   OUTBOX_STATUS_PENDING,
   OUTBOX_STATUS_PROCESSING,
+  retryBackoffMs,
+  statusAfterTaskFailure,
   TASK_DEFAULT_MAX_ATTEMPTS,
   TASK_DEFAULT_PRIORITY,
   TASK_LEASE_MS,
@@ -17,9 +20,6 @@ import {
   TASK_STATUS_DEAD,
   TASK_STATUS_PENDING,
   TASK_STATUS_RUNNING,
-  isRetryExhausted,
-  retryBackoffMs,
-  statusAfterTaskFailure,
 } from '../../../src/job-runtime/domain/index.js';
 
 describe('job-runtime queue policy', () => {

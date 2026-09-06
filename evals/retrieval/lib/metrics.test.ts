@@ -9,9 +9,9 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  EMPTY_TARGET_POLICY,
   averageMetrics,
   calculateMetrics,
+  EMPTY_TARGET_POLICY,
   hitAtK,
   mrr,
   ndcg,

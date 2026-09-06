@@ -6,6 +6,7 @@ import type {
   GraphIndexRepositoryPort,
   KnowledgeOwnerPort,
 } from '@trapmap/contracts';
+import { embedWithFallback } from '@trapmap/infra';
 import {
   type CandidateIngestionPgOwnerBundle,
   createCandidateIngestionPgOwnerBundle,
@@ -17,48 +18,46 @@ import {
   createCronScheduler,
 } from '@trapmap/service-cron';
 import {
-  type GovernanceReviewPgOwnerBundle,
   createGovernanceReviewPgOwnerBundle,
+  type GovernanceReviewPgOwnerBundle,
 } from '@trapmap/service-governance-review';
 import {
-  type IdentityAccessPortDeps,
   createIdentityAccessPgDeps,
+  type IdentityAccessPortDeps,
 } from '@trapmap/service-identity-access';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
 import {
-  type OwnerReadModelProjection,
-  type OwnerReadModelProjectionOptions,
   createCandidateCorpusPgReadPort,
   createKnowledgeReadGraphIndexRepository,
   createOwnerReadModelProjection,
   createPgExperienceGeneSearchPort,
+  type OwnerReadModelProjection,
+  type OwnerReadModelProjectionOptions,
 } from '@trapmap/service-knowledge-read';
 import {
   type ArtifactWritePort,
-  type KnowledgeWriteOwnerBundle,
   createExperienceGeneDerivationOperation,
   createExperienceGeneDerivationPlanner,
   createExperienceGeneStaleOperation,
   createKnowledgeWriteOwnerBundle,
+  type KnowledgeWriteOwnerBundle,
 } from '@trapmap/service-knowledge-write';
-
-import { embedWithFallback } from '@trapmap/infra';
 import type { HostLocalConfig } from '../config/index.js';
 import { createPrometheusExperienceGeneMetrics } from '../observability/experience-gene-metrics.js';
 import {
-  type HostLocalChannelRegistry,
-  type HostLocalStrategyRegistry,
   createHostLocalChannelRegistry,
   createHostLocalStrategyRegistry,
+  type HostLocalChannelRegistry,
+  type HostLocalStrategyRegistry,
 } from './retrieval-assembly.js';
 import { resolveHostLocalDeployment } from './runtime-deployment.js';
 import {
+  createHostLocalSharedInfra,
   type HostLocalAiProviders,
   type HostLocalAsyncTransport,
   type HostLocalGraphQueryBackend,
   type HostLocalGraphQueryRuntimeState,
   type HostLocalStore,
-  createHostLocalSharedInfra,
 } from './shared-infra.js';
 import { getHostLocalStorePool } from './store-pool.js';
 

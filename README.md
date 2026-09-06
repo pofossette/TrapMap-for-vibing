@@ -179,6 +179,12 @@ pnpm dev -- governance-worker   # distributed governance worker
 pnpm dev -- outbox-worker       # distributed outbox worker
 ```
 
+Web Panel 前端（独立）：
+
+```bash
+pnpm dev:web                   # 前端 Vite 4173（`apps/web-panel`）
+```
+
 兼容别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍可用，但后续文档和脚本维护默认以 `pnpm dev -- <target>` 为准。可用 target 列表见 `pnpm dev -- --help`。
 
 `light` 默认主入口：
@@ -260,13 +266,13 @@ pnpm check:docs
 评测脚手架入口：
 
 ```bash
-pnpm eval -- smoke
-pnpm eval -- core
-pnpm eval -- agent-planning --tier smoke --dry-run
-pnpm eval -- label-alignment --tier smoke --mode dry-run
+pnpm --filter @trapmap/evals eval -- smoke
+pnpm --filter @trapmap/evals eval -- core
+pnpm --filter @trapmap/evals eval -- agent-planning --tier smoke --dry-run
+pnpm --filter @trapmap/evals eval -- label-alignment --tier smoke --mode dry-run
 ```
 
-兼容别名 `pnpm eval:smoke`、`pnpm eval:core`、`pnpm eval:agent-planning:dry-run`、`pnpm eval:label-alignment:dry-run` 仍可用，但后续命令组合优先通过 `pnpm eval -- <suite> ...` 统一表达。可用 suite 与 flags 见 `pnpm eval -- --help`。
+兼容别名 `pnpm --filter @trapmap/evals eval:smoke`、`pnpm --filter @trapmap/evals eval:core`、`pnpm --filter @trapmap/evals eval:agent-planning:dry-run`、`pnpm --filter @trapmap/evals eval:label-alignment:dry-run` 仍可用，但后续命令组合优先通过 `pnpm --filter @trapmap/evals eval -- <suite> ...` 统一表达。可用 suite 与 flags 见 `pnpm --filter @trapmap/evals eval -- --help`。
 
 ## Vitest 使用要求
 

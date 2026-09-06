@@ -1,10 +1,11 @@
+import type {
+  CandidateSubmission,
+  CandidateCorpusReadPort as ContractCandidateCorpusReadPort,
+} from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
-
-import type { CandidateCorpusReadPort as ContractCandidateCorpusReadPort } from '@trapmap/contracts';
-import type { CandidateSubmission } from '@trapmap/contracts';
 import {
-  type CandidateCorpusReadPort,
   buildNormalizedDuplicateInput,
+  type CandidateCorpusReadPort,
   createCandidateDuplicateDetector,
 } from '../../../src/candidate-ingestion/domain/dedup.js';
 

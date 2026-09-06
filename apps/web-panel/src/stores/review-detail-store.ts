@@ -1,13 +1,12 @@
-import { create } from 'zustand';
-
 import type { ReviewDetailViewModel } from '@trapmap/web-panel/shared/enum-types';
 import {
-  type RequestState,
   createErrorRequestState,
   createIdleRequestState,
   createLoadingRequestState,
   createSuccessRequestState,
+  type RequestState,
 } from '@trapmap/web-panel/shared/lib/request-state';
+import { create } from 'zustand';
 
 type ReviewDetailStore = {
   currentReviewId: string | null;

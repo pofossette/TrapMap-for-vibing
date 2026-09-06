@@ -1,10 +1,16 @@
-import { Injectable, Logger, type OnApplicationShutdown, type OnModuleInit } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
 import {
-  OTEL_SHUTDOWN_TIMEOUT_MS,
-  type OtelSdkHandle,
+  Inject,
+  Injectable,
+  Logger,
+  type OnApplicationShutdown,
+  type OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
   bootstrapOtelSdk,
   boundedOtelShutdown,
+  OTEL_SHUTDOWN_TIMEOUT_MS,
+  type OtelSdkHandle,
 } from '@trapmap/backend-core';
 import type { OtelPolicyResult } from '@trapmap/contracts';
 
@@ -20,7 +26,7 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
   private sdk: OtelSdkHandle | null = null;
   private policy: OtelPolicyResult | null = null;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(@Inject(ConfigService) private readonly config: ConfigService) {}
 
   async onModuleInit() {
     const bootstrapped = await bootstrapOtelSdk(

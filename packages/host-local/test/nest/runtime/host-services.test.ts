@@ -78,8 +78,10 @@ vi.mock('../../../src/nest/runtime/retrieval-assembly.js', () => ({
 import { createCandidateIngestionPgOwnerBundle } from '@trapmap/service-candidate-ingestion';
 import { createCronOwnerBundle, createCronScheduler } from '@trapmap/service-cron';
 import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
-import { createOwnerReadModelProjection } from '@trapmap/service-knowledge-read';
-import { createKnowledgeReadGraphIndexRepository } from '@trapmap/service-knowledge-read';
+import {
+  createKnowledgeReadGraphIndexRepository,
+  createOwnerReadModelProjection,
+} from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 
 import type { HostLocalConfig } from '../../../src/nest/config/index.js';

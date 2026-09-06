@@ -19,12 +19,12 @@ import type { KnowledgeWritePort } from '../../ports/internal-ports.js';
 import type { KnowledgeEntryRecord } from '../../ports/repo-ports.js';
 
 import {
-  KNOWLEDGE_WRITE_OWNED_CAPABILITIES,
-  RESUBMIT_TARGET_STATE,
-  SUPERSEDE_TARGET_STATE,
   assertValidLifecycleTransition,
   isDeactivationAction,
+  KNOWLEDGE_WRITE_OWNED_CAPABILITIES,
+  RESUBMIT_TARGET_STATE,
   reviewDecisionTargetState,
+  SUPERSEDE_TARGET_STATE,
 } from '../domain/index.js';
 
 // ---------------------------------------------------------------------------

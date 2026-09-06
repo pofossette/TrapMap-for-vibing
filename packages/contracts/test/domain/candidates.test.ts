@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CandidateSubmissionSchema,
-  DuplicateCaseSchema,
-  ResolutionOutcomeSchema,
-  SkillBundleFileMetadataSchema,
   applyResolutionResponseSchema,
+  CandidateSubmissionSchema,
   candidateListResponseSchema,
   candidateSkillSubmissionSchema,
   candidateStatusResponseSchema,
+  DuplicateCaseSchema,
+  ResolutionOutcomeSchema,
+  SkillBundleFileMetadataSchema,
 } from '../../src/domain/candidates.js';
 
 // ---------------------------------------------------------------------------

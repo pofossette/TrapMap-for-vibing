@@ -71,10 +71,7 @@ export interface LlmJudgeProvider {
    * @param params - Summary text and forbidden patterns
    * @returns Found forbidden claims
    */
-  checkForbidden(params: {
-    summaryText: string;
-    forbiddenClaims: string[];
-  }): Promise<string[]>;
+  checkForbidden(params: { summaryText: string; forbiddenClaims: string[] }): Promise<string[]>;
 }
 
 /**

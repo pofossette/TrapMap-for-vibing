@@ -37,4 +37,5 @@ export interface NestBootstrapResult {
 export async function start(options: NestBootstrapOptions = {}): Promise<NestBootstrapResult> {
   return bootstrapNest(options);
 }
+
 import { bootstrapNest } from './nest/main.js';

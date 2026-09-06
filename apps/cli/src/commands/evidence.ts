@@ -1,3 +1,6 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
 import type { KnowledgeListResponse } from '@trapmap/contracts';
 import {
   evidenceLevelSchema,
@@ -5,10 +8,6 @@ import {
   knowledgeListResponseSchema,
 } from '@trapmap/contracts';
 import type { Command } from 'commander';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
 /**
  * Evidence level to ANSI color mapping per UI-SPEC.

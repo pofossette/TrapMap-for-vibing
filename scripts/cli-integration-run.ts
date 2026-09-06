@@ -1,6 +1,6 @@
 // scripts/cli-integration-run.ts
 // Phase 1-3 CLI matrix runner: executes CLI command families against a live gateway, records timings and docker snapshots
-import { execSync, spawn } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { collectOnce } from './cli-integration-collect.js';
@@ -98,7 +98,7 @@ export function runMatrix(opts: RunOptions): void {
 
   writeFileSync(
     join(outDir, 'cli-timings.jsonl'),
-    timings.map((t) => JSON.stringify(t)).join('\n') + '\n',
+    `${timings.map((t) => JSON.stringify(t)).join('\n')}\n`,
   );
   writeFileSync(
     join(outDir, 'loop-timings.json'),

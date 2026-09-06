@@ -1,5 +1,4 @@
-import { readFile } from 'node:fs/promises';
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { SkillSnapshot } from '../domain/diff.js';
 import { diffSnapshots } from '../domain/diff.js';

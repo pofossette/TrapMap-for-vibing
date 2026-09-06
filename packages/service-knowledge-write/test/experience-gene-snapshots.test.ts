@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
 import type { ExperienceGeneSourceSnapshot } from '@trapmap/contracts';
 import { sha256CanonicalJson } from '@trapmap/lib';
+import { describe, expect, it } from 'vitest';
 import { createPgExperienceGeneSourceLoaders } from '../src/experience-gene-snapshots.js';
 import { createExperienceGeneQueryPool } from '../src/testing/experience-gene-query-pool.js';
 

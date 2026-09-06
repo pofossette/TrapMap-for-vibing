@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import type { CapabilityNode } from '@trapmap/assembly';
 
 import {
   defineNode,
@@ -6,8 +6,8 @@ import {
   judgmentContracts,
   startupChecks,
 } from '@trapmap/assembly';
-import type { CapabilityNode } from '@trapmap/assembly';
 import { intentRecognitionConfigSchema } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import {
   hostLocalConfigNode,
   hostLocalPgNode,

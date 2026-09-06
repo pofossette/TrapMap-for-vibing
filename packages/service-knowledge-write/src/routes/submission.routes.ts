@@ -8,10 +8,8 @@ import {
 import type { AdminArtifactQuery } from '@trapmap/contracts';
 import { z } from 'zod';
 import { trustedActor } from '../route-helpers.js';
-import { knowledgeWriteRouteDef } from './helpers.js';
 import type { KnowledgeWriteRouteDeps } from './helpers.js';
 import {
-  KNOWLEDGE_WRITE_OWNERSHIP,
   adminArtifactDetailSchema,
   adminArtifactListSchema,
   experienceGeneDerivationSchema,
@@ -22,6 +20,8 @@ import {
   healthSchema,
   invokeKnowledgeWriteRpc,
   isArtifactVisible,
+  KNOWLEDGE_WRITE_OWNERSHIP,
+  knowledgeWriteRouteDef,
   maintenanceDecisionArgs,
   maintenanceDecisionSchema,
   parseArtifactCursor,
@@ -30,7 +30,6 @@ import {
   reviewDecisionArgs,
   reviewDecisionSchema,
   rpcSchema,
-  toConflictCandidate,
 } from './helpers.js';
 
 const emptyRecord = z.record(z.string(), z.unknown());
@@ -272,8 +271,17 @@ export function createKnowledgeSubmissionRouteDefs(): RouteDef<
           return artifact;
         } catch (e) {
           const fs = await import('node:fs');
-          const msg = e instanceof Error ? e.message + '\n' + e.stack : String(e);
-          fs.appendFileSync('/tmp/kw_handler_error.log', msg + '\n---\n');
+          const msg =
+            e instanceof Error
+              ? `${e.message}
+${e.stack}`
+              : String(e);
+          fs.appendFileSync(
+            '/tmp/kw_handler_error.log',
+            `${msg}
+---
+`,
+          );
           throw e;
         }
       },

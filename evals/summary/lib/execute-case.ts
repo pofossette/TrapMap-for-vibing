@@ -7,16 +7,15 @@
  * bridge so `--runner promptfoo` is per-case identical to native.
  */
 
-import type { RetrievalEvalScenario, SummaryEvalCase } from '../../types/index.js';
-
 import {
-  type ExecutionContext as RetrievalExecutionContext,
   closeExecutionContext,
   createActorSession,
   createExecutionContext as createRetrievalContext,
   executeThroughRoute,
+  type ExecutionContext as RetrievalExecutionContext,
   seedScenarioFixtures,
 } from '../../retrieval/lib/adapters.js';
+import type { RetrievalEvalScenario, SummaryEvalCase } from '../../types/index.js';
 import { summaryCoreScenariosMap } from '../scenarios/core/summary-core-scenarios.js';
 import { summarySmokeScenariosMap } from '../scenarios/smoke/summary-smoke-scenarios.js';
 import { evaluateSummaryVerdicts } from './assertions.js';

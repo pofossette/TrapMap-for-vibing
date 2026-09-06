@@ -14,7 +14,7 @@
  * current/active authority rather than historical context.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
 const repoRoot = resolve(import.meta.dirname, '..');

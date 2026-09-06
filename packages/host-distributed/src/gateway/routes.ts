@@ -15,19 +15,17 @@
  * not express).
  */
 
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-
 import { registerFastifyRoutes } from '@trapmap/backend-core';
 import { type GeneSearchQuery, geneSearchResponseSchema } from '@trapmap/contracts';
 import {
-  type ExperienceGeneSearchContext,
   createExperienceGeneRouteDefs,
+  type ExperienceGeneSearchContext,
 } from '@trapmap/service-knowledge-read';
-
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getGoAcceleratorConfig, getKnowledgeReadGoConfig } from '../config/service-config.js';
-import { type InternalServiceClients, breakerStatesSnapshot } from './internal-client.js';
+import { breakerStatesSnapshot, type InternalServiceClients } from './internal-client.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
-import { TokenBucketRateLimiter, resolveRateLimitConfig } from './rate-limit.js';
+import { resolveRateLimitConfig, TokenBucketRateLimiter } from './rate-limit.js';
 import { createGatewayRouteDefs, gatewayActorContext } from './route-defs.js';
 
 // ---------------------------------------------------------------------------
@@ -50,7 +48,7 @@ const PUBLIC_PATHS: ReadonlySet<string> = new Set([
  */
 function extractSessionToken(request: FastifyRequest): string | null {
   const header = request.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) return null;
+  if (!header?.startsWith('Bearer ')) return null;
   return header.slice(7) || null;
 }
 
@@ -200,7 +198,7 @@ export function registerGatewayRoutes(
     const body = request.body as unknown;
     const headers: Record<string, string> = {};
     if (request.headers.authorization)
-      headers['authorization'] = request.headers.authorization as string;
+      headers.authorization = request.headers.authorization as string;
     const forwardGo = async () => {
       const res = await fetch(url, {
         method: 'POST',
@@ -213,7 +211,7 @@ export function registerGatewayRoutes(
     };
     const forwardNode = async () => {
       try {
-        const nodeUrl = `${process.env['TRAPMAP_KNOWLEDGE_READ_URL'] ?? 'http://localhost:4002'}/v1/knowledge/read`;
+        const nodeUrl = `${process.env.TRAPMAP_KNOWLEDGE_READ_URL ?? 'http://localhost:4002'}/v1/knowledge/read`;
         const res = await fetch(nodeUrl, {
           method: 'POST',
           headers: { ...headers, 'content-type': 'application/json' },
@@ -360,6 +358,28 @@ export function registerGatewayRoutes(
     });
   });
 
+  /**
+   * Shape the external login response from an internal identity-access result.
+   *
+   * The internal body carries `{ session, sessionToken }`; the external
+   * contract body is strictly `{ session }` (see contracts
+   * `loginResponseSchema`) with the token on the `x-session-token` header.
+   * Unknown body keys are dropped by explicit pick so internal fields can
+   * never leak through the gateway.
+   */
+  function replyFromInternalLogin(reply: FastifyReply, result: { status: number; body: unknown }) {
+    if (result.status < 200 || result.status >= 300) {
+      // Error envelopes pass through verbatim so callers keep the upstream
+      // status code, message, and kind.
+      return reply.status(result.status).send(result.body);
+    }
+    const body = (result.body ?? {}) as { session?: unknown; sessionToken?: unknown };
+    if (typeof body.sessionToken === 'string') {
+      reply.header('x-session-token', body.sessionToken);
+    }
+    return reply.status(result.status).send({ session: body.session });
+  }
+
   // ---- Auth routes (identity-access) ----
   //
   // Login stays hand-written because it emits the issued session token as
@@ -384,16 +404,12 @@ export function registerGatewayRoutes(
         const result = await clients.identityAccess.loginSystemAdmin({
           systemAdminKey: loginBody?.systemAdminKey as string,
         });
-        const sessionToken = (result.body as { sessionToken?: unknown } | null)?.sessionToken;
-        if (result.status >= 200 && result.status < 300 && typeof sessionToken === 'string') {
-          reply.header('x-session-token', sessionToken);
-        }
-        return reply.status(result.status).send(result.body);
+        return replyFromInternalLogin(reply, result);
       }
       const result = await clients.identityAccess.login(
         request.body as { handle: string; password: string },
       );
-      return reply.status(result.status).send(result.body);
+      return replyFromInternalLogin(reply, result);
     } catch (err: unknown) {
       request.log.error({ err }, 'identity-access login failed');
       return reply.status(502).send({ error: 'Identity service unavailable', kind: 'upstream' });

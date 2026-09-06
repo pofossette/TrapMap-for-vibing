@@ -254,9 +254,9 @@ evals/
 ### 运行
 
 ```bash
-pnpm eval:smoke    # 快速冒烟测试（~10s）
-pnpm eval:core     # 完整评估（~60s）
-pnpm eval:ci       # CI 回归检测
+pnpm --filter @trapmap/evals eval:smoke    # 快速冒烟测试（~10s）
+pnpm --filter @trapmap/evals eval:core     # 完整评估（~60s）
+pnpm --filter @trapmap/evals eval:ci       # CI 回归检测
 ```
 
 ---

@@ -19,6 +19,7 @@ import type { DynamicInjection } from './injections.js';
 function workingDirInjection(): DynamicInjection {
   return {
     type: 'env',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: placeholder is substituted downstream by the dynamic-injection resolver
     placeholder: '${WORKING_DIR}',
     resolver: () => process.cwd(),
   };
@@ -27,6 +28,7 @@ function workingDirInjection(): DynamicInjection {
 function dateInjection(): DynamicInjection {
   return {
     type: 'env',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: placeholder is substituted downstream by the dynamic-injection resolver
     placeholder: '${DATE}',
     resolver: () => new Date().toISOString().split('T')[0],
   };
@@ -35,6 +37,7 @@ function dateInjection(): DynamicInjection {
 function gitStatusInjection(): DynamicInjection {
   return {
     type: 'git_status',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: placeholder is substituted downstream by the dynamic-injection resolver
     placeholder: '${GIT_STATUS}',
     resolver: () => getGitStatus(),
   };
@@ -43,6 +46,7 @@ function gitStatusInjection(): DynamicInjection {
 function mcpStatusInjection(): DynamicInjection {
   return {
     type: 'mcp_status',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: placeholder is substituted downstream by the dynamic-injection resolver
     placeholder: '${MCP_SERVERS}',
     resolver: () => getMcpServerStatus(),
   };
@@ -51,6 +55,7 @@ function mcpStatusInjection(): DynamicInjection {
 function sessionInjection(): DynamicInjection {
   return {
     type: 'runtime',
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: placeholder is substituted downstream by the dynamic-injection resolver
     placeholder: '${SESSION_ID}',
     resolver: () => generateSessionId(),
   };

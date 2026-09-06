@@ -10,7 +10,7 @@
  * from production classification.
  */
 
-export { tokenize, overlapScore } from '@trapmap/backend-core';
+export { overlapScore, tokenize } from '@trapmap/backend-core';
 
 export interface ClassificationMetrics {
   tp: number;

@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
 import type { ExperienceGeneSourceSnapshot } from '@trapmap/contracts';
 import { experienceGeneSchema } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import {
   checkExperienceGeneCompactness,
   extractRuleExperienceGene,

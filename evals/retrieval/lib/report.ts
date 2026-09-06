@@ -28,7 +28,7 @@ import type {
   RoutingDistribution,
 } from '../../types/index.js';
 import { retrievalEvalReportSchema } from '../../types/index.js';
-import type { CaseResult, SliceKey, SliceMetrics } from './types.js';
+import type { CaseResult, SliceKey } from './types.js';
 import {
   deriveQueryType,
   deriveRouteFamily,

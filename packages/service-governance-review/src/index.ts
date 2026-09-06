@@ -1,8 +1,26 @@
 export {
+  createGovernanceReviewAdminModule,
+  type GovernanceReviewAdminDeps,
+  type GovernanceReviewAdminModule,
+} from './admin.js';
+export {
   createGovernanceAsyncCommandModule,
   type GovernanceAsyncCommandDeps,
   type GovernanceAsyncCommandModule,
 } from './async-commands.js';
+export { createGovernanceConflictReadPort } from './conflict-read.js';
+export { createRuleConflictTrigger } from './conflict-trigger/rule-conflict-trigger.js';
+export {
+  classifyConflict,
+  createGovernanceConflictWorkflow,
+  type GovernanceConflictChat,
+  type GovernanceConflictJudgment,
+  type GovernanceConflictProjection,
+  type GovernanceConflictWorkflowDeps,
+  generateConflictContext,
+  overlapScore,
+  tokenize,
+} from './conflict-workflow.js';
 export {
   createGovernanceReviewDeps,
   createGovernanceReviewServiceModule,
@@ -17,36 +35,18 @@ export {
   type GovernanceReviewPgOwnerBundle,
 } from './pg-ports.js';
 export {
-  classifyConflict,
-  createGovernanceConflictWorkflow,
-  generateConflictContext,
-  overlapScore,
-  tokenize,
-  type GovernanceConflictChat,
-  type GovernanceConflictJudgment,
-  type GovernanceConflictProjection,
-  type GovernanceConflictWorkflowDeps,
-} from './conflict-workflow.js';
-export { createGovernanceConflictReadPort } from './conflict-read.js';
-export { createRuleConflictTrigger } from './conflict-trigger/rule-conflict-trigger.js';
-export {
-  createGovernanceReviewAdminModule,
-  type GovernanceReviewAdminDeps,
-  type GovernanceReviewAdminModule,
-} from './admin.js';
-export {
-  createGovernanceAdminRouteDefs,
-  createGovernanceReviewRouteDefs,
-  registerGovernanceReviewRoutes,
-  type GovernanceReviewReadinessOptions,
-  type GovernanceReviewRouteDeps,
-  type GovernanceReviewRouteModule,
-} from './routes.js';
-export {
   buildOwnerReviewQueueProjection,
   buildReviewQueueProjection,
   type ReviewQueueProjection,
 } from './review-queue-projection.js';
+export {
+  createGovernanceAdminRouteDefs,
+  createGovernanceReviewRouteDefs,
+  type GovernanceReviewReadinessOptions,
+  type GovernanceReviewRouteDeps,
+  type GovernanceReviewRouteModule,
+  registerGovernanceReviewRoutes,
+} from './routes.js';
 export {
   createGovernanceReviewServer,
   type GovernanceReviewServer,

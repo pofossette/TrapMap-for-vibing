@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import { createAssembly } from '@trapmap/assembly';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   hostLocalConfigNode,

@@ -44,7 +44,7 @@ class FakeGraph {
   }
 }
 
-// @ts-ignore
+// @ts-expect-error
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe('G6GraphComponent drag behavior', () => {
@@ -52,7 +52,12 @@ describe('G6GraphComponent drag behavior', () => {
     latestGraph = null;
     document.body.innerHTML = '';
     graphConstructor.mockReset();
-    graphConstructor.mockImplementation(() => new FakeGraph());
+    // Vitest 5 forwards `new` to the mock implementation, so it must be
+    // a constructable function expression (an arrow would throw "not a constructor").
+    // biome-ignore lint/complexity/useArrowFunction: mock must stay constructable for `new`
+    graphConstructor.mockImplementation(function () {
+      return new FakeGraph();
+    });
   });
 
   it('renders with layout-enabled initialization and force drag behavior', async () => {

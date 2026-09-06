@@ -1,16 +1,16 @@
 import type { NestMiddleware } from '@nestjs/common';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import {
-  SpanKind,
-  SpanStatusCode,
   context as otelContext,
   propagation,
+  SpanKind,
+  SpanStatusCode,
   trace,
 } from '@opentelemetry/api';
 import { normalizeObservabilityRouteFamily } from '@trapmap/contracts';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import type { PrometheusService } from './prometheus.service.js';
+import { PrometheusService } from './prometheus.service.js';
 
 /**
  * NestJS middleware that instruments every inbound HTTP request with:
@@ -29,7 +29,7 @@ import type { PrometheusService } from './prometheus.service.js';
  */
 @Injectable()
 export class HttpMetricsMiddleware implements NestMiddleware {
-  constructor(private readonly prometheus: PrometheusService) {}
+  constructor(@Inject(PrometheusService) private readonly prometheus: PrometheusService) {}
 
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
     const startTime = Date.now();

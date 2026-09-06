@@ -1,5 +1,5 @@
-import { createGraphRecallTrace } from '@trapmap/backend-core';
 import type { ChannelMergePort } from '@trapmap/backend-core';
+import { createGraphRecallTrace } from '@trapmap/backend-core';
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import { createRuleChannelMerge } from '../channel-merge/rule-channel-merge.js';
 import type { SkillShareerServices } from '../context.js';

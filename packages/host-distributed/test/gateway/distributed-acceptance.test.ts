@@ -1,6 +1,3 @@
-import Fastify, { type FastifyInstance } from 'fastify';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
 import type {
   CandidateIngestionPort,
   IdentityAccessPort,
@@ -15,6 +12,8 @@ import { registerIdentityAccessRoutes } from '@trapmap/service-identity-access';
 import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import { registerKnowledgeReadRoutes } from '@trapmap/service-knowledge-read';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
+import Fastify, { type FastifyInstance } from 'fastify';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createInternalServiceClients } from '../../src/gateway/internal-client.js';
 import { registerGatewayRoutes } from '../../src/gateway/routes.js';
 

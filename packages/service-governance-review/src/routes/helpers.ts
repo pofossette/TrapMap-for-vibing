@@ -8,20 +8,15 @@ import type {
   ReviewPort,
 } from '@trapmap/backend-core';
 import {
+  createServiceReadinessHandler,
   InvocationError,
+  isRouteResponse,
   type RouteContext,
   type RouteDef,
   type RouteSuccess,
-  createServiceReadinessHandler,
-  isRouteResponse,
-  registerFastifyRoutes,
   routeResponse,
 } from '@trapmap/backend-core';
-import {
-  filterReviewQueueEntries,
-  isReviewQueueEntryVisible,
-} from '@trapmap/backend-core/governance-review/domain/policy.js';
-import { applyReviewQueueQuery } from '@trapmap/backend-core/governance-review/domain/review-queue-query.js';
+import type { AdminActivityEvent, KnowledgeEntry } from '@trapmap/contracts';
 import {
   adminActivityQuerySchema,
   adminReviewQueueQuerySchema,
@@ -30,12 +25,6 @@ import {
   feedbackListRequestSchema,
   feedbackRemediationCompleteRequestSchema,
   remediationReactivationPayloadSchema,
-} from '@trapmap/contracts';
-import type {
-  AdminActivityEvent,
-  AdminActivityQuery,
-  AdminReviewQueueQuery,
-  KnowledgeEntry,
 } from '@trapmap/contracts';
 import { type ZodType, z } from 'zod';
 

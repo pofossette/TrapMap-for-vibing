@@ -1,4 +1,4 @@
-import { type IdentityAccessDeps, createIdentityAccessModule } from '@trapmap/backend-core';
+import { createIdentityAccessModule, type IdentityAccessDeps } from '@trapmap/backend-core';
 
 import type { IdentityActorLookupSource } from './actor-lookup.js';
 

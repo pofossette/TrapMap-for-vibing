@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { createExperienceGeneFixture } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import { formatStrategyGene } from '../src/strategy-gene.js';
 
 describe('formatStrategyGene', () => {

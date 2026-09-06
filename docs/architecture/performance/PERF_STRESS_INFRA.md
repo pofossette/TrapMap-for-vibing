@@ -12,7 +12,7 @@
   - `dedup`：`versionMatchMultiplier` / `Fingerprint`（Go 侧 `internal/service/dedup`）
   - `gene-derive`：Go `genederive.DeriveBatch 200 traps`（10 regex + 2×hash, 32-shard）
 - **Go 对侧**：`(cd services/go-accelerator && go test -bench . -benchmem ./internal/service/vector ./internal/service/ranking ./internal/service/dedup ./internal/service/gene-derive -run=^$)`
-- **命令**：`pnpm bench:compute` / `pnpm bench:compare`（jsVsGo 一致性）/ `pnpm bench`（alias）
+- **命令**：`pnpm --filter @trapmap/benchmarks bench:compute` / `pnpm --filter @trapmap/benchmarks bench:compare`（jsVsGo 一致性）/ `pnpm --filter @trapmap/benchmarks bench`（alias）
 - **输出**：`benchmarks/results/bench-*.json`（`p50/p95/qps`）+ `benchmarks/GO_ACCELERATOR_BENCH.md` 阈值门（`1k BatchCosine <3ms` / `50k >10ms才切proto`）
 
 ## 2. Stress（HTTP 并发压测，隔离）
@@ -28,7 +28,7 @@
 | `dedup/fingerprint` | 100VU 10s | p95 <10ms |
 | `gene/derive-batch` 200 | 10VU 10s | p95 <50ms |
 
-- **命令（按需，Go 主）**：`go run ./services/go-accelerator/cmd/stress -scenario all` / `pnpm stress:batch-cosine`（Go）/ `stress:go:batch-cosine`；legacy `k6 run benchmarks/stress/k6/*.js` / `stress:*:legacy`
+- **命令（按需，Go 主）**：`go run ./services/go-accelerator/cmd/stress -scenario all` / `pnpm --filter @trapmap/benchmarks stress:batch-cosine`（Go）/ `stress:go:batch-cosine`；legacy `k6 run benchmarks/stress/k6/*.js` / `stress:*:legacy`
 - **隔离**：`benchmarks/stress/*` 不入 `pnpm test`；Go 侧 `middleware.Timeout(10s)` + 建议 `RateLimit 100rps`（`RATE_LIMIT` 覆盖）；Node 侧 `p-limit(5)` 批请求上限
 
 ## 3. 可观测（足量设施）
@@ -45,14 +45,14 @@
 
 ```bash
 # Bench（Node）
-pnpm bench:compute
+pnpm --filter @trapmap/benchmarks bench:compute
 
 # Bench（Go）
 (cd services/go-accelerator && go test -bench . -benchmem ./internal/service/vector ./internal/service/ranking ./internal/service/dedup ./internal/service/gene-derive -run=^$)
 
 # Stress（需先起 Go）
 TRAPMAP_GO_ACCELERATOR_ENABLED=true PORT=4100 go run ./services/go-accelerator/cmd/server & 
-pnpm stress:batch-cosine
+pnpm --filter @trapmap/benchmarks stress:batch-cosine
 k6 run benchmarks/stress/k6/batch-cosine.js
 
 # Observability

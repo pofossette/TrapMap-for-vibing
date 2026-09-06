@@ -7,8 +7,8 @@ import {
 } from '@trapmap/service-cron';
 
 import type { HostLocalRuntime } from '../runtime/host-runtime.js';
-import { CronSchedulerProvider } from './cron-scheduler.provider.js';
 import { CRON_PORT, CRON_SCHEDULER } from './cron.tokens.js';
+import { CronSchedulerProvider } from './cron-scheduler.provider.js';
 
 /**
  * Nest module for the cron bounded context.

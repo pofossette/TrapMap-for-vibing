@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { GovernanceConflictWorkflowPort } from '@trapmap/backend-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createGovernanceConflictTaskHandler } from '../../src/handlers/governance-conflict.js';
 

@@ -1,8 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { ChatProvider } from '@trapmap/ai-providers';
-
 import type { LabelRepository } from '@trapmap/service-knowledge-write';
+import { describe, expect, it, vi } from 'vitest';
 import { runLiveDecisionEvaluation } from './decision-eval.js';
 
 function makeMockRepo(overrides: Partial<LabelRepository> = {}): LabelRepository {

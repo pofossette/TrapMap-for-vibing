@@ -1,9 +1,9 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import {
-  SpanKind,
-  SpanStatusCode,
   context as otelContext,
   propagation,
+  SpanKind,
+  SpanStatusCode,
   trace,
 } from '@opentelemetry/api';
 

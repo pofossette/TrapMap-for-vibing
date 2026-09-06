@@ -1,6 +1,5 @@
-import { describe, expectTypeOf, it } from 'vitest';
-
 import type { ConflictRelation, FeedbackRemediationState } from '@trapmap/contracts';
+import { describe, expectTypeOf, it } from 'vitest';
 
 import type {
   GovernanceAsyncCommandPort,

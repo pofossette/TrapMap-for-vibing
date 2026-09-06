@@ -1,6 +1,6 @@
 // scripts/cli-integration-report.ts
 // Phase 4: aggregate benchmarks/results/cli-integration/{A,B,C}/** into SUMMARY.md
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 interface RunStats {

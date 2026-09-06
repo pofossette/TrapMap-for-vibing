@@ -1,10 +1,3 @@
-import type {
-  AgentPlanningEvalCase,
-  AgentPlanningEvalReport,
-  AgentPlanningEvalTier,
-  EvalPlatformEvent,
-} from '../../types/index.js';
-
 import {
   buildAssertionEvent,
   buildCaseLifecycleEvents,
@@ -12,6 +5,12 @@ import {
   deriveStartedAt,
   getEventTags,
 } from '../../lib/platform-events.js';
+import type {
+  AgentPlanningEvalCase,
+  AgentPlanningEvalReport,
+  AgentPlanningEvalTier,
+  EvalPlatformEvent,
+} from '../../types/index.js';
 import { getAgentPlanningEvaluationCases, getAgentPlanningScenarioIds } from './runner-api.js';
 
 export interface BuildAgentPlanningPlatformEventsInput {

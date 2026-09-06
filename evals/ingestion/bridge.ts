@@ -9,6 +9,12 @@
  * without re-deriving assertion state.
  */
 
+import { failedExecutionAssertion } from '../lib/assertion.js';
+import { createJsAssertion } from '../promptfoo/assertion.js';
+import { registerBridge } from '../promptfoo/bridge.js';
+import { deterministicProvider } from '../promptfoo/provider.js';
+import { assertResultPresent } from '../promptfoo/result.js';
+import type { SuiteBridge } from '../promptfoo/types.js';
 import {
   buildDerivationContext,
   bundleToPayloads,
@@ -21,13 +27,6 @@ import type { DerivationFixture } from './fixtures/index.js';
 import { derivationFixtures, getSmokeFixtures } from './fixtures/index.js';
 import type { DerivationAggregateMetrics } from './metrics.js';
 import { aggregateMetrics } from './metrics.js';
-
-import { failedExecutionAssertion } from '../lib/assertion.js';
-import { createJsAssertion } from '../promptfoo/assertion.js';
-import { registerBridge } from '../promptfoo/bridge.js';
-import { deterministicProvider } from '../promptfoo/provider.js';
-import { assertResultPresent } from '../promptfoo/result.js';
-import type { SuiteBridge } from '../promptfoo/types.js';
 
 export interface IngestionCaseResult {
   fixtureId: string;

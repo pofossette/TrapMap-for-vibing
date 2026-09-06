@@ -1,9 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import {
   type AdapterName,
   buildRouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createHostLocalExperienceGeneGatewayDefs } from '../../../src/nest/gateway/gateway.module.js';
 

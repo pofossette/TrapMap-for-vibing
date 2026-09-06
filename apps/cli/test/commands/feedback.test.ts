@@ -1,3 +1,6 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import * as http from '@trapmap/cli/lib/http.js';
+import * as prompts from '@trapmap/cli/lib/prompts.js';
 import type {
   FeedbackBatchResponse,
   FeedbackListResponse,
@@ -5,12 +8,8 @@ import type {
 } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import * as http from '@trapmap/cli/lib/http.js';
-import * as prompts from '@trapmap/cli/lib/prompts.js';
-import { registerFeedbackAdminCommands } from '../../src/commands/feedback-admin.js';
 import { registerFeedbackCommands } from '../../src/commands/feedback.js';
+import { registerFeedbackAdminCommands } from '../../src/commands/feedback-admin.js';
 
 function createSilentCommand(): Command {
   return new Command().configureOutput({

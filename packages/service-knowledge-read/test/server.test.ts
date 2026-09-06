@@ -30,7 +30,12 @@ describe('knowledge-read server', () => {
           })),
         },
         retrievalQuery: {
-          search: vi.fn(async () => ({ results: [], totalEstimate: 0, channel: 'derived-index' })),
+          search: vi.fn(async () => ({
+            globalConstraints: [],
+            projectKnowledge: [],
+            refinementSummary: null,
+            summary: null,
+          })),
         },
       },
     );

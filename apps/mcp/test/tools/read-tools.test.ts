@@ -25,7 +25,8 @@ describe('trapmap_search_knowledge', () => {
   it('POSTs to /v1/retrieval/search with bearer auth and the query body', async () => {
     const fetchMock = stubFetch((input, init) => {
       expect(input).toBe('http://127.0.0.1:4000/v1/retrieval/search');
-      expect((init?.headers as Record<string, string>).authorization).toBe('Bearer test-token');
+      const authorization = ((init?.headers ?? {}) as Record<string, string>).authorization;
+      expect(authorization).toBe('Bearer test-token');
       expect(JSON.parse(String(init?.body))).toEqual({ query: 'jwt', limit: 5 });
       return new Response(JSON.stringify({ results: [{ id: 'e1' }] }), { status: 200 });
     });

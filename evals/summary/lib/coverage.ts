@@ -38,10 +38,11 @@ export function checkRequiredFactsCoverage(
  * @param params - Summary text and required facts
  * @returns Coverage score and lists of covered/missing facts
  */
-export function calculateCoverageScore(params: {
-  summaryText: string;
-  requiredFacts: string[];
-}): { score: number; covered: string[]; missing: string[] } {
+export function calculateCoverageScore(params: { summaryText: string; requiredFacts: string[] }): {
+  score: number;
+  covered: string[];
+  missing: string[];
+} {
   const { summaryText, requiredFacts } = params;
 
   if (!requiredFacts || requiredFacts.length === 0) {
@@ -70,10 +71,7 @@ export function calculateCoverageScore(params: {
  * @param params - Lists of covered and missing facts
  * @returns Human-readable report string
  */
-export function formatCoverageReport(params: {
-  covered: string[];
-  missing: string[];
-}): string {
+export function formatCoverageReport(params: { covered: string[]; missing: string[] }): string {
   const { covered, missing } = params;
   const total = covered.length + missing.length;
 

@@ -3,11 +3,11 @@
 import { InvocationError, type KnowledgeWritePort } from '@trapmap/backend-core';
 import {
   type AdapterName,
-  type RouteTestApp,
   buildRouteTestApp,
+  type RouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
-import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
 import type { SkillArtifact } from '@trapmap/contracts';
+import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createKnowledgeAdminRouteDefs, createKnowledgeWriteRouteDefs } from '../src/routes.ts';

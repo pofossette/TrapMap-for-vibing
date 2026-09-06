@@ -1,8 +1,7 @@
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printResult } from '@trapmap/cli/lib/output.js';
+import type { Command } from 'commander';
 import type { OperationsCommandOptions } from './types.js';
 
 /** Response shape for POST /v1/operations/capsule-index/rebuild (mode=full) */

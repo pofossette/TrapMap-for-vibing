@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { HostLocalConfig } from '../../../src/nest/config/index.js';
 import { RequestContextMiddleware } from '../../../src/nest/runtime/request-context.middleware.js';
 import {
-  RequestContextService,
   extractRequestContext,
+  RequestContextService,
 } from '../../../src/nest/runtime/request-context.service.js';
 
 describe('RequestContextService', () => {

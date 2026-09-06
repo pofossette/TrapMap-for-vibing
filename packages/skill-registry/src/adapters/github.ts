@@ -70,9 +70,7 @@ export class GithubAdapter implements RegistryAdapter {
           sha256: await sha256(content),
           sizeBytes: Buffer.byteLength(content),
         });
-      } catch {
-        continue;
-      }
+      } catch {}
     }
     if (files.length === 0) {
       // Try fetching SKILL.md at subpath directly

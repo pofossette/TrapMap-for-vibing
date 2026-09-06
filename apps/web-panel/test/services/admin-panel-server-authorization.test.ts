@@ -1,6 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { ApiError as TopLevelApiError } from '@trapmap/client-core';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const originalFetch = globalThis.fetch;
 

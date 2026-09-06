@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-
 import {
+  createKnowledgeWriteModule,
+  createNestAdapter,
   type KnowledgeWriteDeps,
   type KnowledgeWritePort,
-  createNestAdapter,
 } from '@trapmap/backend-core';
-import { createKnowledgeWriteModule } from '@trapmap/backend-core';
 import { createKnowledgeWriteRouteDefs } from '@trapmap/service-knowledge-write';
 
 import { AuthGuard } from '../runtime/auth.guard.js';

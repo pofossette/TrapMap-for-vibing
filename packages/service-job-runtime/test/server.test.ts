@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { AuditLogPort, TaskHandler } from '@trapmap/backend-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createJobRuntimeDeps } from '../src/deps.js';
 import { createJobRuntimeServer } from '../src/server.js';

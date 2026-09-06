@@ -14,16 +14,14 @@
 
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-
-import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-
 import { runCandidateIngestionMigrations } from '@trapmap/service-candidate-ingestion';
 import { runGovernanceReviewMigrations } from '@trapmap/service-governance-review';
 import { runIdentityAccessMigrations } from '@trapmap/service-identity-access';
 import { runJobRuntimeMigrations } from '@trapmap/service-job-runtime';
 import { runKnowledgeReadMigrations } from '@trapmap/service-knowledge-read';
 import { runKnowledgeWriteMigrations } from '@trapmap/service-knowledge-write';
+import pg from 'pg';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { retrievalBridge } from '../retrieval/bridge.js';
 import { runSuiteWithPromptfoo } from './runner.js';
@@ -88,7 +86,6 @@ async function teardown(): Promise<void> {
     }
   }
   if (priorDatabaseUrl === undefined) {
-    // biome-ignore lint/performance/noDelete: deleting removes an unset env var; assigning undefined would set the literal string "undefined"
     delete process.env.TRAPMAP_DATABASE_URL;
   } else {
     process.env.TRAPMAP_DATABASE_URL = priorDatabaseUrl;

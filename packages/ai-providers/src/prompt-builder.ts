@@ -20,7 +20,7 @@ import type {
 import { renderXmlTemplate } from './ai-providers/xml-renderer.js';
 
 // Re-export types for consumers importing from './prompt-builder.js'
-export type { PromptSlots, CacheSection, AiPromptTaskType } from './ai-providers/types.js';
+export type { AiPromptTaskType, CacheSection, PromptSlots } from './ai-providers/types.js';
 
 // ---------------------------------------------------------------------------
 // Template override system (backward-compatible with AI_PROMPT_TEMPLATE_FILE)

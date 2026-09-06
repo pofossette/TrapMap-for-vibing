@@ -1,10 +1,9 @@
-import { useEffect, useMemo } from 'react';
-
 import { useJsonEditorController } from '@trapmap/web-panel/features/json-editor/use-json-editor-controller';
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useJsonEditorStore } from '@trapmap/web-panel/stores/json-editor-store';
 import { useReviewDetailStore } from '@trapmap/web-panel/stores/review-detail-store';
+import { useEffect, useMemo } from 'react';
 import { prepareReviewDecision } from './decision';
 import { loadReviewDetail, submitReviewDecision } from './service';
 

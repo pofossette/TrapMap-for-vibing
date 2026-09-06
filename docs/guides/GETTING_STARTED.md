@@ -233,16 +233,16 @@ pnpm lint
 
 ```bash
 # 冒烟测试（快速验证检索质量）
-pnpm eval -- smoke
+pnpm --filter @trapmap/evals eval -- smoke
 
 # 完整评测
-pnpm eval -- core
+pnpm --filter @trapmap/evals eval -- core
 
 # 单独运行检索评测
-pnpm eval -- retrieval --tier smoke
+pnpm --filter @trapmap/evals eval -- retrieval --tier smoke
 
 # 单独运行摘要评测
-pnpm eval -- summary --tier smoke
+pnpm --filter @trapmap/evals eval -- summary --tier smoke
 ```
 
 > 评测系统详情参见 [`evals/README.md`](../../evals/README.md) 和 [`docs/operations/TESTING.md`](../operations/TESTING.md)。
@@ -333,7 +333,7 @@ EMBEDDING_MODEL=text-embedding-004
 pnpm dev:local-agent
 
 # 终端 2：运行冒烟评测
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 ```
 
 CI 环境中评测会自动在 PR 时触发（路径匹配时），详见 [`docs/operations/CI_CD.md`](../operations/CI_CD.md)。

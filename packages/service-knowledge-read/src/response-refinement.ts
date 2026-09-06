@@ -7,10 +7,10 @@
  */
 
 import {
-  REFINEMENT_MAX_SENTENCES,
-  type RefinementEntry,
   buildRefinementPrompt,
   isRefinementAvailable as isRefinementProviderConfigured,
+  REFINEMENT_MAX_SENTENCES,
+  type RefinementEntry,
 } from '@trapmap/backend-core';
 
 import type { SkillShareerServices } from './context.js';

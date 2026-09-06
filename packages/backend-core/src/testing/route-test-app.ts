@@ -20,10 +20,10 @@ import type {
 } from 'fastify';
 
 import {
-  type RouteDef,
-  RouteDefExceptionFilter,
   createFastifyAdapter,
   createNestAdapter,
+  type RouteDef,
+  RouteDefExceptionFilter,
 } from '../http/index.js';
 
 export const ADAPTER_NAMES = ['fastify', 'nest'] as const;
@@ -48,8 +48,10 @@ export async function buildRouteTestApp(
     };
   }
 
-  @Module({ controllers: [createNestAdapter(routeDefs, deps)] })
   class RouteDefTestModule {}
+  // NOTE: applied functionally (not `@Module()` syntax) — same toolchain reason
+  // as above. `Module()` returns a metadata-only legacy class decorator.
+  Module({ controllers: [createNestAdapter(routeDefs, deps)] })(RouteDefTestModule);
 
   const moduleRef = await Test.createTestingModule({ imports: [RouteDefTestModule] }).compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());

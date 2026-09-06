@@ -8,9 +8,6 @@
  * semantics, and snippet/detail mapping), which mirror the monolith pipeline.
  */
 import { createRetrievalArtifactFixture } from '@trapmap/contracts';
-import type { Pool } from 'pg';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import {
   createKnowledgeReadChannelRegistry,
   createKnowledgeReadGraphIndexRepository,
@@ -19,6 +16,8 @@ import {
   createMemoryGraphQueryBackend,
   resetRetrievalReadModelCacheForTests,
 } from '@trapmap/service-knowledge-read';
+import type { Pool } from 'pg';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { createConvergedRetrievalQuery } from '../../src/knowledge-read/converged-retrieval.js';
 import { createPgKnowledgeReadProjection } from '../../src/knowledge-read/ports.js';
@@ -249,22 +248,25 @@ describe('createConvergedRetrievalQuery', () => {
 
     const result = await retrieval.search({ query: 'retrieval pipeline', limit: 5 });
 
-    expect(result.results.length).toBeGreaterThan(0);
+    // Full contract response: matches live in globalConstraints/projectKnowledge.
+    const matches = [...result.globalConstraints, ...result.projectKnowledge];
+    expect(matches.length).toBeGreaterThan(0);
     // The converged pipeline ranks by combined score, matching the monolith.
-    expect(result.results[0]?.entryId).toBe('entry-relevant');
+    expect(matches[0]?.entryId).toBe('entry-relevant');
 
-    const scores = result.results.map((row) => row.score);
+    const scores = matches.map((row) => row.score);
     const sorted = [...scores].sort((a, b) => b - a);
     expect(scores).toEqual(sorted);
 
-    // The response surface stays the same as before (entryId/score/snippet).
-    expect(result.results[0]).toEqual(
+    expect(matches[0]).toEqual(
       expect.objectContaining({
         entryId: 'entry-relevant',
         score: expect.any(Number),
-        snippet: 'Complete retrieval engine using hash embeddings and reranking for robust recall.',
+        detail: 'Complete retrieval engine using hash embeddings and reranking for robust recall.',
       }),
     );
+    expect(result.refinementSummary).toBeNull();
+    expect(result.summary).toBeNull();
   });
 
   it('routes mode selection through the injected D8 intentRecognition port', async () => {
@@ -299,7 +301,8 @@ describe('createConvergedRetrievalQuery', () => {
     expect(input.requestedMode).toBe('hybrid');
     expect(input.knownModes).toContain('semantic');
     expect(input.knownModes).toContain('graph-assisted');
-    expect(result.results[0]?.entryId).toBe('entry-relevant');
+    const intentMatches = [...result.globalConstraints, ...result.projectKnowledge];
+    expect(intentMatches[0]?.entryId).toBe('entry-relevant');
   });
 
   it('recalls skill artifacts as retrieval entries with their declared version', async () => {
@@ -312,8 +315,9 @@ describe('createConvergedRetrievalQuery', () => {
 
     const result = await retrieval.search({ query: 'retrieval pipeline', limit: 5 });
 
-    const artifactRow = result.results.find((row) => row.entryId === 'artifact-1');
+    const artifactMatches = [...result.globalConstraints, ...result.projectKnowledge];
+    const artifactRow = artifactMatches.find((row) => row.entryId === 'artifact-1');
     expect(artifactRow).toBeDefined();
-    expect(artifactRow?.snippet).toContain('Test summary');
+    expect(artifactRow?.detail).toContain('Test summary');
   });
 });

@@ -7,7 +7,7 @@
  *   pnpm tsx scripts/rag-analyze.ts --mode semantic    # 按 mode 过滤
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 // 解析参数

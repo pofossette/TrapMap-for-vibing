@@ -1,7 +1,7 @@
 import {
   type BackendTarget,
-  type DeploymentProfile,
   backendTargetSchema,
+  type DeploymentProfile,
   deploymentProfileSchema,
   resolveBackendTargetForProfile,
 } from '../packages/contracts/src/enum-types/backend-target.js';
@@ -142,7 +142,7 @@ verifyBackendTargetProfileOwnership(BACKEND_TARGET_REGISTRY);
  */
 export function resolveDevTargetFromRegistry(targetName: string): DevTargetDefinition | undefined {
   for (const target of Object.values(BACKEND_TARGET_REGISTRY)) {
-    if (Object.prototype.hasOwnProperty.call(target.devTargets, targetName)) {
+    if (Object.hasOwn(target.devTargets, targetName)) {
       return target.devTargets[targetName];
     }
   }

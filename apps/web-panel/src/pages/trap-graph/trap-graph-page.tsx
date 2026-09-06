@@ -1,13 +1,4 @@
 import { Button, Card, ListBox, Select } from '@heroui/react';
-import {
-  type Dispatch,
-  type ReactElement,
-  type SetStateAction,
-  useCallback,
-  useEffect,
-  useState,
-} from 'react';
-
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import type { G6Edge, G6Node, TrapNeighborhoodDepth } from '@trapmap/web-panel/shared/enum-types';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
@@ -23,10 +14,18 @@ import {
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import {
-  type TrapNodeFilterState,
+  type Dispatch,
+  type ReactElement,
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
+import {
   applyTrapGraphView,
   isTrapNodeVisibleForLayers,
   parseTrapNeighborhoodDepth,
+  type TrapNodeFilterState,
 } from './trap-graph-view';
 
 function TrapGraphErrorBanner({

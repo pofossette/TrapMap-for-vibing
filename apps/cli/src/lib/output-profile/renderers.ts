@@ -1,13 +1,12 @@
+import { formatLoadContext } from '@trapmap/cli/lib/markdown-formatter.js';
 import type {
   GeneSearchResponse,
+  GraphPlanSearchResponse,
   RetrievalResponse,
   RetrievalV2Response,
   SkillLookupResponse,
 } from '@trapmap/contracts';
 import { formatStrategyGene } from '@trapmap/lib';
-
-import { formatLoadContext } from '@trapmap/cli/lib/markdown-formatter.js';
-import type { GraphPlanSearchResponse } from '@trapmap/contracts';
 import { buildCodexObject } from './codex-object-builder.js';
 import { xmlEscape } from './summarizers.js';
 import type { RenderEnvelope, RenderPayload } from './types.js';

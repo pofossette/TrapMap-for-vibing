@@ -13,6 +13,8 @@
  */
 
 import { randomBytes } from 'node:crypto';
+import type { ActiveSession, Permission } from '@trapmap/contracts';
+import { permissionSchema } from '@trapmap/contracts';
 import { InvocationError } from '../../invocation/invocation-model.js';
 import type {
   PermissionCheckPort,
@@ -31,12 +33,15 @@ import type {
 } from '../../ports/repo-ports.js';
 
 import {
-  IDENTITY_ACCESS_OWNED_CAPABILITIES,
   composeAccessToken,
   composeSystemAdminSessionToken,
   hashAccessToken,
   hashLoginSessionToken,
+  IDENTITY_ACCESS_OWNED_CAPABILITIES,
+  permissionsForRole,
+  sessionSecurityLevel,
   systemAdminKeyMatches,
+  toContractRoleTemplate,
 } from '../domain/index.js';
 
 // ---------------------------------------------------------------------------
@@ -118,6 +123,86 @@ export function createIdentityAccessModule(deps: IdentityAccessDeps): IdentityAc
 
     async validateSession(sessionToken: string) {
       return deps.sessionLookup.resolveSession(sessionToken);
+    },
+
+    async describeSession(sessionToken: string): Promise<ActiveSession | null> {
+      const session = await deps.sessionRepo.getByTokenHash(sessionToken);
+      if (!session) {
+        return null;
+      }
+      if (session.subjectType === 'system-admin' || !session.userId) {
+        return {
+          sessionId: session.id,
+          member: {
+            id: 'system-admin',
+            teamId: 'system-admin',
+            handle: 'system-admin',
+            roleTemplate: 'system-admin',
+            securityLevel: sessionSecurityLevel('system-admin'),
+            permissions: [],
+            notes: null,
+            isSystem: true,
+            createdAt: session.createdAt,
+            updatedAt: session.updatedAt,
+          },
+          activeTeam: null,
+          effectivePermissions: permissionsForRole('system-admin'),
+          expiresAt: session.expiresAt,
+          issuedAt: session.createdAt,
+        };
+      }
+      const user = await deps.userRepo.getById(session.userId);
+      if (!user) {
+        return null;
+      }
+      const memberships = await deps.membershipRepo.listByUser(user.id);
+      const membership =
+        (session.activeTeamId
+          ? memberships.find((candidate) => candidate.teamId === session.activeTeamId)
+          : undefined) ??
+        memberships[0] ??
+        null;
+      if (!membership) {
+        return null;
+      }
+      // Domain role map is canonical here; the CLI consumes
+      // effectivePermissions for command visibility only (no gateway
+      // enforcement path reads it), so raw-template mapping is safe.
+      const memberPermissions = membership.permissions.filter(
+        (permission): permission is Permission =>
+          (permissionSchema.options as readonly string[]).includes(permission),
+      );
+      const team = await deps.teamRepo.getById(membership.teamId);
+      return {
+        sessionId: session.id,
+        member: {
+          id: membership.id,
+          teamId: membership.teamId,
+          handle: user.handle,
+          roleTemplate: toContractRoleTemplate(membership.roleTemplate),
+          securityLevel: membership.securityLevel,
+          permissions: memberPermissions,
+          notes: membership.notes ?? user.notes,
+          isSystem: false,
+          createdAt: membership.createdAt,
+          updatedAt: membership.updatedAt ?? membership.createdAt,
+        },
+        activeTeam: team
+          ? {
+              id: team.id,
+              slug: team.slug,
+              name: team.name,
+              description: team.description,
+              createdAt: team.createdAt,
+              updatedAt: team.updatedAt ?? team.createdAt,
+            }
+          : null,
+        effectivePermissions: [
+          ...new Set([...permissionsForRole(membership.roleTemplate), ...memberPermissions]),
+        ],
+        expiresAt: session.expiresAt,
+        issuedAt: session.createdAt,
+      };
     },
 
     async selectTeam(sessionToken: string, teamId: string) {

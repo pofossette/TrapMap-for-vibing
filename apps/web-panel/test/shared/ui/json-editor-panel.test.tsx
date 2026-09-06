@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { JsonEditorPanel } from '../../../src/shared/ui/json-editor-panel';
 
 // Configure React act environment for Vitest
-// @ts-ignore
+// @ts-expect-error
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe('JsonEditorPanel Component UI Rendering', () => {

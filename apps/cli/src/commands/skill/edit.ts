@@ -1,12 +1,10 @@
 import { readFileSync } from 'node:fs';
-
-import type { SkillEditResponse } from '@trapmap/contracts';
-import { skillEditResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import type { SkillEditResponse } from '@trapmap/contracts';
+import { skillEditResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 import { formatSkillEditResponse } from './formatters.js';
 

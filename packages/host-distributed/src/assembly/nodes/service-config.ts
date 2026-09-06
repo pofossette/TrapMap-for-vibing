@@ -6,10 +6,11 @@
  * resolves the full config through the shared {@link loadServiceConfig} the
  * legacy starters used, so environment binding is unchanged.
  */
-import { defineNode } from '@trapmap/assembly';
-import type { CapabilityNode } from '@trapmap/assembly';
 
-import { type ServiceConfig, type ServiceName, loadServiceConfig } from '../../config/index.js';
+import type { CapabilityNode } from '@trapmap/assembly';
+import { defineNode } from '@trapmap/assembly';
+
+import { loadServiceConfig, type ServiceConfig, type ServiceName } from '../../config/index.js';
 
 /** Context service token under which the `ServiceConfig` is provided. */
 export const SERVICE_CONFIG_SERVICE = 'serviceConfig';

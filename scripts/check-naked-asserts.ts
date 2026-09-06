@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+// biome-ignore-all lint/suspicious/noTsIgnore: this guard script must name the `@ts-ignore` pattern it detects
 
 /**
  * Naked type-assertion guard (Wave 0 门禁).
@@ -25,7 +26,7 @@
  *   pnpm exec tsx scripts/check-naked-asserts.ts --exemptions <path>  # custom list path
  */
 
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join, relative, resolve } from 'node:path';
 
 export interface NakedAssertFinding {

@@ -1,10 +1,8 @@
-import type { GraphPlanSearchResponse } from '@trapmap/contracts';
-import { graphPlanSearchResponseSchema } from '@trapmap/contracts';
-import { Command } from 'commander';
-import { describe, expect, it, vi } from 'vitest';
-
 import * as http from '@trapmap/cli/lib/http.js';
 import * as outputProfile from '@trapmap/cli/lib/output-profile.js';
+import type { GraphPlanSearchResponse } from '@trapmap/contracts';
+import { Command } from 'commander';
+import { describe, expect, it, vi } from 'vitest';
 import { registerLoadCommand } from '../../src/commands/load.js';
 
 // Mock the dependencies

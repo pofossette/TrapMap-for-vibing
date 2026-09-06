@@ -29,7 +29,7 @@ All handlers are concurrency-safe, with request timeouts and structured logging.
 go run ./cmd/stress -list
 go run ./cmd/stress -scenario all
 go run ./cmd/stress -scenario batch-cosine -vus 50 -duration 10s -check
-pnpm stress:go:batch-cosine
+pnpm --filter @trapmap/benchmarks stress:go:batch-cosine
 ```
 
 输出 `benchmarks/results/stress-go-*.json`，阈值与 `benchmarks/stress/README.md` 一致。

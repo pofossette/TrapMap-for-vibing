@@ -17,5 +17,5 @@ export const IDENTITY_ACCESS_OWNED_CAPABILITIES = [
   'access-keys',
 ] as const;
 
-export * from './policy.js';
 export * from './access-key.js';
+export * from './policy.js';

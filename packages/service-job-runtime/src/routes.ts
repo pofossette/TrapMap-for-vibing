@@ -1,8 +1,7 @@
-import type { FastifyInstance } from 'fastify';
-import { type ZodType, z } from 'zod';
-
 import type { JobRuntimePort } from '@trapmap/backend-core';
 import { type RouteContext, type RouteDef, registerFastifyRoutes } from '@trapmap/backend-core';
+import type { FastifyInstance } from 'fastify';
+import { type ZodType, z } from 'zod';
 
 const emptyRecord = z.record(z.string(), z.unknown());
 

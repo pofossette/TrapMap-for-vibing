@@ -84,6 +84,8 @@ CLI 接入语义在这三个 profile 下保持一致：
 | `team-monolith` | `pnpm dev:team-monolith` 或 `docker compose up -d` | 单实例、多用户、完整 HTTP API 与 PostgreSQL 主路径；compose 默认启动统一 gateway |
 | `distributed` | `pnpm dev:distributed:*` 或 `docker compose --profile distributed up -d` | gateway + 多 worker，CLI 仍只连接 gateway |
 
+**Web Panel 前端**（独立，不经 backend registry）：`pnpm dev:web` → `apps/web-panel` Vite 4173，可与任意 backend profile 并行启动。
+
 ### Phase 4 freeze
 
 Phase 4 freeze 把 adapter env / target-pruning 的推荐组合固定为文档事实，而不是新的 runtime implementation claim。

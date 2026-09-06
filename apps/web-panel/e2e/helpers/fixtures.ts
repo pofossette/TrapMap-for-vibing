@@ -1,4 +1,4 @@
-import { type Page, test as base, expect } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
 
 import { ActivityPage } from '../page-objects/activity-page.js';
 import { AppShell } from '../page-objects/app-shell.js';

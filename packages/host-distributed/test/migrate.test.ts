@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createDistributedMigrationRunner, runDistributedMigrations } from '../src/migrate.js';
+import { createDistributedMigrationRunner } from '../src/migrate.js';
 
 describe('runDistributedMigrations', () => {
   it('closes its migration pool after a successful run', async () => {

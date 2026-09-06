@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import { createExperienceGeneFixture } from '@trapmap/backend-core/testing/index.js';
 import { sha256CanonicalJson } from '@trapmap/lib';
+import { describe, expect, it, vi } from 'vitest';
 import { createExperienceGeneStaleHandler } from '../src/experience-gene-staleness-handler.js';
 import { createExperienceGeneQueryPool } from '../src/testing/experience-gene-query-pool.js';
 

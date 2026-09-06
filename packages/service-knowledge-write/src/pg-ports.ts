@@ -1,6 +1,10 @@
 import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
-import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
-import type { ExperienceGeneDerivationTaskPayload, ExperienceGeneMode } from '@trapmap/contracts';
+import type {
+  ArtifactReadProjection,
+  ExperienceGeneDerivationTaskPayload,
+  ExperienceGeneMode,
+  KnowledgeOwnerPort,
+} from '@trapmap/contracts';
 import { createFallbackEmbedding } from '@trapmap/infra';
 import {
   type ArtifactBundleImportPort,
@@ -10,8 +14,8 @@ import {
   createArtifactWritePort,
 } from './artifact-ports.js';
 import {
-  type ExperienceGeneDerivationDependencies,
   deriveExperienceGeneFromRule,
+  type ExperienceGeneDerivationDependencies,
   experienceGeneEmbeddingText,
 } from './experience-gene-derivation.js';
 import { withExperienceGeneDerivationMetrics } from './experience-gene-metrics.js';

@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEAD_LETTER_MESSAGE,
-  MAX_PROCESSING_ATTEMPTS,
-  RECOVERY_REASON,
-  RECOVERY_STATUS,
   isActionableCandidateStatus,
   isDeadLetter,
   isInterruptedCandidateStatus,
   isStatusUpdateNoop,
+  MAX_PROCESSING_ATTEMPTS,
+  RECOVERY_REASON,
+  RECOVERY_STATUS,
   sameAnalysis,
   sameDuplicateCase,
   sameManualResult,

@@ -122,7 +122,9 @@ function buildNodeNumberMap(payload: GraphPlanSearchResponse): Map<string, strin
   });
   const width = Math.max(3, String(rawIds.length).length);
   const map = new Map<string, string>();
-  rawIds.forEach((id, idx) => map.set(id, padNumber(idx + 1, width)));
+  rawIds.forEach((id, idx) => {
+    map.set(id, padNumber(idx + 1, width));
+  });
   return map;
 }
 

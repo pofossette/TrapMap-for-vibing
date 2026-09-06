@@ -1,15 +1,15 @@
+import type { Permission } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
-import type { Permission } from '@trapmap/contracts';
-
 import {
-  SYSTEM_ADMIN_SECURITY_LEVEL,
-  USER_SECURITY_LEVEL,
   defaultRoleTemplate,
   defaultSecurityLevel,
   defaultTeamName,
   permissionsForRole,
+  SYSTEM_ADMIN_SECURITY_LEVEL,
   sessionSecurityLevel,
+  toContractRoleTemplate,
+  USER_SECURITY_LEVEL,
 } from '../../../src/identity-access/domain/policy.js';
 
 describe('identity-access policy domain', () => {
@@ -70,5 +70,14 @@ describe('identity-access policy domain', () => {
     expect(defaultTeamName(undefined, 'platform')).toBe('platform');
     expect(defaultTeamName(null, 'platform')).toBe('platform');
     expect(defaultTeamName('Platform', 'platform')).toBe('Platform');
+  });
+
+  it('normalizes role templates to the shared contract enum', () => {
+    expect(toContractRoleTemplate('admin')).toBe('admin');
+    expect(toContractRoleTemplate('system-admin')).toBe('system-admin');
+    expect(toContractRoleTemplate('user')).toBe('user');
+    expect(toContractRoleTemplate('editor')).toBe('user');
+    expect(toContractRoleTemplate('viewer')).toBe('user');
+    expect(toContractRoleTemplate('unknown-role')).toBe('user');
   });
 });

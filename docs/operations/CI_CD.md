@@ -11,7 +11,7 @@ TrapMap 使用 GitHub Actions 运行两条独立流水线：
 | CI | `.github/workflows/ci.yml` | PR / push to main | 类型检查、check、测试、覆盖率 |
 | Evaluation | `.github/workflows/eval.yml` | PR（路径匹配）/ 周调度 / 手动 | 检索质量评测 |
 
-本地命令表面以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 为准。
+本地命令表面以 `pnpm run ci`、`pnpm --filter @trapmap/evals eval:smoke`、`pnpm --filter @trapmap/evals eval:ci`、`pnpm --filter @trapmap/evals eval:ci:core` 为准。
 
 ---
 
@@ -47,7 +47,7 @@ Runtime foundations 相关改动主要依赖以下 job 组合形成质量门：
 - **环境默认值漂移**：`ARCHITECTURE.md` 中的 `HOST`（`127.0.0.1`）和 `AI_CHAT_MODEL`（`gpt-4o-mini`）默认值
 - **深层架构参考漂移**：`PERSISTENCE.md` 表总览若写死数量、`ENVIRONMENT.md` 数据文件路径
 - **PostgreSQL-first 姿态漂移**：禁止过时的 JSON 存储描述和旧表计数
-- **评测命令表面漂移**：`EVALUATION.md` 和 `TESTING.md` 中的 eval 入口命令（`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core`）
+- **评测命令表面漂移**：`EVALUATION.md` 和 `TESTING.md` 中的 eval 入口命令（`pnpm --filter @trapmap/evals eval:smoke`、`pnpm --filter @trapmap/evals eval:ci`、`pnpm --filter @trapmap/evals eval:ci:core`）
 - **当前 remediation 入口漂移**：active root execution surface、todos/archived index truth、以及 deferred landing spot 口径
 - **贡献指南命令漂移**：`CONTRIBUTING.md` 中的 DB 迁移命令格式（必须使用 `pnpm --filter @trapmap/server`）
 - **部署默认值漂移**：`DEPLOYMENT.md` 中的 chat model（`gpt-4o-mini`）和 JSON 回退路径（`.data/skill-shareer.json`）
@@ -84,7 +84,7 @@ pnpm check:fallow
 ### eval-smoke job
 
 1. 下载最新 baseline（如有）
-2. 运行 `pnpm eval:ci`（默认 smoke tier，带 baseline 对比）
+2. 运行 `pnpm --filter @trapmap/evals eval:ci`（默认 smoke tier，带 baseline 对比）
 3. 上传评测报告（保留 7 天）
 4. 在 PR 上评论回归摘要
 
@@ -108,7 +108,7 @@ View full report →
 
 仅在周调度或手动选择 core tier 时运行：
 
-1. 运行 `pnpm eval:ci:core`
+1. 运行 `pnpm --filter @trapmap/evals eval:ci:core`
 2. 上传评测报告（保留 30 天）
 3. 上传 baseline（保留 90 天）
 
@@ -142,19 +142,19 @@ View full report →
 
 ```bash
 # 冒烟测试（快速验证）
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # CI smoke tier（baseline-aware）
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # 完整评测
-pnpm eval:core
+pnpm --filter @trapmap/evals eval:core
 
 # CI 模式（带 baseline 对比）
-BASELINE_PATH=reports/baselines/baseline-smoke.json pnpm eval:ci
+BASELINE_PATH=reports/baselines/baseline-smoke.json pnpm --filter @trapmap/evals eval:ci
 
 # CI core tier
-pnpm eval:ci:core
+pnpm --filter @trapmap/evals eval:ci:core
 
 # 仓库聚合 CI 本地脚本
 pnpm run ci

@@ -23,13 +23,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@trapmap/assembly": "workspace:*",
     "@trapmap/host-distributed": "workspace:*",
     "@trapmap/infra": "workspace:*",
     "@trapmap/service-knowledge-read": "workspace:*",
     "@trapmap/contracts": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "vitest": "^3.2.1"
+    "@types/node": "^26.4.1",
+    "vitest": "^5.0.0"
   }
 }

@@ -1,6 +1,4 @@
 import { Button, Card, Chip } from '@heroui/react';
-import type { ReactElement, ReactNode } from 'react';
-
 import type {
   DashboardGraphStats,
   DashboardScale,
@@ -9,6 +7,7 @@ import type { RuntimeOverview, RuntimeServiceStatus } from '@trapmap/web-panel/s
 import { localizeServiceHealth } from '@trapmap/web-panel/shared/lib/display-labels';
 import { StatusBadge } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import type { ReactElement, ReactNode } from 'react';
 
 export function DashboardHeader({
   loading,

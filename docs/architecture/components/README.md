@@ -14,7 +14,7 @@
 | [EVALUATION.md](EVALUATION.md) | 评估系统 |
 | [GOVERNANCE.md](GOVERNANCE.md) | 治理模型 (RBAC + 安全等级) |
 | [PERSISTENCE.md](PERSISTENCE.md) | 持久层实现 |
-| [RETRIEVAL.md](RETRIEVAL.md) | 检索管道 (v1/v2/v3) |
+| [RETRIEVAL.md](RETRIEVAL.md) | 检索管道 (v1/v2/v3) · v3 灵感 GraSP (2604.17870) + Experience Gene 灵感 Strategy Genes (2604.15097) |
 
 历史组件文档（AUTH、DECAY、DEDUPLICATION、DELETION、DEPENDENCY_ANALYSIS、FEEDBACK、INDEXING、INGESTION、KNOWLEDGE_LIFECYCLE、OPTIONAL_SERVICE_SPLIT_AND_MQ、REVIEW、UPDATE、ASYNC_INFRASTRUCTURE）已归档至 [`docs/archived/architecture/components/`](../../archived/architecture/components/)。
 

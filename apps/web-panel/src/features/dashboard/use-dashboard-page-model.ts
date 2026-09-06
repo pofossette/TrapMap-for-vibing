@@ -1,10 +1,8 @@
-import { useCallback, useEffect } from 'react';
-
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
-import { useDashboardStore } from '@trapmap/web-panel/stores/dashboard-store';
-import { type DashboardGraphStats, type DashboardScale, loadDashboardSnapshot } from './service';
-
 import type { RuntimeOverview, RuntimeServiceStatus } from '@trapmap/web-panel/shared/enum-types';
+import { useDashboardStore } from '@trapmap/web-panel/stores/dashboard-store';
+import { useCallback, useEffect } from 'react';
+import { type DashboardGraphStats, type DashboardScale, loadDashboardSnapshot } from './service';
 
 export function useDashboardPageModel(): {
   error: string | null;

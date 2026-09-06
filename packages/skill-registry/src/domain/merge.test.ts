@@ -35,6 +35,7 @@ describe('threeWayMerge', () => {
 });
 
 import { diffSnapshots } from './diff.js';
+
 describe('diffSnapshots union', () => {
   it('diff works', () => {
     const base = { slug: 's', files: [{ path: 'a', sha256: '1', content: '1' }] };

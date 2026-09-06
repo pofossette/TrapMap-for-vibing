@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { ChatProvider } from '@trapmap/ai-providers';
 import { assertLabelResultShape, sampleLabelInput } from '@trapmap/backend-core';
 import type { LabelAlignmentInput } from '@trapmap/contracts';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createLlmLabelAlignment } from '../../src/label-alignment/llm-label-alignment.js';
 import { createRuleLabelAlignment } from '../../src/label-alignment/rule-label-alignment.js';

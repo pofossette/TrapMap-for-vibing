@@ -5,7 +5,9 @@ export interface AiPromptBlock {
 export interface EmbeddingsProvider {
   readonly provider: string;
   readonly isConfigured: boolean;
+  readonly model?: string | null;
   embed(text: string): Promise<number[]>;
+  embedMany?(texts: string[]): Promise<number[][]>;
 }
 
 export interface ChatProvider {

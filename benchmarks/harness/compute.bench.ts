@@ -1,16 +1,16 @@
-import { bench, describe } from 'vitest';
 import {
   mergeCandidates,
-  rerankCandidates,
   mergeCandidatesWithGraph,
+  rerankCandidates,
   scoreKeywordEntry,
   tokenizeText,
   versionMatchMultiplier,
 } from '@trapmap/backend-core';
-import { canonicalJsonStringify } from '@trapmap/lib/canonical-json.js';
-import { sha256CanonicalJson } from '@trapmap/lib/canonical-hash.js';
-import { cosineSimilarity, createDeterministicFallbackVector } from '@trapmap/lib/vector.js';
 import { DEFAULT_FRESHNESS_DECAY_CONFIG } from '@trapmap/contracts';
+import { sha256CanonicalJson } from '@trapmap/lib/canonical-hash.js';
+import { canonicalJsonStringify } from '@trapmap/lib/canonical-json.js';
+import { cosineSimilarity, createDeterministicFallbackVector } from '@trapmap/lib/vector.js';
+import { bench, describe } from 'vitest';
 
 // 1k × 384 vectors batch — 对齐 Go vector.BatchCosine 64-shard
 const DIM = 384;

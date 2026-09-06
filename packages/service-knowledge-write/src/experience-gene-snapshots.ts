@@ -183,11 +183,7 @@ export function createPgExperienceGeneSourceLoaders(pool: Queryable) {
     trap(request: { sourceId: string }) {
       return loadTrap(pool, request);
     },
-    skillArtifact(request: {
-      artifactId: string;
-      revision: number;
-      derivationUnitId: string;
-    }) {
+    skillArtifact(request: { artifactId: string; revision: number; derivationUnitId: string }) {
       return loadSkillArtifact(pool, request);
     },
     skillCapsule(request: { capsuleId: string }) {

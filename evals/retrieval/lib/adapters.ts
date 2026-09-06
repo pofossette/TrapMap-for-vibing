@@ -6,9 +6,7 @@
  * Executes through explicit adapters that record execution path and fallback usage.
  */
 
-import type { FastifyInstance } from 'fastify';
-import type { Pool } from 'pg';
-
+import type { EvalSeedPort } from '@trapmap/backend-core';
 import type {
   DerivedSkillCapsuleRecord,
   GraphIndexDocumentRecord,
@@ -21,13 +19,13 @@ import type {
 } from '@trapmap/contracts';
 import { nowIso, sha256 } from '@trapmap/lib';
 import type { ArtifactWritePort } from '@trapmap/service-knowledge-write';
-import type { RetrievalEvalCase, RetrievalEvalScenario } from '../../types/index.js';
-
-import type { EvalSeedPort } from '@trapmap/backend-core';
+import type { FastifyInstance } from 'fastify';
+import type { Pool } from 'pg';
 import type { HostLocalRuntime } from '../../../packages/host-local/src/nest/runtime/host-runtime.js';
 import { resetRetrievalReadModelCacheForTests } from '../../../packages/service-knowledge-read/src/retrieval-read-model-cache.js';
 import { createKnowledgeEntryRecord } from '../../../packages/service-knowledge-write/src/knowledge-record-mutations.js';
 import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
+import type { RetrievalEvalCase, RetrievalEvalScenario } from '../../types/index.js';
 
 import { loadScenario } from './load.js';
 import { normalizeResponse } from './normalize.js';

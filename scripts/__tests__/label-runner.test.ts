@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { GraphIndexRepositoryPort } from '@trapmap/contracts';
 import type { Pool } from 'pg';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   loadRawLabelSources,
@@ -69,14 +68,12 @@ describe('loadRawLabelSources', () => {
 describe('label runner execution', () => {
   it('rejects the backfill before creating a pool when DATABASE_URL is absent', async () => {
     const previousDatabaseUrl = process.env.DATABASE_URL;
-    // biome-ignore lint/performance/noDelete: process.env requires delete to actually remove the key
     delete process.env.DATABASE_URL;
 
     await expect(runLabelBackfill(true)).rejects.toThrow(
       'DATABASE_URL environment variable is required',
     );
 
-    // biome-ignore lint/performance/noDelete: process.env requires delete to actually remove the key
     if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
     else process.env.DATABASE_URL = previousDatabaseUrl;
   });

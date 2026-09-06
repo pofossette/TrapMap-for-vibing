@@ -1,6 +1,4 @@
 import { describe, expect, it } from 'vitest';
-
-import { createExperienceGeneFixture } from '../../src/domain/experience-gene-fixtures.js';
 import {
   EXPERIENCE_GENE_DEPRECATED_OUTBOX_EVENT,
   EXPERIENCE_GENE_DERIVE_TASK_EVENT,
@@ -13,6 +11,7 @@ import {
   experienceGeneSourceLifecycleEventSchema,
   experienceGeneSourceSnapshotSchema,
 } from '../../src/domain/experience-gene.js';
+import { createExperienceGeneFixture } from '../../src/domain/experience-gene-fixtures.js';
 
 describe('experience gene events', () => {
   it('parses derived lifecycle events with system provenance', () => {

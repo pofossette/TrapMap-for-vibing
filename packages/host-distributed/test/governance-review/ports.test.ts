@@ -1,8 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { AuditLogPort, FeedbackRepositoryPort } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { GovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-review';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createDistributedGovernanceArtifactReadProjection,

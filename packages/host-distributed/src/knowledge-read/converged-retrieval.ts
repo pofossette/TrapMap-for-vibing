@@ -19,7 +19,6 @@ import type { KnowledgeReadPort, RetrievalQueryPort } from '@trapmap/backend-cor
 import { permissionSchema } from '@trapmap/contracts';
 import { createGovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-review';
 import {
-  type KnowledgeReadOwnerRetrievalServicesOptions,
   createKnowledgeReadChannelRegistry,
   createKnowledgeReadGraphIndexRepository,
   createKnowledgeReadOwnerRetrievalServices,
@@ -27,6 +26,7 @@ import {
   createKnowledgeReadSkillLookupQuery,
   createKnowledgeReadStrategyRegistry,
   createMemoryGraphQueryBackend,
+  type KnowledgeReadOwnerRetrievalServicesOptions,
   loadRagLogConfig,
 } from '@trapmap/service-knowledge-read';
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';

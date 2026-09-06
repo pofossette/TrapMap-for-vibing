@@ -1,3 +1,4 @@
+import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
 import type {
   ApplyResolutionResponse,
   DuplicateJobBundleResponse,
@@ -9,8 +10,6 @@ import type {
   SkillReviewQueueResponse,
   SkillRevisionSummary,
 } from '@trapmap/contracts';
-
-import { stripNewlines } from '@trapmap/cli/lib/sanitize.js';
 
 /**
  * Payload for the skill versions command.

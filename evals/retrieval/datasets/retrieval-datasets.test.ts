@@ -17,18 +17,14 @@ import { retrievalEvalCaseSchema, retrievalEvalScenarioSchema } from '../../type
 import { coreScenarios, coreScenariosMap } from '../scenarios/core/retrieval-core-scenarios.js';
 // Import scenarios
 import { smokeScenarios, smokeScenariosMap } from '../scenarios/smoke/retrieval-smoke-scenarios.js';
-
-// Import v1 smoke datasets
-import { v1RetrievalSmokeCases } from './smoke/v1-retrieval-smoke.js';
-
-// Import v2 smoke datasets
-import { v2RetrievalSmokeCases } from './smoke/v2-retrieval-smoke.js';
-
 // Import v1 core datasets
 import { v1RetrievalCoreCases } from './core/v1-retrieval-core.js';
-
 // Import v2 core datasets
 import { v2RetrievalCoreCases } from './core/v2-retrieval-core.js';
+// Import v1 smoke datasets
+import { v1RetrievalSmokeCases } from './smoke/v1-retrieval-smoke.js';
+// Import v2 smoke datasets
+import { v2RetrievalSmokeCases } from './smoke/v2-retrieval-smoke.js';
 
 // =============================================================================
 // Schema Validation Tests

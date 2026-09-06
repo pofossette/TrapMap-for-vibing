@@ -15,17 +15,17 @@
  * are reused verbatim (they already attach metrics + runtime telemetry), which
  * keeps runtime semantics identical to the pre-convergence paths.
  */
-import { createAssembly, judgmentContracts } from '@trapmap/assembly';
+
 import type { Assembly, CapabilityNode } from '@trapmap/assembly';
+import { createAssembly, judgmentContracts } from '@trapmap/assembly';
 
 import {
   ALL_SERVICES,
+  loadServiceConfig,
   type ServiceConfig,
   type ServiceName,
-  loadServiceConfig,
 } from '../../config/index.js';
 import type { DistributedServiceHandle } from '../../runner.js';
-import { SERVICE_SERVER_SERVICE } from '../nodes/distributed-service-nodes.js';
 import {
   candidateIngestionServiceNode,
   candidateProcessingWorkerNode,
@@ -39,6 +39,7 @@ import {
   knowledgeReadServiceNode,
   knowledgeWriteServiceNode,
   outboxDispatchWorkerNode,
+  SERVICE_SERVER_SERVICE,
 } from '../nodes/distributed-service-nodes.js';
 import {
   candidateIngestionJudgmentNodes,
@@ -112,7 +113,8 @@ export function distributedAssembly(
   }
   builder.add(SERVICE_NODE[serviceName]);
   for (const node of judgmentNodesFor(serviceName)) {
-    builder.add(node);
+    // Same as host-local: rule-node schemas are all-defaulted, apply ignores config.
+    builder.add(node, {});
   }
   if (serviceName === 'job-runtime') {
     for (const worker of JOB_RUNTIME_WORKER_CHILDREN) {
@@ -142,11 +144,40 @@ export async function startDistributedService(
   options: DistributedAssemblyOptions = {},
 ): Promise<DistributedServiceHandle> {
   const running = await distributedAssembly(serviceName, options).build().boot();
-  const config = running.ctx.get(SERVICE_CONFIG_SERVICE);
-  const server = running.ctx.get(SERVICE_SERVER_SERVICE);
+  // Server/config/database nodes are async (server creation binds ports,
+  // database creation connects pools) and cordis does not await providing
+  // fibers, so their tokens land after boot() resolves. Wait for them with
+  // a bound instead of racing ctx.get() (same pattern as host-local main).
+  const deadline = Date.now() + 30_000;
+  const waitFor = async <T>(token: string): Promise<T | undefined> => {
+    let value: T | undefined = running.ctx.get(token);
+    while (value === undefined && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      value = running.ctx.get(token);
+    }
+    return value;
+  };
+  const config = await waitFor<ServiceConfig>(SERVICE_CONFIG_SERVICE);
+  const server = await waitFor<{ start(): Promise<void>; close(): Promise<void> }>(
+    SERVICE_SERVER_SERVICE,
+  );
+  if (!config || !server) {
+    await running.dispose().catch(() => undefined);
+    throw new Error(
+      `Distributed assembly boot did not produce config/server (service=${serviceName})`,
+    );
+  }
   await startServer({ server });
 
-  const db = running.ctx.get(SERVICE_DATABASE_SERVICE);
+  const db = DB_BACKED_SERVICES.has(serviceName)
+    ? await waitFor<NonNullable<DistributedServiceHandle['db']>>(SERVICE_DATABASE_SERVICE)
+    : running.ctx.get(SERVICE_DATABASE_SERVICE);
+  if (DB_BACKED_SERVICES.has(serviceName) && !db) {
+    await running.dispose().catch(() => undefined);
+    throw new Error(
+      `Distributed assembly boot did not produce a database (service=${serviceName})`,
+    );
+  }
   const result: DistributedServiceHandle = db ? { config, db, server } : { config, server };
   return result;
 }

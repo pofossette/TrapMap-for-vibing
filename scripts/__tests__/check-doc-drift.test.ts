@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type DocRule, checkRule } from '../check-doc-drift';
+import { checkRule, type DocRule } from '../check-doc-drift';
 
 describe('checkRule', () => {
   const file = 'docs/test.md';

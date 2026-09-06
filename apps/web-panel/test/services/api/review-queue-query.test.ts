@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { ReviewQueueItem } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import { applyReviewQueueQuery } from '../../../src/services/api/review-queue-query';
 
 const actor = { id: 'actor-1', handle: 'reviewer', securityLevel: 5 };

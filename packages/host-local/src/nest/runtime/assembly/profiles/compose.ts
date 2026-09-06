@@ -5,17 +5,16 @@
  * node + service node + transport chain; the only difference is the profile
  * name. This helper keeps that ordering single-sourced.
  */
-import { createAssembly } from '@trapmap/assembly';
-import type { CapabilityNode } from '@trapmap/assembly';
-import type { HostLocalRuntime } from '../../host-runtime.js';
 
-import { judgmentContracts } from '@trapmap/assembly';
+import type { CapabilityNode } from '@trapmap/assembly';
+import { createAssembly, judgmentContracts } from '@trapmap/assembly';
+import type { HostLocalRuntime } from '../../host-runtime.js';
 import {
-  type PilotHostNodeConfig,
   hostLocalConfigNode,
   hostLocalPgNode,
   hostLocalRuntimeNode,
   hostLocalServicesNode,
+  type PilotHostNodeConfig,
 } from '../nodes/host-nodes.js';
 import { judgmentNodes } from '../nodes/judgment-nodes.js';
 import { type NestTransportConfig, nestTransportNode } from '../nodes/nest-transport.js';
@@ -56,7 +55,9 @@ export function composePilotProfile(options: PilotProfileOptions) {
   }
 
   for (const node of judgmentNodes) {
-    builder.add(node);
+    // Rule nodes declare all-defaulted config schemas but ignore config in apply;
+    // pass {} so cordis validates defaults instead of rejecting undefined.
+    builder.add(node, {});
   }
 
   const transport = (options.transportNode ?? nestTransportNode) as CapabilityNode;

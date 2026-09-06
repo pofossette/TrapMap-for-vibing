@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { CandidateRepositoryPort, DedupStrategyResult } from '@trapmap/backend-core';
 import type { CandidateCorpusReadPort, CandidateSubmission } from '@trapmap/contracts';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   CANDIDATE_PROCESSING_TASK_TYPE,

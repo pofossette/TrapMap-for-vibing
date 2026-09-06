@@ -1,14 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
-import type {
-  ArtifactDerivationPort,
-  ChannelMergePort,
-  ConflictTriggerPort,
-  DedupStrategyPort,
-  IntentRecognitionPort,
-  LabelAlignmentPort,
-} from '../../src/ports/index.js';
+import { describe, expect, it } from 'vitest';
 import {
   buildSampleArtifactInput,
   buildSampleChannelInput,

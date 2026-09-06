@@ -22,12 +22,17 @@ describe('distributed compose assets', () => {
     expect(compose).toContain('outbox-worker:');
     expect(compose).toContain('migration:');
     expect(compose).toContain('command: ["node", "dist/migrate.js"]');
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: compose-file shell expansion syntax under test, not a JS template
     expect(compose).toContain('TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}');
 
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: compose-file shell expansion syntax under test, not a JS template
     expect(compose).toContain('CONSUL_ENABLED=${CONSUL_ENABLED:-true}');
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: compose-file shell expansion syntax under test, not a JS template
     expect(compose).toContain('CONSUL_HOST=${CONSUL_HOST:-consul}');
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: compose-file shell expansion syntax under test, not a JS template
     expect(compose).toContain('CONSUL_PORT=${CONSUL_PORT:-8500}');
     expect(compose).toContain(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: compose-file shell expansion syntax under test, not a JS template
       'OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://tempo:4318}',
     );
   });

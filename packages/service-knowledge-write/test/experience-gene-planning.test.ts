@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
 import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
 import { sha256CanonicalJson } from '@trapmap/lib';
+import { describe, expect, it } from 'vitest';
 import { createExperienceGeneDerivationPlanner } from '../src/experience-gene-planning.js';
 import { createExperienceGeneQueryPool } from '../src/testing/experience-gene-query-pool.js';
 

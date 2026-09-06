@@ -9,11 +9,10 @@
  * graph-extraction eval runner.
  */
 
-import { type LlmGraphExtraction, llmGraphExtractionSchema } from '@trapmap/contracts';
-
 import type { ChatProvider } from '@trapmap/ai-providers';
 import { invokeWithParseRetry } from '@trapmap/ai-providers/ai-parse.js';
 import { buildGraphExtractionSlots_default, buildPrompt } from '@trapmap/ai-providers/prompts.js';
+import { type LlmGraphExtraction, llmGraphExtractionSchema } from '@trapmap/contracts';
 import { executeWithResilience } from './graph-llm-extract/resilience.js';
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
  * Knowledge refinement and claim verification prompt slots and exported builders.
  */
 
-import { type PromptBlock, buildSystemPromptBlocks } from './ai-cache/api-integration.js';
+import { buildSystemPromptBlocks, type PromptBlock } from './ai-cache/api-integration.js';
 import type { PromptSlots } from './ai-providers/types.js';
 import { buildPrompt, buildPromptWithCacheControl } from './prompt-builder.js';
 
@@ -49,15 +49,11 @@ function buildClaimVerificationSlots(config?: { strict?: boolean }): PromptSlots
 // Exported prompt builders
 // ---------------------------------------------------------------------------
 
-export function buildKnowledgeRefinementSystemPrompt(config?: {
-  maxSentences?: number;
-}): string {
+export function buildKnowledgeRefinementSystemPrompt(config?: { maxSentences?: number }): string {
   return buildPrompt('knowledge-refinement', buildKnowledgeRefinementSlots(config));
 }
 
-export function buildClaimVerificationSystemPrompt(config?: {
-  strict?: boolean;
-}): string {
+export function buildClaimVerificationSystemPrompt(config?: { strict?: boolean }): string {
   return buildPrompt('claim-verification', buildClaimVerificationSlots(config));
 }
 

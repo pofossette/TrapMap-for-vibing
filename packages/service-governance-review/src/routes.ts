@@ -11,13 +11,13 @@ import { createGovernanceQueueRouteDefs } from './routes/queue.routes.js';
 import { createGovernanceRuntimeRouteDefs } from './routes/runtime.routes.js';
 
 export type {
+  GovernanceReviewReadinessOptions,
   GovernanceReviewRouteDeps,
   GovernanceReviewRouteModule,
-  GovernanceReviewReadinessOptions,
 } from './routes/helpers.js';
 
 export function createGovernanceAdminRouteDefs(
-  deps: GovernanceReviewRouteDeps,
+  _deps: GovernanceReviewRouteDeps,
 ): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
   return [
     ...createGovernanceQueueRouteDefs(),
@@ -28,7 +28,7 @@ export function createGovernanceAdminRouteDefs(
 }
 
 export function createGovernanceReviewRouteDefsInternal(
-  deps: GovernanceReviewRouteDeps,
+  _deps: GovernanceReviewRouteDeps,
 ): RouteDef<RouteContext, GovernanceReviewRouteDeps>[] {
   return [...createGovernanceMaintenanceRouteDefs(), ...createGovernanceFeedbackRouteDefs()];
 }

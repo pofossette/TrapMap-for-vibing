@@ -9,11 +9,10 @@
  * Extracted from operations.ts for Phase 85 refactoring.
  */
 
-import { readFile, readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import type { ArtifactBundle, KnowledgeListResponse } from '@trapmap/contracts';
-import { sha256 } from '@trapmap/lib';
-import { detectMediaType, isTextLikeMediaType, parseSkillMarkdown } from '@trapmap/lib';
+import { detectMediaType, isTextLikeMediaType, parseSkillMarkdown, sha256 } from '@trapmap/lib';
 
 /**
  * Checks if a file path is a SKILL.md file (basename check).

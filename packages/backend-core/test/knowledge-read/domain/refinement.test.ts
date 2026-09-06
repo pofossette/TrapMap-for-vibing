@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  REFINEMENT_MAX_SENTENCES,
   buildRefinementPrompt,
   buildRefinementSystemPrompt,
   buildRefinementSystemPromptBlocks,
   isRefinementAvailable,
+  REFINEMENT_MAX_SENTENCES,
 } from '../../../src/knowledge-read/domain/index.js';
 
 describe('knowledge-read refinement rules', () => {

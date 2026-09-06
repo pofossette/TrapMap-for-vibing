@@ -1,11 +1,10 @@
+import { ApiError } from '@trapmap/client-core';
 import type {
   ReviewDecisionRequest,
   ReviewQueueItem,
   ReviewQueueResponse,
   SkillArtifact,
 } from '@trapmap/contracts';
-
-import { ApiError } from '@trapmap/client-core';
 
 import type {
   ActivityFeedResponse,

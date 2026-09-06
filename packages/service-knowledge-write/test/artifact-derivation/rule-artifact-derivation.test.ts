@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
 import { assertArtifactOutputShape, buildSampleArtifactInput } from '@trapmap/backend-core';
 import type { DerivedSkillProfileRecord } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 
 import { createRuleArtifactDerivation } from '../../src/artifact-derivation/rule-artifact-derivation.js';
 

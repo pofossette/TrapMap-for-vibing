@@ -3,15 +3,15 @@
  */
 
 export {
-  type ServiceName,
-  type ServiceConfig,
-  type InternalServiceUrls,
-  type InternalTransportKind,
   ALL_SERVICES,
   assertDistributedConnectionBudget,
-  getDistributedConnectionBudgetSnapshot,
-  loadServiceConfig,
   assertDistributedResilienceConfig,
+  getDistributedConnectionBudgetSnapshot,
+  type InternalServiceUrls,
+  type InternalTransportKind,
+  loadServiceConfig,
   resolveInternalTimeoutMs,
+  type ServiceConfig,
+  type ServiceName,
   serviceNameForInternalHost,
 } from './service-config.js';

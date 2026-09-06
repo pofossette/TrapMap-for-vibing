@@ -35,14 +35,12 @@ export class VCursor {
   private readonly resolved: Required<VCursorOptions>;
   private initialized = false;
   private position: { x: number; y: number } = { x: 0, y: 0 };
-  private visibleState: boolean;
 
   constructor(
     public page: Page,
     public options?: VCursorOptions,
   ) {
     this.resolved = resolveOptions(options);
-    this.visibleState = this.resolved.visible;
   }
 
   async init(): Promise<void> {
@@ -139,7 +137,6 @@ export class VCursor {
 
     this.initialized = true;
     if (!opts.visible) {
-      this.visibleState = false;
     }
   }
 
@@ -397,7 +394,6 @@ export class VCursor {
       .catch(() => {
         // ignore
       });
-    this.visibleState = false;
   }
 
   async show(): Promise<void> {
@@ -411,7 +407,6 @@ export class VCursor {
       .catch(() => {
         // ignore
       });
-    this.visibleState = true;
   }
 
   async setPosition(x: number, y: number): Promise<void> {

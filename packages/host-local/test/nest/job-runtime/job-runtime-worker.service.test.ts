@@ -1,12 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type {
   AuditLogPort,
-  JobRuntimeDeps,
   OutboxPort,
   TaskConsumerHandle,
   TaskHandler,
 } from '@trapmap/backend-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { JobRuntimeWorkerService } from '../../../src/nest/job-runtime/job-runtime-worker.service.js';
 

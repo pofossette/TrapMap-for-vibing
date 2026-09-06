@@ -9,12 +9,10 @@
 import { pushSliceTable, pushSummaryStats } from '../../lib/eval-report.js';
 import type {
   CohortSummary,
-  ModeComparison,
   RetrievalEvalFailureRecord,
   RetrievalEvalReport,
   RetrievalEvalSliceSummary,
   RetrievalEvalWarningRecord,
-  RoutingDistribution,
 } from '../../types/report.js';
 import { compareCohortSummaries, compareSliceSummaries } from './report.js';
 

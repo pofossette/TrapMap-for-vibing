@@ -14,6 +14,17 @@ TrapMap 是知识 / Trap 经验 / Skill 工件的治理与检索基础设施。�
 
 运行档：`embedded/local-agent → team-monolith → distributed` 三档；`gateway` 是宿主拥有的统一外部适配层。
 
+## 设计灵感（Research Inspirations）
+
+TrapMap 的两大演进方向直接以以下两篇论文为出发点，架构决策与数据模型均对齐其核心结论（详见各组件文档与执行计划）：
+
+| 方向 | 论文 | 链接 | 对 TrapMap 的落点 |
+|---|---|---|---|
+| **Experience Gene（经验基因）** | *From Procedural Skills to Strategy Genes: Towards Experience-Driven Test-Time Evolution* | HTML: https://arxiv.org/html/2604.15097v2 · ABS: https://arxiv.org/abs/2604.15097 | 文档型 Skill 控制信号稀疏（~2500t, -1.1pp），而 compact、control-oriented 的 Gene（~230t, +3.0pp, 45 scenarios / 4590 trials）更能改善 test-time control。Gene 定义 `g=(m,u,π,α,c,v)` 1:1 映射为本仓 `signalsMatch / summary / strategy / avoid / constraints / validation`，配合 `contentHash=sha256(canonicalJson)`、稳定边界、失败警告、验证接口与 lineage，实现 `trap/skill-artifact/skill-capsule → ExperienceGene` 的派生、固化与 `gene-native` 检索；渲染为 `<strategy-gene>Domain keywords/Summary/Strategy/AVOID</strategy-gene>` 直接注入模型。主线见 `docs/archived/archived-plans/experience-gene-program-mainline-archived.md`，契约见 `packages/contracts/src/domain/experience-gene.ts`，存储见 `packages/db/src/schema/experience-genes.ts` |
+| **v3 图编排 / ExecutionPlan** | *GraSP: Agent Skill Graph 编排（腾讯）* + *SkillGraph (2605.12039)* | PDF: https://arxiv.org/pdf/2604.17870 · Plan: `docs/superpowers/plans/2026-05-25-topological-execution-plan.md` | 借鉴 GraSP 的 DAG 编译（`state / data / order` 边）与 SkillGraph 的 `R_ret = TopoSort(R_seed ∪ R_BFS ∪ R_beam)` 拓扑排序，在 `TrapFirstPlan` 中新增 `executionPlan: ExecutionStep[]`。`buildExecutionPlan()` 在 `plan-compiler` 侧对 `mitigates / requires / order` 边执行 Kahn 拓扑排序，输出 `{ rank, nodeId, label, kind:trap-mitigation|skill, blockedBy }`，客户端无需自算顺序；`recommendedSkills` 保持 score 序不变。契约已在 `packages/contracts/src/domain/plans.ts` 落地（`executionStepSchema`） |
+
+> 两篇论文为“灵感出发点”而非照搬：TrapMap 保留 PG-first、RouteDef 双宿主、`approved && !suppressedFromRetrieval` 治理门控与 `off|shadow|serve` 受控 rollout，GEP 的自动 mutation loop 与多 Gene 自由组合不在本轮主线内。
+
 ## 有界上下文（6）
 
 | Context | Owner 包 | 职责 |

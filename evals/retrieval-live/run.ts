@@ -13,11 +13,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-
-import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '../types/index.js';
-
 import { evaluateGovernance } from '../retrieval/lib/governance.js';
 import { calculateMetrics } from '../retrieval/lib/metrics.js';
+import { type RetrievalEvalCase, retrievalEvalCaseSchema } from '../types/index.js';
 import { executeLiveRequest } from './lib/backend-client.js';
 import {
   detectServiceProfile,

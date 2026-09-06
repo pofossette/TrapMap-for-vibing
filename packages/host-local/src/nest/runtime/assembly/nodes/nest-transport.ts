@@ -48,6 +48,7 @@ export const nestTransportNode = defineNode<NestTransportConfig>({
     const port = config.port ?? 4000;
     const host = config.host ?? '0.0.0.0';
 
+    await app.init();
     await app.listen(port, host);
 
     ctx.provide('httpSurface', app);

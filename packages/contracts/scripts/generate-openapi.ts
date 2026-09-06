@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Generate OpenAPI TS + Go stubs check.
  *

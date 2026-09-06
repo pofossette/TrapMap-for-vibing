@@ -10,8 +10,8 @@
 (cd services/go-accelerator && go test -bench . -benchmem ./internal/service/vector ./internal/service/ranking ./internal/service/dedup ./internal/service/gene-derive -run=^$)
 
 # Node bench（vitest bench 隔离，不入默认 test: 仅 bench:）
-pnpm bench:compute          # 等同 benchmarks/harness/run-bench.ts --compute
-pnpm bench:compare          # Node fallback vs Go 回退一致性（score |diff|<1e-9，order identical，hash byte-identical）
+pnpm --filter @trapmap/benchmarks bench:compute          # 等同 benchmarks/harness/run-bench.ts --compute
+pnpm --filter @trapmap/benchmarks bench:compare          # Node fallback vs Go 回退一致性（score |diff|<1e-9，order identical，hash byte-identical）
 ```
 
 ## 输出

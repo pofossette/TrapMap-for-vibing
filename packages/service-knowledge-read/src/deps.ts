@@ -1,8 +1,8 @@
 import {
+  createKnowledgeReadModule,
   type KnowledgeReadDeps,
   type KnowledgeReadPort,
   type ReadModelProjectionStatus,
-  createKnowledgeReadModule,
 } from '@trapmap/backend-core';
 
 import { createKnowledgeEntryProjection } from './entry-projection.js';

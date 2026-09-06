@@ -1,13 +1,14 @@
-import { describe, expect, it } from 'vitest';
-
 import { createExperienceGeneFixture } from '@trapmap/backend-core/testing/index.js';
 import type { ExperienceGeneSourceSnapshot } from '@trapmap/contracts';
-import { experienceGeneDerivationTaskPayloadSchema } from '@trapmap/contracts';
-import { experienceGeneSchema } from '@trapmap/contracts';
-import { sha256CanonicalJson } from '@trapmap/lib';
 import {
-  type ExperienceGeneDerivationDependencies,
+  experienceGeneDerivationTaskPayloadSchema,
+  experienceGeneSchema,
+} from '@trapmap/contracts';
+import { sha256CanonicalJson } from '@trapmap/lib';
+import { describe, expect, it } from 'vitest';
+import {
   deriveExperienceGeneFromRule,
+  type ExperienceGeneDerivationDependencies,
 } from '../src/experience-gene-derivation.js';
 
 const snapshot: ExperienceGeneSourceSnapshot = {

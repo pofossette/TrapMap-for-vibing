@@ -1,6 +1,5 @@
-import type { ZodType } from 'zod';
-
 import { sha256 } from '@trapmap/lib';
+import type { ZodType } from 'zod';
 import { stripCodeFences } from './ai-parse.js';
 import type { ChatProvider } from './types.js';
 

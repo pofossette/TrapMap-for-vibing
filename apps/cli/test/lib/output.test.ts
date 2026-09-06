@@ -2,8 +2,8 @@ import type { RetrievalResponse } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '../../src/lib/http.js';
-import { getDefaultOutputProfile } from '../../src/lib/output-profile.js';
 import { printAdaptiveResult, printError, printResult } from '../../src/lib/output.js';
+import { getDefaultOutputProfile } from '../../src/lib/output-profile.js';
 
 describe('output helpers', () => {
   it('prints raw json when json flag is enabled', () => {

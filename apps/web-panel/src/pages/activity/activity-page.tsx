@@ -1,6 +1,4 @@
 import { Button } from '@heroui/react';
-import type { ReactElement } from 'react';
-
 import { useActivityPageModel } from '@trapmap/web-panel/features/activity/use-activity-page-model';
 import { localizeActivityType } from '@trapmap/web-panel/shared/lib/display-labels';
 import { FadeIn, PageTransition } from '@trapmap/web-panel/shared/motion';
@@ -16,6 +14,7 @@ import {
   TimelineItem,
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import type { ReactElement } from 'react';
 
 const activityInputClassName =
   'h-panel-control w-full rounded-panel-md border border-panel-line bg-panel-surface px-3 text-sm text-panel-text focus:outline-none focus:ring-1 focus:ring-panel-accent';

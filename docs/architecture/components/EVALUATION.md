@@ -4,6 +4,8 @@
 
 TrapMap 的评估框架用于验证系统核心功能的正确性，包括检索质量、摘要生成、治理执行等。框架支持烟雾测试（快速）和核心测试（全面）两个层级。
 
+> **设计灵感：** Experience Gene 的评测门控直接汲取 *From Procedural Skills to Strategy Genes*（https://arxiv.org/html/2604.15097v2）的实证范式——Gene 在 45 scenarios / 4590 trials 上以 ~230 tokens 取得 +3.0pp 增益，而文档型 Skill 以 ~2500 tokens 反而 -1.1pp。本仓据此冻结 `evals/experience-gene/` 的 `smoke(3) / core(10)` 分层与 `safety=0、precision≥0.80、quality≥-2pp、pitfall不回退、overconstraint不增、cost≤+10%` 六门槛，并在 `docs/archived/archived-plans/experience-gene-governance-evaluation-rollout-archived.md` 中规定 live `baseline/shadow/serve` 同 seed 对比与 20-Gene 治理抽样方可 promotion。
+
 ## 架构概览
 
 ```mermaid
@@ -409,7 +411,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Run smoke evaluation
-        run: pnpm eval:ci
+        run: pnpm --filter @trapmap/evals eval:ci
         env:
           NODE_ENV: test
       - name: Upload eval report
@@ -425,7 +427,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run core evaluation
-        run: pnpm eval:ci:core
+        run: pnpm --filter @trapmap/evals eval:ci:core
         env:
           NODE_ENV: test
           WRITE_BASELINE: 'true'
@@ -435,19 +437,19 @@ jobs:
 
 ```bash
 # Run all smoke tests (fast)
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # Run all core tests (comprehensive)
-pnpm eval:core
+pnpm --filter @trapmap/evals eval:core
 
 # Run specific evaluation
-pnpm eval:retrieval:smoke
-pnpm eval:summary:smoke
-pnpm eval:graph-extraction:smoke
-pnpm eval:ingestion:smoke
+pnpm --filter @trapmap/evals eval:retrieval:smoke
+pnpm --filter @trapmap/evals eval:summary:smoke
+pnpm --filter @trapmap/evals eval:graph-extraction:smoke
+pnpm --filter @trapmap/evals eval:ingestion:smoke
 
 # Run with report
-pnpm eval:ci:core
+pnpm --filter @trapmap/evals eval:ci:core
 ```
 
 ---
@@ -543,13 +545,13 @@ pnpm eval:ci:core
 1. 在 `evals/retrieval/datasets/<tier>/` 创建 TS 文件
 2. 导出 `RetrievalTestCase[]`，定义 query、expected、filter
 3. 在对应的 `smoke.ts` 或 `core.ts` 中 re-export
-4. 运行 `pnpm eval:retrieval:<tier>` 验证
+4. 运行 `pnpm --filter @trapmap/evals eval:retrieval:<tier>` 验证
 
 ### 创建摘要测试
 
 1. 在 `evals/summary/datasets/<tier>/` 创建 TS 文件
 2. 提供 sourceContent、summary、requiredFacts、forbiddenClaims
-3. 运行 `pnpm eval:summary:<tier>` 验证
+3. 运行 `pnpm --filter @trapmap/evals eval:summary:<tier>` 验证
 
 ---
 
@@ -583,21 +585,21 @@ pnpm eval:ci:core
 
 ```bash
 # 运行烟雾测试
-pnpm eval:smoke
+pnpm --filter @trapmap/evals eval:smoke
 
 # 运行核心测试
-pnpm eval:core
+pnpm --filter @trapmap/evals eval:core
 
 # 运行特定评估类型
-pnpm eval:retrieval:smoke
-pnpm eval:retrieval:core
-pnpm eval:summary:smoke
-pnpm eval:summary:core
-pnpm eval:graph-extraction:smoke
-pnpm eval:ingestion:smoke
+pnpm --filter @trapmap/evals eval:retrieval:smoke
+pnpm --filter @trapmap/evals eval:retrieval:core
+pnpm --filter @trapmap/evals eval:summary:smoke
+pnpm --filter @trapmap/evals eval:summary:core
+pnpm --filter @trapmap/evals eval:graph-extraction:smoke
+pnpm --filter @trapmap/evals eval:ingestion:smoke
 
 # CI 网关
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 ```
 
 ## 测试用例管理

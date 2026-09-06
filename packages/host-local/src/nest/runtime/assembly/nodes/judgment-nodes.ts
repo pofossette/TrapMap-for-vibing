@@ -12,8 +12,9 @@
  * Placement follows the Phase 2 lesson: these host-local-owned nodes belong
  * in the host package (the assembly zone cannot import service packages).
  */
-import { defineNode } from '@trapmap/assembly';
+
 import type { CapabilityNode } from '@trapmap/assembly';
+import { defineNode } from '@trapmap/assembly';
 import {
   artifactDerivationConfigSchema,
   channelMergeConfigSchema,

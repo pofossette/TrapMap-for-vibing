@@ -9,6 +9,8 @@ import {
   OUTBOX_STATUS_PENDING,
   OUTBOX_STATUS_PROCESSING,
   type QueuePorts,
+  retryBackoffMs,
+  statusAfterTaskFailure,
   TASK_DEFAULT_MAX_ATTEMPTS,
   TASK_DEFAULT_PRIORITY,
   TASK_LEASE_MS,
@@ -18,8 +20,6 @@ import {
   TASK_STATUS_PENDING,
   TASK_STATUS_RUNNING,
   type TaskHandler,
-  retryBackoffMs,
-  statusAfterTaskFailure,
 } from '@trapmap/backend-core';
 import type { Pool, PoolClient } from 'pg';
 import { createRabbitMqTaskTransport } from './rabbitmq-task-transport.js';

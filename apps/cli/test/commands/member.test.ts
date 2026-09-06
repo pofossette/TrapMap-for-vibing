@@ -1,9 +1,8 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import * as http from '@trapmap/cli/lib/http.js';
 import type { IssueAccessKeyResponse, Member } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import * as http from '@trapmap/cli/lib/http.js';
 
 // Mock dependencies
 vi.mock('../../src/lib/http.js', () => ({

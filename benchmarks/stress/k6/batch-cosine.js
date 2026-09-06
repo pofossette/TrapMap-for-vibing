@@ -1,7 +1,8 @@
 // k6 script — batch-cosine 1k×384 (not auto-run)
 // Usage: k6 run benchmarks/stress/k6/batch-cosine.js
-import http from 'k6/http';
+
 import { check } from 'k6';
+import http from 'k6/http';
 export const options = {
   vus: 50,
   duration: '10s',

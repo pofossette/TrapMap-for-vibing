@@ -19,7 +19,7 @@
 |  | `queue.ts` | `task_queue`, `domain_event_outbox`, `workflow_runs` |
 |  | `auth.ts` | `users`, `teams`, `memberships`, `access_keys`, `sessions`, `audit_events` |
 |  | `labels.ts` | `canonical_labels`, `label_aliases`, `label_merge_records`, `label_embeddings` |
-|  | `experience-genes.ts` | `experience_genes`, `experience_gene_embeddings`, `experience_gene_lineage` |
+|  | `experience-genes.ts` | `experience_genes`, `experience_gene_embeddings`, `experience_gene_events`, `experience_gene_search_documents`（Gene 存储，灵感论文 https://arxiv.org/html/2604.15097v2 的 `g=(m,u,π,α,c,v)` 紧凑控制块） |
 |  | `cron.ts` | `cron_jobs`, `cron_runs` |
 | `service-governance-review` |  | `conflict_relations`, `feedback_records` (含 badcase jsonb), `maintenance_*` 投影 |
 | `service-job-runtime` |  | `task_queue` 派生视图与 `workflow_runs` 为权威 |

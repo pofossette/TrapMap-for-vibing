@@ -17,18 +17,18 @@
 
 import { parseRunnerCliArgs } from '../lib/runner-cli.js';
 import { getSmokeFixtures, graphExtractionFixtures } from './fixtures.js';
-import { aggregateMetrics } from './lib/case-eval.js';
 import type { AggregateMetrics, CaseMetrics } from './lib/case-eval.js';
+import { aggregateMetrics } from './lib/case-eval.js';
 
 // Re-export the case evaluation surface so the runner entrypoint keeps its
 // public API (and its tests) without owning the evaluation logic.
 export {
-  aggregateMetrics,
-  evaluateCase,
-  performLLMExtraction,
   type AggregateMetrics,
+  aggregateMetrics,
   type CaseMetrics,
   type ExtractionRunResult,
+  evaluateCase,
+  performLLMExtraction,
 } from './lib/case-eval.js';
 
 // ---------------------------------------------------------------------------

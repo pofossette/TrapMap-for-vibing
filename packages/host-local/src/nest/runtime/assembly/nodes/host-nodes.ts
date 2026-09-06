@@ -28,7 +28,7 @@ export interface PilotHostNodeConfig {
 }
 
 function requireConfig(config: PilotHostNodeConfig): HostLocalRuntime {
-  if (!config || !config.runtime) {
+  if (!config?.runtime) {
     throw new Error('host node requires a prebuilt HostLocalRuntime in config.runtime');
   }
   return config.runtime;

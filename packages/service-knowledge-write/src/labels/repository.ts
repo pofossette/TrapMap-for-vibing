@@ -11,6 +11,4 @@ export type {
   LabelAliasRecord,
   LabelRepository,
 } from './repository/index.js';
-
-export { PgLabelRepository } from './repository/index.js';
-export { createPgLabelRepository } from './repository/index.js';
+export { createPgLabelRepository, PgLabelRepository } from './repository/index.js';

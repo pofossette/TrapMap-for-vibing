@@ -26,4 +26,4 @@ pnpm exec tsx --tsconfig tsconfig.base.json evals/label-alignment/run.ts --tier 
 - **Owner**：label-alignment eval owner
 - **Tier 状态**：smoke 是 CI 门禁 tier；core fixture 已归档到 `archived/fixtures/`（`--tier core` 仍可手动运行，不进 CI）
 - **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`（快照 parity）+ `pnpm test:file -- evals/label-alignment/core.test.ts`（fixture 加载与 dry-run）
-- 修改 fixture/case 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）
+- 修改 fixture/case 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm --filter @trapmap/evals eval:snapshots`）

@@ -5,8 +5,8 @@ import path from 'node:path';
 import {
   type ActiveSession,
   type BackendTarget,
-  type ScriptActivationPolicy,
   normalizeBackendTarget,
+  type ScriptActivationPolicy,
 } from '@trapmap/contracts';
 
 /**

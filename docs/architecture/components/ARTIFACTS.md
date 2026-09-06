@@ -44,6 +44,7 @@ flowchart TB
 
 - 胶囊经 `capsule_embeddings` (HNSW) 与 `capsules.keywordTokens` (GIN) 暴露给 `service-knowledge-read` 的 v2 通道。
 - 上下文丰富（`contextualPrefix`）在派生阶段由 LLM 生成，参与 v2 评分的第五维度。
+- **Experience Gene 派生（灵感：*From Procedural Skills to Strategy Genes* https://arxiv.org/html/2604.15097v2 ）**：`SkillArtifact`（按 bounded 16k derivation unit）与 `SkillCapsule`（单 capsule / unit）连同 `Trap` 一并作为 `ExperienceGene` 的三大真相源（`kind: trap | skill-artifact | skill-capsule`），经 `rule / LLM(experience-gene-llm-v1) / hybrid` 抽取为 `g=(m,u,π,α,c,v) → signalsMatch/summary/strategy/avoid/constraints/validation` 的紧凑控制块，`gene-native` 检索独立于 capsule 池（`POST /v1/retrieval/genes/search`），渲染为 `<strategy-gene>`。详见 `docs/archived/archived-plans/experience-gene-program-mainline-archived.md` 与 `packages/contracts/src/domain/experience-gene.ts`。
 
 ## 导入导出
 

@@ -10,17 +10,16 @@
  * short-circuits without executing, so `dryRunMode` is `skip`.
  */
 
-import type {
-  RetrievalEvalCase,
-  RetrievalEvalEndpoint,
-  RetrievalEvalTier,
-} from '../types/index.js';
-
 import { createJsAssertion } from '../promptfoo/assertion.js';
 import { registerBridge } from '../promptfoo/bridge.js';
 import { composedProvider } from '../promptfoo/provider.js';
 import { assertResultPresent } from '../promptfoo/result.js';
 import type { SuiteBridge, SuiteRunOptions } from '../promptfoo/types.js';
+import type {
+  RetrievalEvalCase,
+  RetrievalEvalEndpoint,
+  RetrievalEvalTier,
+} from '../types/index.js';
 import { executeRetrievalCase } from './lib/execute-case.js';
 import type { RunRetrievalOptions } from './lib/runner-api.js';
 import { getRetrievalEvaluationCases } from './lib/runner-api.js';

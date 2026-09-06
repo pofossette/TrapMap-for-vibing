@@ -31,9 +31,9 @@ import {
 
 import {
   type HttpMethod,
-  type RouteDef,
   isRouteResponse,
   mapErrorToEnvelope,
+  type RouteDef,
 } from '../route-contract.js';
 
 const METHOD_DECORATORS: Record<HttpMethod, (path?: string) => MethodDecorator> = {
@@ -92,8 +92,12 @@ export function createNestAdapter(
   deps: unknown,
   options?: NestAdapterOptions,
 ): Type<unknown> {
-  @Controller()
   class RouteDefController {}
+  // NOTE: applied functionally (not `@Controller()` syntax) so the file stays
+  // parseable on toolchains that preserve native decorator syntax (Vite 8/oxc)
+  // while running on Node versions without decorator support. `Controller()`
+  // returns a metadata-only legacy class decorator, so this is identical.
+  Controller()(RouteDefController);
 
   const prototype = RouteDefController.prototype;
 
@@ -159,7 +163,6 @@ export function createNestAdapter(
  * context) keep their own filter; this one is the shared, standalone
  * implementation for tests and filter-less hosts.
  */
-@Catch()
 export class RouteDefExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -192,3 +195,6 @@ export class RouteDefExceptionFilter implements ExceptionFilter {
     }
   }
 }
+
+// NOTE: see above — `Catch()` is a metadata-only legacy class decorator.
+Catch()(RouteDefExceptionFilter);

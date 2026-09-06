@@ -9,13 +9,10 @@
 import type { RetrievalStrategy, RoutingReason } from '@trapmap/contracts';
 import type {
   CohortKey,
-  CohortSummary,
-  ModeComparison,
   QueryTypeCohort,
   RetrievalEvalCase,
   RetrievalEvalEndpoint,
   RetrievalEvalTier,
-  RoutingDistribution,
 } from '../../types/index.js';
 
 // =============================================================================

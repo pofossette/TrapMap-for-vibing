@@ -10,8 +10,8 @@ import type {
 import {
   type CandidateProcessingRuntime,
   createCandidateProcessingRuntime,
+  createRuleDedupStrategy,
 } from '@trapmap/service-candidate-ingestion';
-import { createRuleDedupStrategy } from '@trapmap/service-candidate-ingestion';
 import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 import {
   createKnowledgeReadOwnerRetrievalServices,
@@ -23,7 +23,7 @@ import {
 
 import { loadHostLocalConfig } from '../config/index.js';
 import { createQueuePorts } from './backend-core-adapters.js';
-import { type HostLocalServices, createHostLocalServices } from './host-services.js';
+import { createHostLocalServices, type HostLocalServices } from './host-services.js';
 import { resolveEffectivePermissions } from './permissions.js';
 
 export const HOST_LOCAL_RUNTIME_TOKEN = 'HOST_LOCAL_RUNTIME';

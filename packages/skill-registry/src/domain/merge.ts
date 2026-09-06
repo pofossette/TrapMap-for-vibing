@@ -69,7 +69,7 @@ export function threeWayMerge(
         else if (strategy === 'union') {
           mergedFiles.push(l);
           if (!mergedFiles.some((f) => f.path === r.path))
-            mergedFiles.push({ ...r, path: r.path + '.remote' });
+            mergedFiles.push({ ...r, path: `${r.path}.remote` });
         }
       }
     } else if (b && !l && !r) {
@@ -120,7 +120,7 @@ export function threeWayMerge(
           else if (strategy === 'union') {
             // naive union: keep local, append remote as .remote variant
             mergedFiles.push(l);
-            mergedFiles.push({ ...r, path: r.path + '.remote' });
+            mergedFiles.push({ ...r, path: `${r.path}.remote` });
           }
         }
       }

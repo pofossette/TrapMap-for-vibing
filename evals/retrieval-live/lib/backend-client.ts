@@ -5,8 +5,6 @@
  * and normalizes responses using the same pipeline as offline eval.
  */
 
-import type { RetrievalEvalEndpoint } from '../../types/index.js';
-
 import { normalizeResponse } from '../../retrieval/lib/normalize.js';
 import type {
   BackendClientOptions,

@@ -10,6 +10,7 @@
  */
 
 import type {
+  ActiveSession,
   BadcaseExportDraftPayload,
   CandidateStatus,
   CandidateSubmission,
@@ -26,11 +27,12 @@ import type {
   FeedbackStatsResponse,
   GovernanceConflictDetectionPayload,
   RemediationReactivationPayload,
+  RetrievalResponse,
   SkillLookupResponse,
 } from '@trapmap/contracts';
 
 import type { FeedbackQueueRecord, KnowledgeEntryRecord } from './repo-ports.js';
-import type { ReadModelProjectionStatus, RetrievalSearchResponse } from './retrieval-ports.js';
+import type { ReadModelProjectionStatus } from './retrieval-ports.js';
 
 // ---------------------------------------------------------------------------
 // Identity & Access port
@@ -45,6 +47,14 @@ export interface LoginResult {
 export interface IdentityAccessPort {
   login(handle: string, password: string): Promise<LoginResult>;
   loginSystemAdmin(systemAdminKey: string): Promise<{ sessionToken: string }>;
+  /**
+   * Compose the contract `ActiveSession` for a live session token.
+   *
+   * Used by the login routes so the external `/v1/auth/login` surface can
+   * return the strict contract body. Returns null when the token has no
+   * resolvable session, user, or membership.
+   */
+  describeSession(sessionToken: string): Promise<ActiveSession | null>;
   logout(sessionToken: string): Promise<void>;
   validateSession(sessionToken: string): Promise<{
     sessionId: string;
@@ -68,11 +78,7 @@ export interface IdentityAccessPort {
 export interface KnowledgeReadPort {
   getById(entryId: string): Promise<KnowledgeEntryRecord | null>;
   listMine(userId: string, teamId?: string): Promise<KnowledgeEntryRecord[]>;
-  search(params: {
-    query: string;
-    teamId?: string;
-    limit?: number;
-  }): Promise<RetrievalSearchResponse>;
+  search(params: { query: string; teamId?: string; limit?: number }): Promise<RetrievalResponse>;
   skillLookup(params: {
     text: string;
     teamId?: string;
@@ -245,15 +251,9 @@ export interface ReviewPort {
 export type GovernanceReviewPort = ReviewPort;
 
 export interface GovernanceReviewAdminPort {
-  list(input: {
-    actorId: string;
-    query: FeedbackListRequest;
-  }): Promise<FeedbackListResponse>;
+  list(input: { actorId: string; query: FeedbackListRequest }): Promise<FeedbackListResponse>;
   stats(input: { actorId: string; entryId: string }): Promise<FeedbackStatsResponse>;
-  batch(input: {
-    actorId: string;
-    command: FeedbackBatchRequest;
-  }): Promise<FeedbackBatchResponse>;
+  batch(input: { actorId: string; command: FeedbackBatchRequest }): Promise<FeedbackBatchResponse>;
   listRemediation(input: { actorId: string }): Promise<FeedbackRemediationQueueResponse>;
   getRemediation(input: {
     actorId: string;

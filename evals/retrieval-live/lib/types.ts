@@ -6,18 +6,16 @@
  */
 
 import type {
-  AssertionStability,
-  LiveEvalServiceProfile,
-  LiveSnapshotDerivationMode,
-} from '../../types/index.js';
-import type { RetrievalEvalCase, RetrievalEvalEndpoint } from '../../types/index.js';
-
-import type {
   AdapterWarning,
   CaseMetrics,
   GovernanceResult,
   NormalizedResult,
 } from '../../retrieval/lib/types.js';
+import type {
+  AssertionStability,
+  RetrievalEvalCase,
+  RetrievalEvalEndpoint,
+} from '../../types/index.js';
 
 // Re-export for convenience
 export type { AdapterWarning, CaseMetrics, GovernanceResult, NormalizedResult };

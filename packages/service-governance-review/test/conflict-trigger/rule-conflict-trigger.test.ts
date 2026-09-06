@@ -1,5 +1,3 @@
-import { describe, expect, it } from 'vitest';
-
 import type { GovernanceConflictEntry } from '@trapmap/backend-core';
 import {
   assertConflictResultShape,
@@ -7,6 +5,7 @@ import {
   createStubConflictRead,
 } from '@trapmap/backend-core';
 import type { ConflictRelation } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 
 import { createRuleConflictTrigger } from '../../src/conflict-trigger/rule-conflict-trigger.js';
 

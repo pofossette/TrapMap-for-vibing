@@ -22,7 +22,7 @@
  * residue is tracked in the cleanup mainline, not here.
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { finishCheckRun } from './lib/check-result.js';

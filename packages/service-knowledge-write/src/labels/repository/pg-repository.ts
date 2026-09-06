@@ -5,17 +5,16 @@
  * embeddings, and alignment events backed by pgvector-enabled PostgreSQL.
  */
 
-import { normalizeLabel } from '@trapmap/lib';
-import { and, eq, sql } from 'drizzle-orm';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import type { Pool } from 'pg';
-
 import {
   canonicalLabelEmbeddings,
   canonicalLabels,
   labelAliases,
   labelAlignmentEvents,
 } from '@trapmap/db';
+import { normalizeLabel } from '@trapmap/lib';
+import { and, eq, sql } from 'drizzle-orm';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import type { Pool } from 'pg';
 
 import type {
   CanonicalLabelRecord,

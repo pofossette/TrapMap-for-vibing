@@ -8,20 +8,19 @@
  * These are unit-level tests with mocked external services, but they
  * verify the full signal chain through the middleware and adapters.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  type NestRequestContext,
-  RequestContextService,
-  extractRequestContext,
-} from '../../../src/nest/runtime/request-context.service.js';
-
-import {
-  type LogEntry,
   buildLokiLabels,
   formatLogForStdout,
+  type LogEntry,
   logEntrySchema,
 } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
+import {
+  extractRequestContext,
+  type NestRequestContext,
+  RequestContextService,
+} from '../../../src/nest/runtime/request-context.service.js';
 
 // ── 1. Request Context: requestId + traceId extraction ────────────────
 

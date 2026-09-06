@@ -17,6 +17,10 @@
     "./embedding": {
       "types": "./dist/embedding/index.d.ts",
       "import": "./dist/embedding/index.js"
+    },
+    "./go-accelerator/*.js": {
+      "types": "./dist/go-accelerator/*.d.ts",
+      "import": "./dist/go-accelerator/*.js"
     }
   },
   "scripts": {
@@ -25,11 +29,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@trapmap/lib": "workspace:*",
-    "@trapmap/contracts": "workspace:*"
+    "@trapmap/contracts": "workspace:*",
+    "@trapmap/lib": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.1"
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.0"
   }
 }

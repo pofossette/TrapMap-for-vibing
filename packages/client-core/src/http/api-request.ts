@@ -83,7 +83,9 @@ export async function apiRequest<T>(
               res.on('end', () => {
                 const text = Buffer.concat(chunks).toString('utf8');
                 const headersMap = new Map<string, string>();
-                for (const [k, v] of Object.entries(res.headers as Record<string, string | string[] | undefined>)) {
+                for (const [k, v] of Object.entries(
+                  res.headers as Record<string, string | string[] | undefined>,
+                )) {
                   if (typeof v === 'string') headersMap.set(k.toLowerCase(), v);
                   else if (Array.isArray(v)) headersMap.set(k.toLowerCase(), v.join(', '));
                 }
@@ -102,7 +104,8 @@ export async function apiRequest<T>(
           req.end();
         });
       } catch (fallbackError) {
-        const fbReason = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+        const fbReason =
+          fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
         throw new ApiError(0, { cause: fbReason, url }, `Request to ${url} failed: ${fbReason}`);
       }
     } else {

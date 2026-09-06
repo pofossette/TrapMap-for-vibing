@@ -36,7 +36,7 @@ export const AGENT_DEFINITIONS: Record<
 };
 
 export function getAgent(id: string) {
-  return AGENT_DEFINITIONS[id] ?? AGENT_DEFINITIONS['trapmap'];
+  return AGENT_DEFINITIONS[id] ?? AGENT_DEFINITIONS.trapmap;
 }
 
 export function listAgents() {

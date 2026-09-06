@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { type CandidateIngestionPort, createNestAdapter } from '@trapmap/backend-core';
 import type { KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
+import { type CandidateIngestionPort, createNestAdapter } from '@trapmap/backend-core';
 import { disabledExperienceGeneSearchResponse } from '@trapmap/contracts';
 import type { CronServiceModule } from '@trapmap/service-cron';
 import { createExperienceGeneRouteDefs } from '@trapmap/service-knowledge-read';

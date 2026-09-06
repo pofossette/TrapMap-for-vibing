@@ -4,7 +4,7 @@
  * Same embedded composition as local-agent (pg required); the difference is
  * the profile name. Reuses the shared pilot composition helper.
  */
-import { type PilotProfileOptions, composePilotProfile } from './compose.js';
+import { composePilotProfile, type PilotProfileOptions } from './compose.js';
 
 export type TeamMonolithProfileOptions = PilotProfileOptions;
 

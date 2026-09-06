@@ -25,8 +25,8 @@ import type {
 import type { LangfusePolicyResult } from '@trapmap/contracts';
 
 import {
-  type LangfuseClientLike,
   createSinkFromClient,
+  type LangfuseClientLike,
   loadLangfusePolicyFromEnv,
 } from './langfuse-sink.js';
 

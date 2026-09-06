@@ -20,9 +20,9 @@
 
 | 域 | 路径 | 说明 |
 |----|------|------|
-| bench | `benchmarks/harness/{compute.bench.ts,vitest.bench.config.ts,run-bench.ts,README.md}` | 覆盖 5 链路（vector 1k×384 / ranking merge/rerank/graph / tokenization 3/2/1 / dedup / gene-derive），`pnpm bench:compute` / `bench:compare` |
+| bench | `benchmarks/harness/{compute.bench.ts,vitest.bench.config.ts,run-bench.ts,README.md}` | 覆盖 5 链路（vector 1k×384 / ranking merge/rerank/graph / tokenization 3/2/1 / dedup / gene-derive），`pnpm --filter @trapmap/benchmarks bench:compute` / `bench:compare` |
 | Go bench | `services/go-accelerator/internal/service/{vector,ranking,dedup,gene-derive}/` `*_test.go` + `bench` | `go test -bench` 对侧，统计口径与 `GO_ACCELERATOR_BENCH.md` 一致 |
-| stress | `services/go-accelerator/cmd/stress`（Go 主，4 场景）+ `benchmarks/stress/{k6,autocannon}`（legacy） | 4 场景同阈值（Go `net/http` VU，p95 15/20/10/50ms，`pnpm stress:go:*` / `go run ./cmd/stress`） |
+| stress | `services/go-accelerator/cmd/stress`（Go 主，4 场景）+ `benchmarks/stress/{k6,autocannon}`（legacy） | 4 场景同阈值（Go `net/http` VU，p95 15/20/10/50ms，`pnpm --filter @trapmap/benchmarks stress:go:*` / `go run ./cmd/stress`） |
 | bench 结果 | `benchmarks/GO_ACCELERATOR_BENCH.md` + `benchmarks/results/`（ignored） | BatchCosine 2.5×、Ranking 2.3×、Dedup 0.04ms、GeneDerive 200 ~3.2ms |
 | Go 可观测 | `services/go-accelerator/internal/{observability/metrics.go,middleware/metrics.go,cache/lru.go}` + `cmd/server/main.go` `/metrics`+`Metrics` 中间件 | `trapmap_go_requests_total/fallback_total/duration_ms`，`CacheSize`，`pprof` 按需 |
 | Node 可观测 | 复用 `docs/architecture/OBSERVABILITY.md` OTEL | `OtelService`/`PrometheusService`/`LokiService` 已有 |
@@ -30,8 +30,8 @@
 ## 命令（均不自动）
 
 ```bash
-pnpm bench:compute          # vitest bench 1k×384 等
-pnpm bench:compare          # jsVsGo 一致性
+pnpm --filter @trapmap/benchmarks bench:compute          # vitest bench 1k×384 等
+pnpm --filter @trapmap/benchmarks bench:compare          # jsVsGo 一致性
 (cd services/go-accelerator && go test -bench . -benchmem ./internal/service/vector ./internal/service/ranking ./internal/service/dedup ./internal/service/gene-derive -run=^$)
 go run ./services/go-accelerator/cmd/stress -scenario batch-cosine  # Go 主
 go run ./services/go-accelerator/cmd/stress -scenario batch-cosine  # Go 主（k6 legacy 保留）  # legacy

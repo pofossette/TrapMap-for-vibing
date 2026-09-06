@@ -1,13 +1,12 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
 import type { SkillReviewDecisionResponse, SkillReviewQueueResponse } from '@trapmap/contracts';
 import {
   skillReviewDecisionResponseSchema,
   skillReviewQueueResponseSchema,
 } from '@trapmap/contracts';
 import type { Command } from 'commander';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
 import { formatSkillReviewDecisionResponse, formatSkillReviewQueue } from './formatters.js';
 

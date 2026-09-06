@@ -45,7 +45,7 @@ export class SkillVersionManager {
     if (r === '*' || r === '') return true;
     if (r.startsWith('^')) {
       const base = r.slice(1);
-      return version.startsWith(base.split('.')[0] + '.') && compareSemver(version, base) >= 0;
+      return version.startsWith(`${base.split('.')[0]}.`) && compareSemver(version, base) >= 0;
     }
     if (r.startsWith('~')) {
       const base = r.slice(1);

@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { GovernanceReviewPgOwnerBundle } from '@trapmap/service-governance-review';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createHostLocalGovernanceConflictTaskHandlers,

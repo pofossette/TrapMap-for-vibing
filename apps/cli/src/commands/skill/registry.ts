@@ -1,7 +1,9 @@
-import { RegistryService } from '@trapmap/skill-registry';
-import { InstallService } from '@trapmap/skill-registry';
-import { UpdateService } from '@trapmap/skill-registry';
-import { MergeService } from '@trapmap/skill-registry';
+import {
+  InstallService,
+  MergeService,
+  RegistryService,
+  UpdateService,
+} from '@trapmap/skill-registry';
 import type { Command } from 'commander';
 
 export function registerRegistryCommands(program: Command): void {

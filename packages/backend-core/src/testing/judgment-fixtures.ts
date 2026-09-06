@@ -11,8 +11,6 @@
  * share them.
  */
 
-import { z } from 'zod';
-
 import type {
   AnalysisSnapshot,
   CandidateCorpusReadPort,
@@ -21,6 +19,7 @@ import type {
   LabelAlignmentInput,
 } from '@trapmap/contracts';
 import { labelAlignmentDecisionSchema } from '@trapmap/contracts';
+import { z } from 'zod';
 import { buildNormalizedDuplicateInput } from '../candidate-ingestion/domain/dedup.js';
 import type { MergedCandidateLike, RecallCandidateLike } from '../knowledge-read/domain/ranking.js';
 import type {

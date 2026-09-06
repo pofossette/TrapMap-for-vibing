@@ -5,11 +5,11 @@ import {
 import { CircuitOpenError, resolveRetryPolicy, withResilience } from '../resilience.js';
 import type { InternalRequestOptions, ServiceResponse } from './types.js';
 import {
-  INTERNAL_UNAVAILABLE_RESPONSE,
-  TransientInternalResponseError,
   breakerForOrigin,
   callInternalServiceOnce,
+  INTERNAL_UNAVAILABLE_RESPONSE,
   isTransientStatus,
+  TransientInternalResponseError,
 } from './types.js';
 
 export function withEnvTimeout(

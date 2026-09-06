@@ -6,8 +6,8 @@
  * Replacement strategies plug in behind the same port.
  */
 
-import { mergeCandidatesWithGraph } from '@trapmap/backend-core';
 import type { ChannelMergePort } from '@trapmap/backend-core';
+import { mergeCandidatesWithGraph } from '@trapmap/backend-core';
 
 /**
  * Rule implementation of the channel-merge port: merges the hybrid

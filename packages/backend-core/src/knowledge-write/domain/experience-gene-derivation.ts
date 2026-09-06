@@ -1,9 +1,9 @@
 import {
   type ExperienceGene,
   type ExperienceGeneSourceSnapshot,
+  experienceGeneSchema,
   type GeneratorMetadata,
   type ValidationIssue,
-  experienceGeneSchema,
 } from '@trapmap/contracts';
 import { sha256CanonicalJson } from '@trapmap/lib';
 import { normalizeQuery } from '../../knowledge-read/domain/tokenization.js';

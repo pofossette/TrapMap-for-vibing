@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { skillLockfileSchema } from '../contracts/skill-lock.js';
 import type { SkillLockEntry } from '../contracts/skill-lock.js';
+import { skillLockfileSchema } from '../contracts/skill-lock.js';
 import { compareSemver } from '../domain/semver.js';
 import type { InstallService } from './install-service.js';
 import type { RegistryService } from './registry-service.js';

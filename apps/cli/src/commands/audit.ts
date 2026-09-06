@@ -1,9 +1,8 @@
-import { auditListResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printResult } from '@trapmap/cli/lib/output.js';
+import { auditListResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 interface AuditCommandOptions {
   allowRead: boolean;

@@ -37,7 +37,7 @@
         "已完成并归档",
         "background 或 deferred reference",
         "`pnpm run ci`",
-        "`pnpm eval:ci:core`",
+        "`pnpm --filter @trapmap/evals eval:ci:core`",
         "Nest modular monolith"
       ],
       "mustNotContain": [
@@ -121,7 +121,7 @@
     {
       "file": "docs/operations/TESTING.md",
       "mustContain": [
-        "pnpm eval:ci:core",
+        "pnpm --filter @trapmap/evals eval:ci:core",
         "route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。",
         "Phase 4 验证归属矩阵",
         "pnpm check:docs",
@@ -136,9 +136,9 @@
         "Phase 5 Distributed Baseline Freeze Checks",
         "Phase 6 Mature Capability Freeze Checks",
         "Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks",
-        "pnpm eval:smoke",
-        "`pnpm eval:ci`",
-        "`pnpm eval:ci:core`",
+        "pnpm --filter @trapmap/evals eval:smoke",
+        "`pnpm --filter @trapmap/evals eval:ci`",
+        "`pnpm --filter @trapmap/evals eval:ci:core`",
         "Runtime Foundations Verification",
         "outboxWorker",
         "operator runbook",
@@ -148,7 +148,7 @@
         "pnpm test:discovery-closeout",
         "pnpm test:distributed-closeout",
         "pnpm test:deployment-smoke",
-        "pnpm eval:smoke"
+        "pnpm --filter @trapmap/evals eval:smoke"
       ],
       "mustNotContain": ["TIER=core pnpm eval:ci"]
     },
@@ -254,7 +254,7 @@
         "microservice-platform-evolution-plan.md",
         "微服务平台能力增强",
         "应新建 active 细则",
-        "当前根 `plan.md` 暂无 active mainline"
+        "Web Panel"
       ]
     },
     {
@@ -272,17 +272,22 @@
         "Node.js 24 + pnpm 10.33.0",
         "`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`",
         "`pnpm run ci`",
-        "`pnpm eval:ci`",
-        "`pnpm eval:ci:core`",
+        "`pnpm --filter @trapmap/evals eval:ci`",
+        "`pnpm --filter @trapmap/evals eval:ci:core`",
         "Runtime foundations",
         "doc-guardrails",
-        "`pnpm eval:smoke`"
+        "`pnpm --filter @trapmap/evals eval:smoke`"
       ],
       "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
     },
     {
       "file": "docs/architecture/components/EVALUATION.md",
-      "mustContain": ["pnpm eval:smoke", "pnpm eval:core", "datasets/", "scenarios/"],
+      "mustContain": [
+        "pnpm --filter @trapmap/evals eval:smoke",
+        "pnpm --filter @trapmap/evals eval:core",
+        "datasets/",
+        "scenarios/"
+      ],
       "mustNotContain": ["pnpm eval:governance", "cases/"]
     },
     {
@@ -307,7 +312,7 @@
         "summary/",
         "graph-extraction/",
         "ingestion/",
-        "pnpm eval:ci",
+        "pnpm --filter @trapmap/evals eval:ci",
         "只输出 `badcaseEvalDraftSchema`",
         "不属于 eval draft payload"
       ]

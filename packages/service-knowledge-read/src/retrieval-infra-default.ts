@@ -1,25 +1,25 @@
 import { createHash } from 'node:crypto';
 
 import {
-  DEFAULT_FRESHNESS_DECAY_CONFIG,
   computeBoundaryScoreDelta,
   createSemanticCandidate,
+  DEFAULT_FRESHNESS_DECAY_CONFIG,
   filterByBoundary,
   mergeCandidates,
   normalizeQuery,
   rerankCandidates,
   routingDecision,
 } from '@trapmap/backend-core';
-import { type FreshnessDecayConfig, enrichConflictHints } from '@trapmap/contracts';
+import { enrichConflictHints, type FreshnessDecayConfig } from '@trapmap/contracts';
 import type { Pool } from 'pg';
 
 import type { KnowledgeReadGraphQueryBackend, KnowledgeReadRetrievalInfra } from './context.js';
 import {
+  createKnowledgeEmbeddingsVectorSearchPort,
   type KnowledgeEmbeddingVectorSearchFilters,
   type KnowledgeEmbeddingVectorSearchPort,
-  createKnowledgeEmbeddingsVectorSearchPort,
 } from './knowledge-vector-search-port.js';
-import { type RecallCandidate, type ScoredEntry, artifactVersionOf } from './retrieval-types.js';
+import { artifactVersionOf, type RecallCandidate, type ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
 const freshnessConfig: FreshnessDecayConfig = DEFAULT_FRESHNESS_DECAY_CONFIG;

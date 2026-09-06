@@ -1,8 +1,8 @@
 import type { RouteDef } from '@trapmap/backend-core';
 import { createCandidateIngestionRouteDefs } from '@trapmap/service-candidate-ingestion';
 import {
-  type GovernanceReviewRouteDeps,
   createGovernanceReviewRouteDefs,
+  type GovernanceReviewRouteDeps,
 } from '@trapmap/service-governance-review';
 import { createIdentityAccessRouteDefs } from '@trapmap/service-identity-access';
 import { createJobRuntimeRouteDefs } from '@trapmap/service-job-runtime';
@@ -18,6 +18,7 @@ function routeDefsForEveryServiceModule(): Array<{ name: string; routeDefs: Rout
   const identityPort = {
     login: vi.fn(),
     loginSystemAdmin: vi.fn(),
+    describeSession: vi.fn(),
     logout: vi.fn(),
     validateSession: vi.fn(),
     selectTeam: vi.fn(),

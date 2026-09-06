@@ -1,7 +1,4 @@
 import { Card, ListBox, Select } from '@heroui/react';
-import { type ReactElement, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-
 import type { SkillArtifact } from '@trapmap/contracts';
 import {
   getAdminPanelApi,
@@ -20,6 +17,8 @@ import {
   useGraphSelection,
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import { type ReactElement, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 type GraphViewMode = 'derivation' | 'semantic';
 const SKILL_GRAPH_ARTIFACT_MOCK_SNAPSHOT_LIMIT = 100;

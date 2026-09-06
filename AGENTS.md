@@ -23,7 +23,7 @@
 
 - 共享类型、Schema、API shape 以 [`packages/contracts/src/index.ts`](packages/contracts/src/index.ts) 和 [`packages/contracts/src/domain/`](packages/contracts/src/domain/) 为准
 - 修改后优先运行“与改动直接相关的最小验证集合”，只有确实需要时才跑根级全量 `pnpm test`
-- 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `pnpm eval:smoke`
+- 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `pnpm --filter @trapmap/evals eval:smoke`
 - 新增枚举、字面量联合、共享接口/类型别名时，默认放到就近 `enum-types/` 目录并通过 `index.ts` 聚合导出
 - 涉及跨包导入路径变更或新增包时，必须通过 `pnpm exec fallow audit --base main` 验证架构边界合规；zone 规则和已知例外详见 [`docs/architecture/BOUNDARIES.md`](docs/architecture/BOUNDARIES.md)
 - 通用工具函数（`nowIso`/`timestamp`/`formatDate`/`timeout`/`truncate`/`normalizeLabel`/`uniq`/`uniqBy`/`chunk`/`asRecord`/`prefixedId`/`sha256` 等）统一从 `@trapmap/lib` 导入，禁止在各包内重复实现已有工具；新增通用函数时：多包消费的放入 `@trapmap/lib` 并补单元测试，单包专用留在包内；重复问题的分析报告见 [`docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md`](docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md) 与 [`docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md`](docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md)
@@ -68,7 +68,7 @@
 
 - 先读：[`docs/operations/TESTING.md`](docs/operations/TESTING.md)、[`evals/retrieval/README.md`](evals/retrieval/README.md)、[`evals/summary/README.md`](evals/summary/README.md)
 - 权威事实：相关 eval runner、dataset、scenario 与 [`package.json`](package.json) 中 eval 脚本
-- 最小验证：相关包/文件测试 + `pnpm eval:smoke`；只改单一 eval 子系统时先跑对应子命令
+- 最小验证：相关包/文件测试 + `pnpm --filter @trapmap/evals eval:smoke`；只改单一 eval 子系统时先跑对应子命令
 - 必须同步：评测入口、tier、判定标准、dataset 组织方式变化时，更新 `TESTING.md`、对应 eval README、必要的入口索引
 
 ### 安全 / 权限 / 配置变更
@@ -82,7 +82,7 @@
 
 - 先读：[`packages/skills/workflow-with-trapmap/SKILL.md`](packages/skills/workflow-with-trapmap/SKILL.md)、[`packages/skills/trapmap-cli-usage-guide/SKILL.md`](packages/skills/trapmap-cli-usage-guide/SKILL.md)、[`packages/skills/README.md`](packages/skills/README.md)
 - 权威事实：Skill artifact 相关 contract、server route、CLI activate/download 路径源码
-- 最小验证：相关包测试；涉及导入导出时补 `pnpm test:import-export`；涉及检索命中/激活链路时补 `pnpm eval:smoke`
+- 最小验证：相关包测试；涉及导入导出时补 `pnpm test:import-export`；涉及检索命中/激活链路时补 `pnpm --filter @trapmap/evals eval:smoke`
 - 必须同步：Skill 目录结构、激活流程、客户端接入方式变化时，更新 skill README、[`docs/guides/CLIENT_INTEGRATION.md`](docs/guides/CLIENT_INTEGRATION.md) 与相关入口索引
 
 ### 文档 / 目录规则变更

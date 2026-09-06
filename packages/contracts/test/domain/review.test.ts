@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { reviewDecisionRequestSchema, reviewQueueQuerySchema } from '../../src/domain/review.js';
-import { reviewQueueResponseSchema } from '../../src/domain/review.js';
+import {
+  reviewDecisionRequestSchema,
+  reviewQueueQuerySchema,
+  reviewQueueResponseSchema,
+} from '../../src/domain/review.js';
 
 describe('review schema contracts', () => {
   describe('reviewDecisionRequestSchema', () => {

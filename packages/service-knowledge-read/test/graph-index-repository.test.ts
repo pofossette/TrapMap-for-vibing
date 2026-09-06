@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createKnowledgeReadGraphIndexRepository } from '../src/graph-index-repository.js';
 

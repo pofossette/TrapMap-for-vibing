@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { GeneSearchQuery } from '@trapmap/contracts';
+import { describe, expect, it, vi } from 'vitest';
 import { withExperienceGeneSearchMetrics } from '../src/experience-gene-metrics.js';
 
 function metrics() {

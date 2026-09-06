@@ -1,9 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { CronScheduler, CronServiceDeps, CronServiceModule } from '@trapmap/service-cron';
-import { CronSchedulerProvider } from '../../../src/nest/cron/cron-scheduler.provider.js';
+import { describe, expect, it, vi } from 'vitest';
 import { CronModule } from '../../../src/nest/cron/cron.module.js';
 import { CRON_PORT, CRON_SCHEDULER } from '../../../src/nest/cron/cron.tokens.js';
+import { CronSchedulerProvider } from '../../../src/nest/cron/cron-scheduler.provider.js';
 import type { HostLocalRuntime } from '../../../src/nest/runtime/host-runtime.js';
 
 function createScheduler(): CronScheduler {

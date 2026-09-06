@@ -6,8 +6,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前状态
 
-当前 active mainline 是 Experience Gene Infrastructure and Pipeline，入口见根 [plan.md](../plan.md) 和 [todos/experience-gene-program-mainline.md](todos/experience-gene-program-mainline.md)。
-并行双轨（已合入 `pre@a9b413b5`）：类型对齐见 [todos/type-alignment-mainline.md](todos/type-alignment-mainline.md)（Zod→JSON Schema→Go 三期）与 Go 计算中枢见 [todos/go-compute-hub-mainline.md](todos/go-compute-hub-mainline.md)（批余弦/回退向量/哈希接线），架构见 [architecture/GO-ACCELERATOR.md](architecture/GO-ACCELERATOR.md)；Skill 版本管理器见 [todos/skill-registry-mainline.md](todos/skill-registry-mainline.md) 与 [architecture/SKILL-REGISTRY.md](architecture/SKILL-REGISTRY.md)。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品，继续承担治理流程中的人工审核保障；其功能扩展主线已暂停，等待 Gene 主线 closeout 后恢复。
+当前 active mainline 是 Web Panel 功能补全与 UI 美化优化，入口见根 [plan.md](../plan.md) 和 [todos/web-panel-feature-and-ui-optimization.md](todos/web-panel-feature-and-ui-optimization.md)（2026-09-03 恢复，原 paused successor）。Experience Gene Infrastructure and Pipeline 已于 2026-09-03 完成 closeout 并归档（[experience-gene-program-mainline-archived.md](archived/archived-plans/experience-gene-program-mainline-archived.md) 及其 5 个 delegated phase，deterministic offline precision 1.0 / promotionEligible true）。并行 active detail：Gene 检索评测扩展见 [todos/gene-retrieval-eval.md](todos/gene-retrieval-eval.md)（模仿四路检索新增 gene PG 评测，T0 门控，T1-T6 待 subagent dispatch）。并行双轨（已合入 `pre@a9b413b5`）：类型对齐见 [todos/type-alignment-mainline.md](todos/type-alignment-mainline.md)（Zod→JSON Schema→Go 三期）与 Go 计算中枢见 [todos/go-compute-hub-mainline.md](todos/go-compute-hub-mainline.md)（批余弦/回退向量/哈希接线），架构见 [architecture/GO-ACCELERATOR.md](architecture/GO-ACCELERATOR.md)；Skill 版本管理器见 [todos/skill-registry-mainline.md](todos/skill-registry-mainline.md) 与 [architecture/SKILL-REGISTRY.md](architecture/SKILL-REGISTRY.md)。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品（已激活为当前主线），不再暂停。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
@@ -134,6 +133,7 @@ pnpm dev -- gateway
 pnpm dev -- candidate-worker
 pnpm dev -- governance-worker
 pnpm dev -- outbox-worker
+pnpm dev:web                   # Web Panel 前端 Vite 4173
 ```
 
 根级开发命令现在优先通过 `pnpm dev -- <target>` 分发；旧别名 `pnpm dev:local-agent`、`pnpm dev:team-monolith`、`pnpm dev:distributed:*` 仍保留兼容。
@@ -163,28 +163,28 @@ curl http://127.0.0.1:4000/health
 
 ```bash
 # 运行 smoke 层级统一评测
-pnpm eval -- smoke
+pnpm --filter @trapmap/evals eval -- smoke
 
 # 运行 CI smoke tier baseline-aware eval
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # 运行检索评估
-pnpm eval -- retrieval
+pnpm --filter @trapmap/evals eval -- retrieval
 
 # 运行摘要评估
-pnpm eval -- summary
+pnpm --filter @trapmap/evals eval -- summary
 
 # 运行 agent 路径规划评估
-pnpm eval -- agent-planning --tier smoke
+pnpm --filter @trapmap/evals eval -- agent-planning --tier smoke
 
 # 运行标签对齐评估
-pnpm eval -- label-alignment --tier smoke --mode live
+pnpm --filter @trapmap/evals eval -- label-alignment --tier smoke --mode live
 
 # 运行所有 CI 评估（默认 smoke；core 使用独立入口）
-pnpm eval:ci
+pnpm --filter @trapmap/evals eval:ci
 
 # 运行 CI core tier
-pnpm eval:ci:core
+pnpm --filter @trapmap/evals eval:ci:core
 
 # 运行仓库聚合 CI 本地脚本
 pnpm run ci
@@ -209,9 +209,9 @@ pnpm run ci
 - [测试指南](operations/TESTING.md) — 测试架构、运行方法和用例编写规范
 - [CI/CD 流水线](operations/CI_CD.md) — GitHub Actions 流水线、评测质量门
 
-当前 CI/testing 命令真相以 `pnpm run ci`、`pnpm eval:smoke`、`pnpm eval:ci`、`pnpm eval:ci:core` 为准，具体语义由 `package.json` 与 `reference/SYSTEM_TRUTH_SOURCES.md` 冻结。
+当前 CI/testing 命令真相以 `pnpm run ci`、`pnpm --filter @trapmap/evals eval:smoke`、`pnpm --filter @trapmap/evals eval:ci`、`pnpm --filter @trapmap/evals eval:ci:core` 为准，具体语义由 `package.json` 与 `reference/SYSTEM_TRUTH_SOURCES.md` 冻结。
 
-日常本地运行推荐改用 `pnpm eval -- <suite> ...`；兼容别名继续保留给现有文档、CI 和历史工作流。
+日常本地运行推荐改用 `pnpm --filter @trapmap/evals eval -- <suite> ...`；兼容别名继续保留给现有文档、CI 和历史工作流。
 
 deployment flexibility 最小验证矩阵：
 - `pnpm test:observability-closeout`

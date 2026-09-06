@@ -11,7 +11,7 @@
  * doc-truth / doc-references / links — issues are surfaced but never block.
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 

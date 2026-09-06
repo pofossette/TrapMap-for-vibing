@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { createMockAdminPanelApi } from '@trapmap/web-panel/services/api/mock-admin-panel-api';
+import { describe, expect, it, vi } from 'vitest';
 
 import { loadDashboardSnapshot } from '../../../src/features/dashboard/service';
 

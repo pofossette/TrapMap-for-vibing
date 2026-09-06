@@ -1,19 +1,19 @@
 // fallow-ignore-file complexity -- admin route tests keep 200/401/400/pagination/filtering/governance assertions co-located
 // fallow-ignore-file code-duplication -- admin fixtures mirror web-panel helpers (applyReviewQueueQuery, applyActivityFeedQuery)
 import {
+  buildRouteTestApp,
   type GovernanceAsyncCommandPort,
   type GovernanceReviewAdminPort,
   InvocationError,
   type RouteTestApp,
-  buildRouteTestApp,
 } from '@trapmap/backend-core';
 import type { AdapterName } from '@trapmap/backend-core/testing/route-test-app.js';
 import type { KnowledgeEntry } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 import {
-  type GovernanceReviewRouteDeps,
   createGovernanceAdminRouteDefs,
   createGovernanceReviewRouteDefs,
+  type GovernanceReviewRouteDeps,
 } from '../src/routes.ts';
 
 const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];

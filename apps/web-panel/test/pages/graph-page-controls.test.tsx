@@ -1,9 +1,8 @@
+import { createMockAdminPanelApi } from '@trapmap/web-panel/services/api/mock-admin-panel-api';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { createMockAdminPanelApi } from '@trapmap/web-panel/services/api/mock-admin-panel-api';
 
 import { SkillGraphPage } from '../../src/pages/skill-graph/skill-graph-page';
 import { TrapGraphPage } from '../../src/pages/trap-graph/trap-graph-page';
@@ -42,7 +41,7 @@ vi.mock('../../src/shared/ui/g6-graph-component', () => ({
   ),
 }));
 
-// @ts-ignore
+// @ts-expect-error
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 describe('graph page controls', () => {

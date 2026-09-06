@@ -28,10 +28,12 @@
  */
 import type { CapabilityNode } from '@trapmap/assembly';
 import { defineNode } from '@trapmap/assembly';
-import { createJobRuntimeModule } from '@trapmap/backend-core';
-import { createKnowledgeReadModule } from '@trapmap/backend-core';
-import { createKnowledgeWriteModule } from '@trapmap/backend-core';
-import { createCandidateIngestionModule } from '@trapmap/backend-core';
+import {
+  createCandidateIngestionModule,
+  createJobRuntimeModule,
+  createKnowledgeReadModule,
+  createKnowledgeWriteModule,
+} from '@trapmap/backend-core';
 import { createCandidateIngestionDeps } from '@trapmap/service-candidate-ingestion';
 import { createCronServiceModule } from '@trapmap/service-cron';
 import {

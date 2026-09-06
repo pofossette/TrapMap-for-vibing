@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { GovernanceReviewServiceDeps } from '@trapmap/service-governance-review';
+import { describe, expect, it, vi } from 'vitest';
 import { GovernanceReviewModule } from '../../../src/nest/governance-review/governance-review.module.js';
 
 describe('host-local governance review module', () => {

@@ -12,10 +12,8 @@
  */
 
 import { parseArgs } from 'node:util';
-
-import type { RetrievalEvalCase, RetrievalEvalTier } from '../types/index.js';
-
 import { loadAndFilterCases, resolveRunnerValue } from '../lib/runner-cli.js';
+import type { RetrievalEvalCase, RetrievalEvalTier } from '../types/index.js';
 import { loadCases } from './lib/load.js';
 // Import execution modules
 import { formatRunnerSummary } from './lib/runner-summary.js';

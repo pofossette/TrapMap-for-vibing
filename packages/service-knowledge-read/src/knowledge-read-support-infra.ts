@@ -1,5 +1,4 @@
-import type { SkillShareerServices } from './context.js';
-import type { KnowledgeReadSupportInfra } from './context.js';
+import type { KnowledgeReadSupportInfra, SkillShareerServices } from './context.js';
 
 import { createDefaultKnowledgeReadSupportInfra } from './knowledge-read-support-infra-default.js';
 

@@ -17,8 +17,8 @@
 
 import {
   type BoundaryContext,
-  type RetrievalQuery,
   isRemediationSuppressed,
+  type RetrievalQuery,
 } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { getKnowledgeReadSupportInfra } from './knowledge-read-support-infra.js';

@@ -1,4 +1,4 @@
-import { type KnowledgeWriteDeps, createKnowledgeWriteModule } from '@trapmap/backend-core';
+import { createKnowledgeWriteModule, type KnowledgeWriteDeps } from '@trapmap/backend-core';
 import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
 import type { ArtifactBundleImportPort, ArtifactWritePort } from './artifact-ports.js';
 

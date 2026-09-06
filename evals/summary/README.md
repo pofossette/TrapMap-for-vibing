@@ -15,22 +15,22 @@
 
 ```bash
 # 运行 smoke 层级评测
-pnpm eval:summary:smoke
+pnpm --filter @trapmap/evals eval:summary:smoke
 
 # 运行 core 层级评测
-pnpm eval:summary:core
+pnpm --filter @trapmap/evals eval:summary:core
 
 # 空跑（验证布局，不执行）
-pnpm eval:summary:dry-run
+pnpm --filter @trapmap/evals eval:summary:dry-run
 
 # 带选项运行
-pnpm eval:summary --tier smoke --endpoint /v2/retrieval/search
+pnpm --filter @trapmap/evals eval:summary --tier smoke --endpoint /v2/retrieval/search
 
 # 以 JSON 输出运行
-pnpm eval:summary --tier core --json --json-path ./reports/summary.json
+pnpm --filter @trapmap/evals eval:summary --tier core --json --json-path ./reports/summary.json
 
 # 使用特定法官提供商
-pnpm eval:summary --tier smoke --provider fallback
+pnpm --filter @trapmap/evals eval:summary --tier smoke --provider fallback
 
 # 从 badcase trace 导出 draft（当前统一先导出 retrieval-shaped draft）
 pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./reports/badcase-draft.json
@@ -40,7 +40,7 @@ pnpm exec tsx scripts/archived/export-badcase-to-eval.ts feedback_example ./repo
 
 - `evals/summary/lib/platform-events.ts` 负责把 `SummaryEvalReport` 投影成统一 platform events
 - `evals/scripts/eval-all.ts` 只负责 aggregate 编排、adapter 选择、warning-only 发布与统一输出
-- `--platform` 参数仍只对 aggregate suite（`pnpm eval -- smoke|core|all`）生效，不改变 summary suite 自身的 native report contract
+- `--platform` 参数仍只对 aggregate suite（`pnpm --filter @trapmap/evals eval -- smoke|core|all`）生效，不改变 summary suite 自身的 native report contract
 
 ## 摘要评测概念
 
@@ -133,7 +133,7 @@ export const myCase = summaryEvalCaseSchema.parse({
 - 不够复杂但可靠
 
 ```bash
-pnpm eval:summary --provider fallback
+pnpm --filter @trapmap/evals eval:summary --provider fallback
 ```
 
 ### OpenAI 法官
@@ -145,7 +145,7 @@ pnpm eval:summary --provider fallback
 
 ```bash
 export OPENAI_API_KEY=your-key
-pnpm eval:summary --provider openai
+pnpm --filter @trapmap/evals eval:summary --provider openai
 ```
 
 ## 层级组织
@@ -212,7 +212,7 @@ export const summarySmokeCases: SummaryEvalCase[] = [
 4. **用空跑验证**：
 
 ```bash
-pnpm eval:summary:dry-run
+pnpm --filter @trapmap/evals eval:summary:dry-run
 ```
 
 ## 运行器选项
@@ -298,8 +298,8 @@ LLM 提供商：fallback
 
 ```bash
 # 同时运行检索和摘要
-pnpm eval:smoke
-pnpm eval:core
+pnpm --filter @trapmap/evals eval:smoke
+pnpm --filter @trapmap/evals eval:core
 ```
 
 统一运行器在其自己的部分显示摘要评测，包含 groundedness/覆盖率平均值。
@@ -313,5 +313,5 @@ pnpm eval:core
 
 - **Owner**：摘要 owner（service-knowledge-read 摘要面）
 - **Tier 状态**：smoke 是 CI 门禁 tier；core tier 保留为 active（`evals/summary/datasets/core/`、`scenarios/core/`）
-- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-summary.test.ts`（快照 parity）+ `pnpm eval:summary:smoke`
-- 修改 case/scenario/judge 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm eval:snapshots`）
+- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-summary.test.ts`（快照 parity）+ `pnpm --filter @trapmap/evals eval:summary:smoke`
+- 修改 case/scenario/judge 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm --filter @trapmap/evals eval:snapshots`）

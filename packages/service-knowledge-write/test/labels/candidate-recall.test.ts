@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { LabelAlignmentCandidate } from '@trapmap/contracts';
-
 import {
   HARD_MAX_CANDIDATES,
   RECOMMENDED_MAX_CANDIDATES,

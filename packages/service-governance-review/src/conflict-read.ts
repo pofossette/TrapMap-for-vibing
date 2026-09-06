@@ -20,7 +20,7 @@ export function createGovernanceConflictReadPort(
   return {
     async getApprovedConflictCandidates(entryId) {
       const entry = await owner.getById(entryId);
-      if (!entry || entry.lifecycleState !== 'approved') return null;
+      if (entry?.lifecycleState !== 'approved') return null;
 
       const { items: approvedEntries } = await owner.listByFilter({
         lifecycleState: 'approved',

@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   ALTERNATIVE_THRESHOLD,
   CONTRADICTORY_THRESHOLD,
-  PROBLEM_OVERLAP_THRESHOLD,
-  SOLUTION_DIFF_THRESHOLD,
   canonicalEntries,
   classifyConflict,
   generateConflictContext,
   overlapScore,
+  PROBLEM_OVERLAP_THRESHOLD,
   relationKey,
+  SOLUTION_DIFF_THRESHOLD,
   tokenize,
 } from '../../../src/governance-review/domain/conflict.js';
 

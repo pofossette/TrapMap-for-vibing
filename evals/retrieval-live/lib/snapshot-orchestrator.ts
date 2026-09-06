@@ -11,23 +11,18 @@
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-
+import { nowIso } from '@trapmap/lib';
 import type { Pool } from 'pg';
-
+import { loadConfig } from '../../../packages/host-local/src/nest/config/config.js';
+import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
+import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
 import {
   type LiveEvalServiceProfile,
   type LiveSnapshotMeta,
   liveSnapshotMetaSchema,
 } from '../../types/index.js';
 
-import { nowIso } from '@trapmap/lib';
-
-import { loadConfig } from '../../../packages/host-local/src/nest/config/config.js';
-import type { HostLocalServices } from '../../../packages/host-local/src/nest/runtime/host-services.js';
-
-import { buildPostgresComposedServer } from '../../../scripts/testing/postgres-server-composition.js';
-
-import { detectServiceProfile, materializeCorpusRecords } from './snapshot-support.js';
+import { materializeCorpusRecords } from './snapshot-support.js';
 import type { IndexHealthSummary, SnapshotOrchestratorOptions } from './types.js';
 
 export { detectServiceProfile, materializeCorpusRecords } from './snapshot-support.js';

@@ -9,9 +9,9 @@ import {
   geneStatusSchema,
 } from '../enum-types/experience-gene.js';
 import {
-  type LifecycleState,
   entityIdSchema,
   isoTimestampSchema,
+  type LifecycleState,
   labelSchema,
   lifecycleStateSchema,
   scopeSchema,

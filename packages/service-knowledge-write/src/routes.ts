@@ -6,17 +6,17 @@ import type { KnowledgeWriteRouteDeps } from './routes/helpers.js';
 import { createKnowledgeKnowledgeRouteDefs } from './routes/knowledge.routes.js';
 import { createKnowledgeSubmissionRouteDefs } from './routes/submission.routes.js';
 
-export type { KnowledgeWriteRouteDeps, KnowledgeWriteReadinessOptions } from './routes/helpers.js';
+export type { KnowledgeWriteReadinessOptions, KnowledgeWriteRouteDeps } from './routes/helpers.js';
 
 export function createKnowledgeAdminRouteDefs(
-  deps: KnowledgeWriteRouteDeps,
+  _deps: KnowledgeWriteRouteDeps,
 ): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
   // For now, admin artifacts are in submission
   return createKnowledgeSubmissionRouteDefs().filter((r) => r.path.startsWith('/api/admin'));
 }
 
 export function createKnowledgeWriteRouteDefsInternal(
-  deps: KnowledgeWriteRouteDeps,
+  _deps: KnowledgeWriteRouteDeps,
 ): RouteDef<RouteContext, KnowledgeWriteRouteDeps>[] {
   return [
     ...createKnowledgeKnowledgeRouteDefs(),

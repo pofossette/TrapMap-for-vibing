@@ -1,10 +1,9 @@
-import { describe, expect, it } from 'vitest';
-
 import {
   assertDedupResultShape,
   buildSampleDedupInput,
   createStubCandidateCorpus,
 } from '@trapmap/backend-core';
+import { describe, expect, it } from 'vitest';
 
 import { createRuleDedupStrategy } from '../../src/dedup-strategy/rule-dedup-strategy.js';
 

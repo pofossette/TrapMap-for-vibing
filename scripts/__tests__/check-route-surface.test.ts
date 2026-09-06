@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  SURFACE_EXEMPTIONS,
-  SURFACE_INVENTORY_DRIFT,
-  type SurfaceViolation,
   checkSurface,
   collectDocumentedPaths,
   collectRoutePathsFromSource,
   normalizeRoutePath,
+  SURFACE_EXEMPTIONS,
+  SURFACE_INVENTORY_DRIFT,
+  type SurfaceViolation,
 } from '../check-route-surface';
 import { cleanupTempRepos, makeTempRepo, write } from './helpers/temp-repo';
 

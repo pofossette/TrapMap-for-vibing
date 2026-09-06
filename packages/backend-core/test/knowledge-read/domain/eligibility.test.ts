@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  type KnowledgeDecayConfig,
-  type RetrievalAuthView,
-  type RetrievalEligibilityEntryView,
   computeDecayState,
   decayStateForAge,
   isEligibleForActor,
   isRetrievalEntryEligible,
+  type KnowledgeDecayConfig,
   matchesRetrievalFilters,
+  type RetrievalAuthView,
+  type RetrievalEligibilityEntryView,
 } from '../../../src/knowledge-read/domain/index.js';
 
 const DEFAULT_DECAY_CONFIG: KnowledgeDecayConfig = {

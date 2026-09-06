@@ -4,14 +4,12 @@ import { createInternalServiceClients } from '@trapmap/host-distributed/gateway/
 import { createRemoteJobRuntimeClient } from '@trapmap/host-distributed/shared/internal-job-runtime-client.js';
 import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shared/internal-knowledge-write-client.js';
 import {
-  type GovernanceReviewServiceDeps,
   createGovernanceAsyncCommandModule,
   createGovernanceReviewAdminModule,
   createRuleConflictTrigger,
-} from '@trapmap/service-governance-review';
-import {
-  type GovernanceReviewPgOwnerBundle,
   createGovernanceReviewDeps as createServiceGovernanceReviewDeps,
+  type GovernanceReviewPgOwnerBundle,
+  type GovernanceReviewServiceDeps,
 } from '@trapmap/service-governance-review';
 import type { IdentityAccessPortDeps } from '@trapmap/service-identity-access';
 

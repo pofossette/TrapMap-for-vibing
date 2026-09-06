@@ -5,6 +5,8 @@
  * maintenance assignments, embeddings, keywords, search documents,
  * feedback, usage analytics, and domain event outbox.
  */
+
+import type { Boundary, LifecycleState } from '@trapmap/contracts';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -19,8 +21,6 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core';
-
-import type { Boundary, LifecycleState } from '@trapmap/contracts';
 import { auditTimestamps, lifecycleEventColumns, revisionColumns } from './column-factories.js';
 
 // =============================================================================

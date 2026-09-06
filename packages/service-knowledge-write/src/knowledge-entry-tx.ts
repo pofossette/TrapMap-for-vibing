@@ -4,11 +4,9 @@
  * the backend-core domain rules; this module only renders them into SQL.
  */
 
-import { prefixedId } from '@trapmap/lib';
-
 import {
-  DEACTIVATED_STATE,
   assertValidLifecycleTransition,
+  DEACTIVATED_STATE,
   initialLifecycleEventType,
   initialSubmissionState,
   isDeactivationAction,
@@ -16,6 +14,7 @@ import {
   lifecycleOutboxEventName,
 } from '@trapmap/backend-core';
 import type { EvidenceMeta, KnowledgeOwnerCommandInput, LifecycleState } from '@trapmap/contracts';
+import { prefixedId } from '@trapmap/lib';
 
 interface Queryable {
   query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
@@ -505,9 +504,9 @@ async function persistSupersedeTx(
 }
 
 export {
+  persistEntryUpdateTx,
   persistEvidenceReviewTx,
   persistOperationalDecisionTx,
   persistSubmissionTx,
-  persistEntryUpdateTx,
   persistSupersedeTx,
 };

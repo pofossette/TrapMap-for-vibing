@@ -13,17 +13,24 @@
  * on @sentry/node at the package level.
  */
 
-import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnModuleDestroy,
+  type OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import type { SentryPolicyResult } from '@trapmap/contracts';
 import { validateSentryPolicy } from '@trapmap/contracts';
 
 import {
-  SENSITIVE_KEY_PATTERN,
   redactQueryString,
   redactSensitiveKeys,
   redactUrl,
+  SENSITIVE_KEY_PATTERN,
 } from '@trapmap/lib';
-import type { RequestContextService } from '../runtime/request-context.service.js';
+import { RequestContextService } from '../runtime/request-context.service.js';
 
 /**
  * HTTP status codes that are "expected" client errors and should not be
@@ -165,7 +172,11 @@ export class SentryService implements OnModuleInit, OnModuleDestroy {
   private sentry: typeof import('@sentry/node') | null = null;
   private readonly policy: SentryPolicyResult;
 
-  constructor(private readonly requestContext?: RequestContextService) {
+  constructor(
+    @Optional()
+    @Inject(RequestContextService)
+    private readonly requestContext?: RequestContextService,
+  ) {
     this.policy = validateSentryPolicy(
       Object.fromEntries(
         Object.entries({

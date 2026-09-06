@@ -62,3 +62,17 @@ export function defaultSecurityLevel(level: number | null | undefined): number {
 export function defaultTeamName(name: string | null | undefined, slug: string): string {
   return name ?? slug;
 }
+
+/**
+ * Membership role template normalized to the shared contract enum.
+ *
+ * Repository rows predate the contract and may carry legacy templates
+ * (`editor`, `viewer`, …); only `admin` / `system-admin` survive, everything
+ * else is a regular `user` for external session surfaces.
+ */
+export function toContractRoleTemplate(role: string): 'user' | 'admin' | 'system-admin' {
+  if (role === 'admin' || role === 'system-admin') {
+    return role;
+  }
+  return 'user';
+}

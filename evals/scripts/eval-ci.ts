@@ -29,7 +29,7 @@ import type {
   RegressionThresholds,
   RetrievalEvalReport,
 } from '../types/report.js';
-import { TIER_THRESHOLDS, baselineReportSchema, regressionResultSchema } from '../types/report.js';
+import { baselineReportSchema, regressionResultSchema, TIER_THRESHOLDS } from '../types/report.js';
 import type { EvalAllOptions, RetrievalResult, SummaryResult } from './eval-all.js';
 import { runRetrievalEval, runSummaryEval } from './eval-all.js';
 

@@ -106,10 +106,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (path === '/v1/retrieval/search') {
-    let body = '';
-    req.on('data', (c) => {
-      body += c;
-    });
+    req.resume();
     req.on('end', () => {
       json(res, {
         globalConstraints: [
@@ -143,10 +140,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (path === '/v1/retrieval/genes/search') {
-    let body = '';
-    req.on('data', (c) => {
-      body += c;
-    });
+    req.resume();
     req.on('end', () => {
       json(res, {
         items: [
@@ -175,10 +169,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (path === '/v1/retrieval/skills/search-by-content') {
-    let body = '';
-    req.on('data', (c) => {
-      body += c;
-    });
+    req.resume();
     req.on('end', () => {
       json(res, {
         items: [

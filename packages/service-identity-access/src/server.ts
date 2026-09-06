@@ -1,7 +1,7 @@
 import type { IdentityAccessPort } from '@trapmap/backend-core';
 import { createFastifyServiceServer } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
-import { type IdentityAccessDeps, createIdentityAccessServiceModule } from './deps.js';
+import { createIdentityAccessServiceModule, type IdentityAccessDeps } from './deps.js';
 import { createIdentityAccessRouteDefs } from './routes.js';
 
 export interface IdentityAccessServiceConfig {

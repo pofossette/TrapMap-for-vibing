@@ -1,9 +1,25 @@
 import type { ArtifactReadProjection, SkillArtifactRevision } from '@trapmap/contracts';
 import { vi } from 'vitest';
 
+type TestQueryResult = { rows: unknown[] };
+
+export interface TestTransactionClient {
+  query: (sql: string) => Promise<TestQueryResult>;
+  release: () => void;
+}
+
+export interface TestTransactionPool {
+  calls: string[];
+  client: TestTransactionClient;
+  pool: {
+    connect: () => Promise<TestTransactionClient>;
+    query: () => Promise<TestQueryResult>;
+  };
+}
+
 export function createTransactionPool(
   respond: (sql: string) => Promise<{ rows: unknown[] }> | { rows: unknown[] },
-) {
+): TestTransactionPool {
   const calls: string[] = [];
   const client = {
     query: vi.fn(async (sql: string) => {

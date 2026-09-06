@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { GraphIndexDocumentRecord } from '@trapmap/contracts';
+import { describe, expect, it, vi } from 'vitest';
 
 import { repairGraphDocuments } from '../../src/labels/merge-repair.js';
 import type { CanonicalLabelRecord, LabelRepository } from '../../src/labels/repository.js';

@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { ApiError } from '@trapmap/client-core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { isUnauthorizedError } from '../../src/services/admin-panel-service-context';
-import { createMockAdminPanelApi } from '../../src/services/api/mock-admin-panel-api';
 
 describe('mock admin RBAC — server-side enforcement', () => {
   beforeEach(() => {

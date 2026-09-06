@@ -8,10 +8,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-import type { ArtifactBundle, BundleFilePayload } from '@trapmap/contracts';
-
-import type { ArtifactFilePayloadRecord } from '@trapmap/contracts';
+import type { ArtifactBundle, ArtifactFilePayloadRecord } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Types

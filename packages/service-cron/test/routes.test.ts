@@ -1,4 +1,4 @@
-import { InvocationError, type RouteTestApp, buildRouteTestApp } from '@trapmap/backend-core';
+import { buildRouteTestApp, InvocationError, type RouteTestApp } from '@trapmap/backend-core';
 import type { AdapterName } from '@trapmap/backend-core/testing/route-test-app.js';
 import type { CronJob, CronJobStatusSnapshot } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';

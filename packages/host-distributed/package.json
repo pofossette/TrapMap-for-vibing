@@ -90,6 +90,10 @@
       "types": "./dist/job-runtime/*.d.ts",
       "import": "./dist/job-runtime/*.js"
     },
+    "./cron-scheduler/*.js": {
+      "types": "./dist/cron-scheduler/*.d.ts",
+      "import": "./dist/cron-scheduler/*.js"
+    },
     "./job-runtime/*": {
       "types": "./dist/job-runtime/*.d.ts",
       "import": "./dist/job-runtime/*.js"
@@ -113,7 +117,7 @@
     "start:candidate-ingestion": "pnpm --filter @trapmap/app-distributed start:candidate-ingestion",
     "start:governance-review": "pnpm --filter @trapmap/app-distributed start:governance-review",
     "start:job-runtime": "pnpm --filter @trapmap/app-distributed start:job-runtime",
-    "test:acceptance": "pnpm --filter @trapmap/service-identity-access build && pnpm --filter @trapmap/service-knowledge-read build && pnpm --filter @trapmap/service-knowledge-write build && pnpm --filter @trapmap/service-governance-review build && pnpm --filter @trapmap/service-candidate-ingestion build && pnpm --filter @trapmap/service-job-runtime build && pnpm -C ../.. exec vitest run --project host-distributed packages/host-distributed/src/identity-access/routes.test.ts packages/host-distributed/src/gateway/distributed-acceptance.test.ts packages/host-distributed/src/gateway/distributed-runtime-closeout.test.ts packages/host-distributed/src/gateway/internal-client.test.ts packages/host-distributed/src/shared/internal-knowledge-write-client.test.ts packages/host-distributed/src/governance-review/routes.test.ts packages/host-distributed/src/governance-review/delegation-acceptance.test.ts packages/host-distributed/src/candidate-ingestion/routes.test.ts packages/host-distributed/src/knowledge-write/routes.test.ts packages/host-distributed/src/job-runtime/ownership-acceptance.test.ts",
+    "test:acceptance": "pnpm --filter @trapmap/service-identity-access build && pnpm --filter @trapmap/service-knowledge-read build && pnpm --filter @trapmap/service-knowledge-write build && pnpm --filter @trapmap/service-governance-review build && pnpm --filter @trapmap/service-candidate-ingestion build && pnpm --filter @trapmap/service-job-runtime build && pnpm -C ../.. exec vitest run --project host-distributed packages/host-distributed/test/identity-access/routes.test.ts packages/host-distributed/test/gateway/distributed-acceptance.test.ts packages/host-distributed/test/gateway/distributed-runtime-closeout.test.ts packages/host-distributed/test/gateway/internal-client.test.ts packages/host-distributed/test/shared/internal-knowledge-write-client.test.ts packages/host-distributed/test/governance-review/routes.test.ts packages/host-distributed/test/governance-review/delegation-acceptance.test.ts packages/host-distributed/test/candidate-ingestion/routes.test.ts packages/host-distributed/test/knowledge-write/composition.test.ts packages/host-distributed/test/job-runtime/ownership-acceptance.test.ts",
     "test": "pnpm -C ../.. exec vitest run --project host-distributed --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
@@ -125,6 +129,7 @@
     "@trapmap/contracts": "workspace:*",
     "@trapmap/infra": "workspace:*",
     "@trapmap/service-candidate-ingestion": "workspace:*",
+    "@trapmap/service-cron": "workspace:*",
     "@trapmap/service-governance-review": "workspace:*",
     "@trapmap/service-identity-access": "workspace:*",
     "@trapmap/service-job-runtime": "workspace:*",
@@ -136,8 +141,8 @@
     "@trapmap/db": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
+    "@types/node": "^26.4.1",
     "@types/pg": "8.20.0",
-    "vitest": "^3.2.1"
+    "vitest": "^5.0.0"
   }
 }

@@ -1,8 +1,9 @@
 // @ts-nocheck
-import { InvocationError, isRouteResponse } from '@trapmap/backend-core';
+
 import type { RouteContext, RouteDef } from '@trapmap/backend-core';
-import { adminManualJsonEditSchema, governanceRouteDef, readAdminActor } from './helpers.js';
+import { InvocationError, isRouteResponse } from '@trapmap/backend-core';
 import type { GovernanceReviewRouteDeps } from './helpers.js';
+import { adminManualJsonEditSchema, governanceRouteDef, readAdminActor } from './helpers.js';
 
 export function createGovernanceJsonEditRouteDefs(): RouteDef<
   RouteContext,
@@ -51,7 +52,7 @@ export function createGovernanceJsonEditRouteDefs(): RouteDef<
               },
             });
           }
-        } catch (e) {
+        } catch {
           // Fall through to still return savedAt; governance layer is permissive for manual edits
         }
         return { savedAt: now };

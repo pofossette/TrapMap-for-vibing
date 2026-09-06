@@ -1,7 +1,4 @@
 import { Button, Chip } from '@heroui/react';
-import { type ReactElement, useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 import type { SkillArtifact } from '@trapmap/contracts';
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import type { ArtifactQuery } from '@trapmap/web-panel/shared/enum-types';
@@ -9,6 +6,8 @@ import { localizeLifecycleState } from '@trapmap/web-panel/shared/lib/display-la
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { PageContainer, SectionHeader, StatusBadge } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import { type ReactElement, useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const ARTIFACT_PAGE_LIMIT = 20;
 

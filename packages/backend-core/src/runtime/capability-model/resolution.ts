@@ -3,6 +3,7 @@
  * and the derived capability matrix. Public entry point is `resolveRuntimeDeployment`.
  */
 
+import { shouldOwnAsyncWork, snapshotRuntimeWorker } from './boot.js';
 import type {
   AsyncWorkerDependencyState,
   DeploymentCapabilities,
@@ -17,8 +18,6 @@ import type {
   ServiceUnit,
   ServiceUnitProfile,
 } from './types.js';
-
-import { shouldOwnAsyncWork, snapshotRuntimeWorker } from './boot.js';
 
 export function resolveAsyncWorkerState(
   args: ResolveAsyncWorkerStateOptions,

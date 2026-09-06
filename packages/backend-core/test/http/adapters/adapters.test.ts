@@ -8,11 +8,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { createFastifyAdapter } from '../../../src/http/adapters/fastify.js';
-import { RouteDefExceptionFilter, createNestAdapter } from '../../../src/http/adapters/nest.js';
+import { createNestAdapter, RouteDefExceptionFilter } from '../../../src/http/adapters/nest.js';
 import {
-  type RouteDef,
   isRouteResponse,
   mapErrorToEnvelope,
+  type RouteDef,
   routeResponse,
 } from '../../../src/http/route-contract.js';
 import { InvocationError } from '../../../src/invocation/index.js';
@@ -39,8 +39,10 @@ async function buildApp(
     };
   }
 
-  @Module({ controllers: [createNestAdapter(routeDefs, deps)] })
   class AdapterTestModule {}
+  // NOTE: functional form — `@Module()` syntax breaks Vite 8/oxc transform on
+  // Node without decorator support; `Module()` is metadata-only so identical.
+  Module({ controllers: [createNestAdapter(routeDefs, deps)] })(AdapterTestModule);
 
   const moduleRef = await Test.createTestingModule({ imports: [AdapterTestModule] }).compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
@@ -270,7 +272,6 @@ describe('Fastify adapter error wire', () => {
 });
 
 describe('Nest adapter guards and context', () => {
-  @Injectable()
   class TestGuard implements CanActivate {
     canActivate(context: ExecutionContext): boolean {
       const request = context.switchToHttp().getRequest<{ guarded?: boolean }>();
@@ -278,6 +279,8 @@ describe('Nest adapter guards and context', () => {
       return true;
     }
   }
+  // NOTE: functional form — same toolchain reason as above.
+  Injectable()(TestGuard);
 
   it('applies guards to every route except openRoutes', async () => {
     const guardedHandler = vi.fn(async () => ({ guarded: true }));
@@ -306,13 +309,14 @@ describe('Nest adapter guards and context', () => {
       },
     ];
 
-    @Module({
+    class GuardTestModule {}
+    // NOTE: functional form — same toolchain reason as above.
+    Module({
       controllers: [
         createNestAdapter(routeDefs, undefined, { guards: [TestGuard], openRoutes: ['/open'] }),
       ],
       providers: [TestGuard],
-    })
-    class GuardTestModule {}
+    })(GuardTestModule);
 
     const moduleRef = await Test.createTestingModule({ imports: [GuardTestModule] }).compile();
     const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
@@ -346,14 +350,15 @@ describe('Nest adapter guards and context', () => {
       },
     ];
 
-    @Module({
+    class ContextTestModule {}
+    // NOTE: functional form — same toolchain reason as above.
+    Module({
       controllers: [
         createNestAdapter(routeDefs, undefined, {
           context: (request) => ({ authContext: request.authContext }),
         }),
       ],
-    })
-    class ContextTestModule {}
+    })(ContextTestModule);
 
     const moduleRef = await Test.createTestingModule({ imports: [ContextTestModule] }).compile();
     const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
