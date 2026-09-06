@@ -3,21 +3,20 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { AiProviderConfig } from '../src/provider-config.js';
 import {
+  AiSdkChat,
+  AiSdkEmbeddings,
+  createAiProviders,
   FallbackChat,
   FallbackEmbeddings,
   GoogleGenAIEmbeddings,
   OpenAICompatibleChat,
   OpenAICompatibleEmbeddings,
-  createAiProviders,
 } from '../src/providers.js';
 
-vi.mock('@langchain/openai', () => ({
-  OpenAIEmbeddings: vi.fn().mockImplementation(() => ({
-    embedQuery: vi.fn().mockRejectedValue(new Error('Invalid or inaccessible API endpoint')),
-  })),
-  ChatOpenAI: vi.fn().mockImplementation(() => ({
-    invoke: vi.fn().mockRejectedValue(new Error('Invalid or inaccessible API endpoint')),
-  })),
+vi.mock('ai', () => ({
+  generateText: vi.fn().mockRejectedValue(new Error('Invalid or inaccessible API endpoint')),
+  embed: vi.fn().mockRejectedValue(new Error('Invalid or inaccessible API endpoint')),
+  embedMany: vi.fn().mockRejectedValue(new Error('Invalid or inaccessible API endpoint')),
 }));
 
 const openaiConfig: AiProviderConfig = {
@@ -58,18 +57,22 @@ describe('createAiProviders', () => {
     expect(providers.chat).toBeInstanceOf(FallbackChat);
   });
 
-  it('uses OpenAI-compatible providers for OpenAI', () => {
+  it('uses AI SDK providers for OpenAI', () => {
     const providers = createAiProviders(openaiConfig);
 
-    expect(providers.embeddings).toBeInstanceOf(OpenAICompatibleEmbeddings);
-    expect(providers.chat).toBeInstanceOf(OpenAICompatibleChat);
+    expect(providers.embeddings).toBeInstanceOf(AiSdkEmbeddings);
+    expect(providers.embeddings.provider).toBe('openai');
+    expect(providers.chat).toBeInstanceOf(AiSdkChat);
+    expect(providers.chat.provider).toBe('openai');
   });
 
-  it('uses Google GenAI embeddings and OpenAI-compatible chat for Google', () => {
+  it('uses native Google AI SDK providers for Google', () => {
     const providers = createAiProviders(googleConfig);
 
-    expect(providers.embeddings).toBeInstanceOf(GoogleGenAIEmbeddings);
-    expect(providers.chat).toBeInstanceOf(OpenAICompatibleChat);
+    expect(providers.embeddings).toBeInstanceOf(AiSdkEmbeddings);
+    expect(providers.embeddings.provider).toBe('google-genai');
+    expect(providers.chat).toBeInstanceOf(AiSdkChat);
+    expect(providers.chat.provider).toBe('google-genai');
   });
 
   it('uses a configured embedding override independently of primary chat', () => {
@@ -84,8 +87,9 @@ describe('createAiProviders', () => {
       },
     });
 
-    expect(providers.embeddings).toBeInstanceOf(GoogleGenAIEmbeddings);
-    expect(providers.chat).toBeInstanceOf(OpenAICompatibleChat);
+    expect(providers.embeddings).toBeInstanceOf(AiSdkEmbeddings);
+    expect(providers.embeddings.provider).toBe('google-genai');
+    expect(providers.chat).toBeInstanceOf(AiSdkChat);
   });
 });
 
@@ -137,7 +141,11 @@ describe('OpenAI-compatible providers', () => {
 
 describe('GoogleGenAIEmbeddings', () => {
   it('reports missing Google configuration before making a request', async () => {
-    const embeddings = new GoogleGenAIEmbeddings({ ...googleConfig, apiKey: '' });
+    const embeddings = new GoogleGenAIEmbeddings({
+      ...googleConfig,
+      apiKey: '',
+      isConfigured: false,
+    });
 
     expect(embeddings.isConfigured).toBe(false);
     await expect(embeddings.embed('test')).rejects.toThrow(

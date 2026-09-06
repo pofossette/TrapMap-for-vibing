@@ -6,14 +6,13 @@
  * Phase 26-01: REVAL-01
  */
 
-import { describe, expect, it } from 'vitest';
-
 import type {
   GraphPlanSearchResponse,
   RetrievalResponse,
   RetrievalV2ResponseWithHints,
   SkillLookupResponse,
 } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import {
   extractV1Ids,
   extractV2CapsuleIds,

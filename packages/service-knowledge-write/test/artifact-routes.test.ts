@@ -1,8 +1,8 @@
 import { InvocationError } from '@trapmap/backend-core';
 import {
   type AdapterName,
-  type RouteTestApp,
   buildRouteTestApp,
+  type RouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
 import type { SkillArtifact, SkillArtifactRevision } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';

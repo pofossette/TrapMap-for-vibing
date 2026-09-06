@@ -1,7 +1,6 @@
-import type { KnowledgeReadPortDeps } from '@trapmap/service-knowledge-read';
-
 import type { KnowledgeEntryRecord } from '@trapmap/backend-core';
 import type { KnowledgeEntry } from '@trapmap/contracts';
+import type { KnowledgeReadPortDeps } from '@trapmap/service-knowledge-read';
 
 import type { HostLocalRuntime } from './host-runtime.js';
 

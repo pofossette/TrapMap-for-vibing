@@ -16,12 +16,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assertionStabilitySchema,
-  liveEvalCaseDiffSchema,
   liveEvalComparisonReportSchema,
   liveEvalReportMetaSchema,
   liveEvalServiceProfileSchema,
-  liveEvalSliceDiffSchema,
-  liveSnapshotDerivationContextSchema,
   liveSnapshotMetaSchema,
 } from '../../types/index.js';
 

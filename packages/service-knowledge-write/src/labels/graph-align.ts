@@ -6,12 +6,10 @@
  * edge endpoints to canonical forms when alignment succeeds.
  */
 
-import type { LlmGraphNode } from '@trapmap/contracts';
-
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
-import type { GraphNodeRecord } from '@trapmap/contracts';
-import { alignLabel } from './llm-align.js';
+import type { GraphNodeRecord, LlmGraphNode } from '@trapmap/contracts';
 import type { AlignLabelOptions } from './llm-align.js';
+import { alignLabel } from './llm-align.js';
 import type { LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
@@ -67,7 +65,7 @@ export async function alignGraphNodes(
   const { chat, repository, embeddings, sourceContext = 'extraction' } = options;
 
   // Skip alignment if chat or repository is not available
-  if (!chat || !chat.isConfigured || !repository) {
+  if (!chat?.isConfigured || !repository) {
     return {
       nodes: nodes.map((n) => ({
         id: buildRawNodeId(n.kind, n.label),

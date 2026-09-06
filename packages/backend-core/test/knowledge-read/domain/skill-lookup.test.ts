@@ -1,7 +1,7 @@
 import {
   type RetrievalMatch,
-  type SkillSourceKind,
   retrievalMatchSchema,
+  type SkillSourceKind,
   skillLookupResponseSchema,
 } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';

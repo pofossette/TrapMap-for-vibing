@@ -1,7 +1,7 @@
 import {
+  createJobRuntimeModule,
   type JobRuntimeDeps,
   type TaskHandler,
-  createJobRuntimeModule,
 } from '@trapmap/backend-core';
 import type { JobRuntimeOutboxHandler } from './outbox-worker.js';
 

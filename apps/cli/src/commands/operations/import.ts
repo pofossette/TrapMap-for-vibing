@@ -1,7 +1,3 @@
-import type { ArtifactBundle, ArtifactImportResponse, ImportResponse } from '@trapmap/contracts';
-import { artifactImportResponseSchema, importResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import {
   buildArtifactBundle,
   buildSingleSkillMdBundle,
@@ -12,6 +8,9 @@ import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { resolveTextInput } from '@trapmap/cli/lib/input.js';
 import { printResult } from '@trapmap/cli/lib/output.js';
+import type { ArtifactBundle, ArtifactImportResponse, ImportResponse } from '@trapmap/contracts';
+import { artifactImportResponseSchema, importResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 import type { OperationsCommandOptions } from './types.js';
 
 async function importArtifactBundle(
@@ -107,12 +106,7 @@ export function registerImportCommand(program: Command, options: OperationsComma
             } else if (parsed.items && Array.isArray(parsed.items)) {
               // Export bundle format
               entries = parsed.items.map(
-                (entry: {
-                  scope: string;
-                  labels: string[];
-                  shortcut: string;
-                  detail: string;
-                }) => ({
+                (entry: { scope: string; labels: string[]; shortcut: string; detail: string }) => ({
                   scope: entry.scope ?? 'project',
                   labels: entry.labels ?? ['imported'],
                   shortcut: entry.shortcut,

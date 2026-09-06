@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { LocalAdapter } from './local.js';
-import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { LocalAdapter } from './local.js';
 
 describe('LocalAdapter', () => {
   it('fetches local skill dir', async () => {

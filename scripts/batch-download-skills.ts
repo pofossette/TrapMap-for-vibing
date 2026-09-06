@@ -20,8 +20,8 @@ import { parseArgs } from 'node:util';
 
 import {
   type ArtifactBundle,
-  type BundleFilePayload,
   artifactBundleSchema,
+  type BundleFilePayload,
 } from '../packages/contracts/src/index.js';
 
 // =============================================================================
@@ -335,7 +335,7 @@ interface SkillMetadata {
 function parseSkillMetadata(content: string): SkillMetadata | null {
   const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/);
 
-  if (!frontmatterMatch || !frontmatterMatch[1]) {
+  if (!frontmatterMatch?.[1]) {
     return null;
   }
 

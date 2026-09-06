@@ -8,8 +8,9 @@
  * no disposer — runtime shutdown still flows through `db.close()` on the
  * DistributedServiceHandle.
  */
-import { defineNode } from '@trapmap/assembly';
+
 import type { CapabilityNode } from '@trapmap/assembly';
+import { defineNode } from '@trapmap/assembly';
 
 import { createServiceDatabase } from '../../shared/database.js';
 import { SERVICE_CONFIG_SERVICE } from './service-config.js';

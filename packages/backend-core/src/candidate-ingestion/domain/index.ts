@@ -16,6 +16,6 @@ export const CANDIDATE_INGESTION_OWNED_CAPABILITIES = [
 ] as const;
 
 export * from './dedup.js';
+export * from './llm-judgment.js';
 export * from './policy.js';
 export * from './resolution.js';
-export * from './llm-judgment.js';

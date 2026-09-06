@@ -2,7 +2,7 @@
 import { defineNode } from '../define-node.js';
 export const sentryCapability = defineNode({
   id: 'sentry',
-  apply: (ctx) => {
+  apply: (_ctx) => {
     // sentry capability placeholder for P2 assembly
   },
 });

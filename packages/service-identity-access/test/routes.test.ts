@@ -4,11 +4,11 @@ import { Module } from '@nestjs/common';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
 import {
+  createFastifyAdapter,
+  createNestAdapter,
   type IdentityAccessPort,
   InvocationError,
   RouteDefExceptionFilter,
-  createFastifyAdapter,
-  createNestAdapter,
 } from '@trapmap/backend-core';
 import type { FastifyInjectOptions, FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { describe, expect, it, vi } from 'vitest';
@@ -22,6 +22,33 @@ interface RouteTestApp {
   inject(options: FastifyInjectOptions): Promise<LightMyRequestResponse>;
   close(): Promise<void>;
 }
+
+const TEST_SESSION = {
+  sessionId: 'session-1',
+  member: {
+    id: 'member-1',
+    teamId: 'team-1',
+    handle: 'alice',
+    roleTemplate: 'admin',
+    securityLevel: 5,
+    permissions: [],
+    notes: null,
+    isSystem: false,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  activeTeam: {
+    id: 'team-1',
+    slug: 'alpha',
+    name: 'Alpha',
+    description: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  effectivePermissions: ['session:read'],
+  expiresAt: null,
+  issuedAt: '2024-01-01T00:00:00Z',
+};
 
 function createModule(overrides: Partial<IdentityAccessPort> = {}): IdentityAccessPort {
   return {
@@ -41,6 +68,7 @@ function createModule(overrides: Partial<IdentityAccessPort> = {}): IdentityAcce
     addMember: vi.fn(async () => undefined),
     updateMember: vi.fn(async () => undefined),
     provisionAccessKey: vi.fn(async () => ({ keyId: 'key-1', token: 'token-1' })),
+    describeSession: vi.fn(async () => TEST_SESSION),
     ...overrides,
   };
 }
@@ -57,8 +85,10 @@ async function buildApp(module: IdentityAccessPort, adapter: AdapterName): Promi
     };
   }
 
-  @Module({ controllers: [createNestAdapter(routeDefs, module)] })
   class RouteDefTestModule {}
+  // NOTE: functional form — `@Module()` syntax breaks Vite 8/oxc transform on
+  // Node without decorator support; `Module()` is metadata-only so identical.
+  Module({ controllers: [createNestAdapter(routeDefs, module)] })(RouteDefTestModule);
 
   const moduleRef = await Test.createTestingModule({ imports: [RouteDefTestModule] }).compile();
   const app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter());
@@ -84,8 +114,9 @@ describe.each(ADAPTERS)('service-identity-access routes (%s adapter)', (adapter)
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ sessionToken: 'system-session-1' });
+    expect(response.json()).toEqual({ session: TEST_SESSION, sessionToken: 'system-session-1' });
     expect(module.loginSystemAdmin).toHaveBeenCalledWith('correct-key');
+    expect(module.describeSession).toHaveBeenCalledWith('system-session-1');
     await app.close();
   });
 

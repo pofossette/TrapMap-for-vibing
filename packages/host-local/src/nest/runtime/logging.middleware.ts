@@ -1,15 +1,17 @@
 import type { NestMiddleware } from '@nestjs/common';
-import { Injectable, Logger } from '@nestjs/common';
-import { type LogEntry, formatLogForStdout } from '@trapmap/contracts';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { formatLogForStdout, type LogEntry } from '@trapmap/contracts';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 
-import type { RequestContextService } from './request-context.service.js';
+import { RequestContextService } from './request-context.service.js';
 
 @Injectable()
 export class LoggingMiddleware implements NestMiddleware {
   private readonly logger = new Logger('HTTP');
 
-  constructor(private readonly requestContext: RequestContextService) {}
+  constructor(
+    @Inject(RequestContextService) private readonly requestContext: RequestContextService,
+  ) {}
 
   use(req: FastifyRequest, res: FastifyReply, next: () => void): void {
     const start = Date.now();

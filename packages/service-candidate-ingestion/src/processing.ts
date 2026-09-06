@@ -5,20 +5,19 @@ import type {
   TaskQueuePort,
 } from '@trapmap/backend-core';
 import {
+  buildNormalizedDuplicateInput,
   DEAD_LETTER_MESSAGE,
+  isActionableCandidateStatus,
+  isInterruptedCandidateStatus,
   MAX_PROCESSING_ATTEMPTS,
   RECOVERY_REASON,
   RECOVERY_STATUS,
-  buildNormalizedDuplicateInput,
-  isActionableCandidateStatus,
-  isInterruptedCandidateStatus,
   statusAfterAnalysis,
 } from '@trapmap/backend-core';
 import type { CandidateCorpusReadPort, CandidateProcessingPayload } from '@trapmap/contracts';
-
-import { createRuleDedupStrategy } from './dedup-strategy/rule-dedup-strategy.js';
 import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
 import { dedupFingerprintWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
+import { createRuleDedupStrategy } from './dedup-strategy/rule-dedup-strategy.js';
 
 export const CANDIDATE_PROCESSING_TASK_TYPE = 'candidate_processing' as const;
 

@@ -3,14 +3,13 @@
  * Phase 71 Gap 2: Verifies that knowledge commands handle real CRUD paths,
  * edge cases in formatting, and error scenarios the basic tests may miss.
  */
-import type { KnowledgeEntryResponse, KnowledgeHistoryResponse } from '@trapmap/contracts';
-import { Command } from 'commander';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import * as config from '@trapmap/cli/lib/config.js';
 import * as http from '@trapmap/cli/lib/http.js';
 import * as input from '@trapmap/cli/lib/input.js';
 import { createMockEntry } from '@trapmap/cli/testing/cli-test-utils.js';
+import type { KnowledgeEntryResponse, KnowledgeHistoryResponse } from '@trapmap/contracts';
+import { Command } from 'commander';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the dependencies
 vi.mock('../../src/lib/http.js', () => ({

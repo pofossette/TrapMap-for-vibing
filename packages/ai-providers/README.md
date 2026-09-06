@@ -54,6 +54,20 @@ import { buildKnowledgeRefinementSystemPrompt, buildClaimVerificationSystemPromp
 | OpenAI 兼容 | `openai-compatible` | (需配置) | (需配置) |
 | Fallback | `fallback` | (无) | 确定性哈希嵌入 |
 
+## Vercel AI SDK 适配器（统一 LLM 调用入口）
+
+本包是仓库唯一的 AI SDK 接入面：`src/adapters/aisdk.ts` 集中所有 `ai` / `@ai-sdk/*` 调用，
+上层只消费 vendor-neutral 的 `ChatProvider` / `EmbeddingsProvider` 接口。
+
+- Chat：`generateText({ model, system, prompt, temperature })`（官方 `generateText`）
+- Embedding：`embed({ model, value })` / `embedMany({ model, values })`（官方 `embed` / `embedMany`）
+- Provider 映射：`openai` → `@ai-sdk/openai`；`openai-compatible`/`ollama`（`/v1`）→ `@ai-sdk/openai-compatible`；
+  `google-genai` → `@ai-sdk/google`（含 `textEmbeddingModel`）；`fallback` → 确定性向量
+- 升级收敛：AI SDK 版本升级只需改 `adapters/aisdk.ts` + `package.json`，业务包无需改动；
+  官方 codemod：`npx @ai-sdk/codemod upgrade` / `npx @ai-sdk/codemod v6`（见 AI SDK Migration Guides）
+- LangChain 已彻底移除：仓库内无 `@langchain/*` 依赖，历史 `OpenAICompatible*` / `GoogleGenAI*` 类名保留为薄别名，
+  实际均走 AI SDK；`GoogleGenAIEmbeddings` 的手写 `fetch` 已删除，统一走 SDK
+
 ## 环境变量
 
 ### 主供应商配置

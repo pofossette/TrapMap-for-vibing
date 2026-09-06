@@ -1,10 +1,9 @@
-import type { CompatibilityStatusResponse } from '@trapmap/contracts';
-import { compatibilityStatusResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printResult } from '@trapmap/cli/lib/output.js';
+import type { CompatibilityStatusResponse } from '@trapmap/contracts';
+import { compatibilityStatusResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerStatusCommand(program: Command, options: OperationsCommandOptions): void {

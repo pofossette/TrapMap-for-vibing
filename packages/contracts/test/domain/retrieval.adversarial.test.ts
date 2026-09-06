@@ -12,7 +12,6 @@ import {
   capsuleMatchSchema,
   retrievalCitationSchema,
   retrievalFiltersSchema,
-  retrievalMatchSchema,
   retrievalQueryModeSchema,
   retrievalQuerySchema,
   retrievalStrategySchema,

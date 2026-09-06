@@ -11,18 +11,17 @@
  * does not propagate `GradingResult.metadata`).
  */
 
+import { createJsAssertion } from '../promptfoo/assertion.js';
+import { registerBridge } from '../promptfoo/bridge.js';
+import { llmProvider } from '../promptfoo/provider.js';
+import { assertResultPresent } from '../promptfoo/result.js';
+import type { SuiteBridge, SuiteRunOptions } from '../promptfoo/types.js';
 import type {
   AgentPlanningCaseResult,
   AgentPlanningEvalCase,
   AgentPlanningEvalReport,
   AgentPlanningEvalTier,
 } from '../types/index.js';
-
-import { createJsAssertion } from '../promptfoo/assertion.js';
-import { registerBridge } from '../promptfoo/bridge.js';
-import { llmProvider } from '../promptfoo/provider.js';
-import { assertResultPresent } from '../promptfoo/result.js';
-import type { SuiteBridge, SuiteRunOptions } from '../promptfoo/types.js';
 import {
   type AgentPlanningResolvedOptions,
   executeCase,

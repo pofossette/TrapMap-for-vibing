@@ -6,10 +6,9 @@ import {
   Logger,
   type ExceptionFilter as NestExceptionFilter,
 } from '@nestjs/common';
+import { InvocationError } from '@trapmap/backend-core';
 import type { FastifyReply } from 'fastify';
 import { ZodError } from 'zod';
-
-import { InvocationError } from '@trapmap/backend-core';
 
 import type { RequestContextService } from './request-context.service.js';
 

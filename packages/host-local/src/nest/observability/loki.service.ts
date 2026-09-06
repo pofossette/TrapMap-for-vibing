@@ -1,10 +1,10 @@
-import { Injectable, Logger, type LoggerService, type OnModuleInit } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger, type LoggerService, type OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import {
-  type LogEntry,
   buildLokiLabels,
   formatLogForStdout,
+  type LogEntry,
   redactLogContext,
 } from '@trapmap/contracts';
 
@@ -32,7 +32,7 @@ export class LokiService implements LoggerService, OnModuleInit {
   private readonly serviceName: string;
   private readonly environment: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService) {
     this.serviceName = this.config.get<string>('SERVICE_NAME', 'trapmap');
     this.environment = this.config.get<string>('NODE_ENV', 'development');
   }

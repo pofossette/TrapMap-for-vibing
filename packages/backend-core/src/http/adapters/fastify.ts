@@ -15,7 +15,7 @@ import Fastify, {
   type FastifyServerOptions,
 } from 'fastify';
 
-import { type RouteDef, isRouteResponse, mapErrorToEnvelope } from '../route-contract.js';
+import { isRouteResponse, mapErrorToEnvelope, type RouteDef } from '../route-contract.js';
 
 /**
  * Host-specific adapter options. `context` lets a host enrich the assembled

@@ -1,6 +1,5 @@
-import pg from 'pg';
-
 import { runMigrations } from '@trapmap/db';
+import pg from 'pg';
 
 import { loadServiceConfig } from './config/index.js';
 

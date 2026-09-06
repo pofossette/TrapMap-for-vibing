@@ -1,8 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ConsulDiscoveryAdapter } from '../../src/gateway/consul-discovery-adapter.js';
 import { createServer } from '../../src/gateway/server.js';
 

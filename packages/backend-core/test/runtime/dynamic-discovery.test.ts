@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { DiscoveredService, DiscoveryPort } from '../../src/ports/discovery-ports.js';
 import { DynamicDiscovery } from '../../src/runtime/dynamic-discovery.js';
 

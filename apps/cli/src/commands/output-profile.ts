@@ -1,14 +1,13 @@
-import type { Command } from 'commander';
-
 import {
+  getDefaultOutputProfile,
+  loadCliState,
   type OutputGraphPlanMode,
   type OutputModelHint,
   type OutputToolProfile,
   type OutputVerbosity,
-  getDefaultOutputProfile,
-  loadCliState,
   updateCliState,
 } from '@trapmap/cli/lib/config.js';
+import type { Command } from 'commander';
 
 export function registerOutputProfileCommands(program: Command): void {
   const output = program

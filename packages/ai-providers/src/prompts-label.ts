@@ -2,7 +2,7 @@
  * Label alignment prompt slots and exported prompt builders.
  */
 
-import { type PromptBlock, buildSystemPromptBlocks } from './ai-cache/api-integration.js';
+import { buildSystemPromptBlocks, type PromptBlock } from './ai-cache/api-integration.js';
 import type { PromptSlots } from './ai-providers/types.js';
 import { buildPromptWithCacheControl } from './prompt-builder.js';
 

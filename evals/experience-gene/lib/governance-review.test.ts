@@ -1,7 +1,6 @@
-import { describe, expect, it } from 'vitest';
-
 import { scanExperienceGeneSafety } from '@trapmap/backend-core/knowledge-write/domain/experience-gene-safety.js';
 import { experienceGeneSchema } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 
 import {
   governanceDeprecatedEvidence,

@@ -12,11 +12,9 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { embedWithFallback } from '@trapmap/infra';
 import {
+  createExperienceGeneRouteDefs,
   createKnowledgeReadDeps,
   createKnowledgeReadServer,
-} from '@trapmap/service-knowledge-read';
-import {
-  createExperienceGeneRouteDefs,
   createPgExperienceGeneSearchPort,
 } from '@trapmap/service-knowledge-read';
 import { createExperienceGeneOtelMetrics } from '../gateway/internal-observability.js';

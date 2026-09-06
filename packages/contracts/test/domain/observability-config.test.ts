@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
-
+import type {
+  LangfusePolicyResult,
+  OtelPolicyResult,
+  SentryPolicyResult,
+} from '../../src/domain/observability-config.js';
 import {
   featureFlagsSchema,
   observabilityConfigSchema,
   validateLangfusePolicy,
   validateOtelPolicy,
   validateSentryPolicy,
-} from '../../src/domain/observability-config.js';
-import type {
-  LangfusePolicyResult,
-  OtelPolicyResult,
-  SentryPolicyResult,
 } from '../../src/domain/observability-config.js';
 
 describe('observability config contracts', () => {

@@ -1,9 +1,9 @@
 import { geneSearchResponseSchema, skillLookupResponseSchema } from '@trapmap/contracts';
 import type { InternalServiceUrls } from '@trapmap/host-distributed/config/index.js';
 import type { DiscoveryResolver } from '../discovery-resolver.js';
-import type { InternalServiceClients } from './interface.js';
-import { callInternalService } from './http.js';
 import { createGovernanceReviewClient } from './governance.js';
+import { callInternalService } from './http.js';
+import type { InternalServiceClients } from './interface.js';
 
 export function createInternalServiceClients(
   urls: InternalServiceUrls,

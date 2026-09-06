@@ -7,8 +7,14 @@
  * context directly from the adapter-enriched RouteContext.
  */
 
-import type { HttpMethod, RouteContext, RouteDef } from '@trapmap/backend-core';
-import type { CandidateIngestionPort, KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
+import type {
+  CandidateIngestionPort,
+  HttpMethod,
+  KnowledgeReadPort,
+  ReviewPort,
+  RouteContext,
+  RouteDef,
+} from '@trapmap/backend-core';
 import type { CronServiceModule } from '@trapmap/service-cron';
 import { type ZodType, z } from 'zod';
 

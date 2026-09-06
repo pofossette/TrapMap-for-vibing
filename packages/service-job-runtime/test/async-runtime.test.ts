@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { Pool } from 'pg';
+import { describe, expect, it } from 'vitest';
 import {
   OUTBOX_CLAIMABLE_SQL_CONDITION,
   OUTBOX_FAIL_STATUS_SQL,

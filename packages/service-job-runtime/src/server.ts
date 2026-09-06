@@ -2,8 +2,8 @@ import type { JobRuntimePort } from '@trapmap/backend-core';
 import { createFastifyAdapter } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 
-import { type JobRuntimeServiceDeps, createJobRuntimeServiceModule } from './deps.js';
-import { type JobRuntimeOutboxConsumer, createJobRuntimeOutboxConsumer } from './outbox-worker.js';
+import { createJobRuntimeServiceModule, type JobRuntimeServiceDeps } from './deps.js';
+import { createJobRuntimeOutboxConsumer, type JobRuntimeOutboxConsumer } from './outbox-worker.js';
 import { createJobRuntimeRouteDefs } from './routes.js';
 
 export interface JobRuntimeServiceConfig {

@@ -11,7 +11,7 @@
  * - Telemetry configuration
  */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ export function extractEnvironmentFacts(root: string): EnvironmentFact[] {
     if (portMatch) {
       facts.push({
         key: 'PORT',
-        defaultValue: Number.parseInt(portMatch[1]),
+        defaultValue: Number.parseInt(portMatch[1], 10),
         sourcePath: configFile,
       });
     }

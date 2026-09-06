@@ -6,9 +6,9 @@ import { formatReport } from './lib/format.js';
 // Re-export the case evaluation surface so the runner entrypoint keeps its
 // public API without owning the evaluation logic.
 export {
+  type AgentPlanningResolvedOptions,
   executeCase,
   loadScenario,
-  type AgentPlanningResolvedOptions,
 } from './lib/case-execution.js';
 
 export interface AgentPlanningRunOptions {

@@ -1,16 +1,17 @@
 // @ts-nocheck
 import { InvocationError, type RouteContext, type RouteDef } from '@trapmap/backend-core';
-import { knowledgeWriteRouteDef, toConflictCandidate } from './helpers.js';
 import { trustedActor } from '../route-helpers.js';
 import type { KnowledgeWriteRouteDeps } from './helpers.js';
 import {
-  submitSchema,
   conflictCandidatesSchema,
-  entryMutationSchema,
-  supersedeSchema,
-  listTrapsSchema,
-  getTrapSchema,
   createTrapSchema,
+  entryMutationSchema,
+  getTrapSchema,
+  knowledgeWriteRouteDef,
+  listTrapsSchema,
+  submitSchema,
+  supersedeSchema,
+  toConflictCandidate,
 } from './helpers.js';
 
 export function createKnowledgeKnowledgeRouteDefs(): RouteDef<
@@ -46,7 +47,7 @@ export function createKnowledgeKnowledgeRouteDefs(): RouteDef<
           );
         }
         const entry = await module.conflictCandidateRead.getById(ctx.params.entryId);
-        if (!entry || entry.lifecycleState !== 'approved') return null;
+        if (entry?.lifecycleState !== 'approved') return null;
         const { items: candidates } = await module.conflictCandidateRead.listByFilter({
           lifecycleState: 'approved',
         });

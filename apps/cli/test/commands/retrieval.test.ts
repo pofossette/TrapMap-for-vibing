@@ -1,3 +1,4 @@
+import * as http from '@trapmap/cli/lib/http.js';
 import type { RetrievalResponse, RetrievalV2Response } from '@trapmap/contracts';
 import {
   createExperienceGeneFixture,
@@ -7,8 +8,6 @@ import {
 } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as http from '@trapmap/cli/lib/http.js';
 import { registerRetrievalCommands } from '../../src/commands/retrieval.js';
 
 // Mock the dependencies

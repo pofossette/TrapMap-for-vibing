@@ -7,8 +7,8 @@
  * variants plug in behind the same port.
  */
 
-import { InvocationError, buildUnknownModeMessage } from '@trapmap/backend-core';
 import type { IntentRecognitionPort } from '@trapmap/backend-core';
+import { buildUnknownModeMessage, InvocationError } from '@trapmap/backend-core';
 
 /** Default strategy when the caller does not request an explicit mode. */
 const DEFAULT_MODE = 'semantic';

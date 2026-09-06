@@ -22,7 +22,7 @@
  */
 
 // Re-export types for consumers importing from './prompts.js'
-export type { AiPromptTaskType, PromptSlots, CacheSection } from './ai-providers/types.js';
+export type { AiPromptTaskType, CacheSection, PromptSlots } from './ai-providers/types.js';
 
 // Core prompt builder
 export { buildPrompt, buildPromptWithCacheControl } from './prompt-builder.js';
@@ -32,21 +32,19 @@ export {
   buildBoundaryExtractionSystemPrompt,
   buildBoundaryExtractionSystemPromptBlocks,
 } from './prompts-boundary.js';
-
-// Knowledge refinement & claim verification
-export {
-  buildKnowledgeRefinementSystemPrompt,
-  buildKnowledgeRefinementSystemPromptBlocks,
-  buildClaimVerificationSystemPrompt,
-} from './prompts-knowledge.js';
-
 // Graph extraction
 export {
   buildGraphExtractionPlannerSlots_default,
-  buildGraphExtractionSlots_default,
   buildGraphExtractionPlannerSystemPromptBlocks,
+  buildGraphExtractionSlots_default,
   buildGraphExtractionSystemPromptBlocks,
 } from './prompts-graph.js';
+// Knowledge refinement & claim verification
+export {
+  buildClaimVerificationSystemPrompt,
+  buildKnowledgeRefinementSystemPrompt,
+  buildKnowledgeRefinementSystemPromptBlocks,
+} from './prompts-knowledge.js';
 
 // Label alignment
 export {

@@ -25,7 +25,7 @@
  *   node scripts/check-relative-imports.mjs --only-cross-dir # only ../ cross-package relative imports
  */
 
-import { readFile, readdir } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -94,7 +94,7 @@ function extractSpecifiers(line) {
   const specifiers = [];
   const ws = '[ \t]';
   const re = new RegExp(
-    `(?:import|export)${ws}+(?:[^;]*?${ws}+from${ws}+)?[\'"]([^\'"]+)[\'"]|import${ws}*([ \t]*[\'"]([^\'"]+)[\'"]${ws}*)`,
+    `(?:import|export)${ws}+(?:[^;]*?${ws}+from${ws}+)?['"]([^'"]+)['"]|import${ws}*([ \t]*['"]([^'"]+)['"]${ws}*)`,
     'g',
   );
   let match = re.exec(line);

@@ -1,11 +1,11 @@
 /** @deprecated function-set center — prefer knowledge-read-go; see services/go-accelerator/DEPRECATED.md */
-import { canonicalJsonStringify } from '@trapmap/lib/canonical-json.js';
-import { sha256 } from '@trapmap/lib/hash.js';
 import {
+  canonicalJsonStringify,
   cosineSimilarity,
   createDeterministicFallbackVector,
   normalizeVector,
-} from '@trapmap/lib/vector.js';
+  sha256,
+} from '@trapmap/lib';
 import type { GoAcceleratorClient } from './client.js';
 
 /**

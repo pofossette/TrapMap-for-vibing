@@ -1,9 +1,8 @@
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
-
 import type { CandidateIngestionPort, KnowledgeReadPort, ReviewPort } from '@trapmap/backend-core';
 import type { CronServiceModule } from '@trapmap/service-cron';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GatewayModule } from '../../src/nest/gateway/gateway.module.js';
 import { KnowledgeReadModule } from '../../src/nest/knowledge-read/knowledge-read.module.js';
@@ -30,9 +29,10 @@ function createMockPort(): KnowledgeReadPort {
       },
     ]),
     search: vi.fn().mockResolvedValue({
-      results: [{ entryId: 'entry-1', score: 0.95, snippet: 'test snippet' }],
-      totalEstimate: 1,
-      channel: 'semantic',
+      globalConstraints: [],
+      projectKnowledge: [],
+      refinementSummary: null,
+      summary: null,
     }),
     getProjectionStatus: vi.fn().mockResolvedValue({
       phase: 'phase-2-boundary-closed',
@@ -189,6 +189,23 @@ describe('Nest host gateway surface (RouteDef-driven)', () => {
 
   it('should serve POST /v1/retrieval/search via in-process port', async () => {
     const mockPort = createMockPort();
+    vi.mocked(mockPort.search).mockResolvedValueOnce({
+      globalConstraints: [],
+      projectKnowledge: [
+        {
+          entryId: 'entry-1',
+          scope: 'project',
+          requiredLevel: 0,
+          shortcut: 'entry-1',
+          detail: 'test snippet',
+          labels: [],
+          score: 0.95,
+          reason: 'test match',
+        },
+      ],
+      refinementSummary: null,
+      summary: null,
+    });
     const app = await createTestApp(mockPort);
 
     const response = await app
@@ -205,7 +222,7 @@ describe('Nest host gateway surface (RouteDef-driven)', () => {
       });
     expect(response.statusCode).toBe(200);
     const result = JSON.parse(response.payload);
-    expect(result.results).toHaveLength(1);
+    expect(result.projectKnowledge).toHaveLength(1);
     expect(mockPort.search).toHaveBeenCalledWith({
       query: 'test query',
       limit: 10,
@@ -251,7 +268,12 @@ describe('Nest host gateway surface (RouteDef-driven)', () => {
     const mockPort: KnowledgeReadPort = {
       getById: vi.fn().mockResolvedValue(null),
       listMine: vi.fn().mockResolvedValue([]),
-      search: vi.fn().mockResolvedValue({ results: [] }),
+      search: vi.fn().mockResolvedValue({
+        globalConstraints: [],
+        projectKnowledge: [],
+        refinementSummary: null,
+        summary: null,
+      }),
       getProjectionStatus: vi.fn().mockResolvedValue({
         phase: 'phase-2-boundary-closed',
         source: 'test',

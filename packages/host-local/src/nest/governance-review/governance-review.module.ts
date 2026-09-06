@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { type ReviewPort, createNestAdapter } from '@trapmap/backend-core';
+import { createNestAdapter, type ReviewPort } from '@trapmap/backend-core';
 import {
-  type GovernanceReviewServiceDeps,
-  type GovernanceReviewServiceModule,
   createGovernanceReviewRouteDefs,
   createGovernanceReviewServiceModule,
+  type GovernanceReviewServiceDeps,
+  type GovernanceReviewServiceModule,
 } from '@trapmap/service-governance-review';
 
 import { AuthGuard } from '../runtime/auth.guard.js';

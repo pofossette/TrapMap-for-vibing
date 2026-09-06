@@ -1,14 +1,14 @@
 import { createFastifyServiceServer } from '@trapmap/backend-core';
 import type { FastifyInstance } from 'fastify';
 import {
+  createGovernanceReviewServiceModule,
   type GovernanceReviewServiceDeps,
   type GovernanceReviewServiceModule,
-  createGovernanceReviewServiceModule,
 } from './deps.js';
 import {
+  createGovernanceReviewRouteDefs,
   type GovernanceReviewReadinessOptions,
   type GovernanceReviewRouteDeps,
-  createGovernanceReviewRouteDefs,
 } from './routes.js';
 
 export interface GovernanceReviewServiceConfig {

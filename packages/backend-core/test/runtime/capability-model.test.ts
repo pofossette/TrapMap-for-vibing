@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { toInvocationErrorResponse } from '../../src/invocation/invocation-model.js';
-
-import { InvocationError } from '../../src/invocation/invocation-model.js';
+import {
+  InvocationError,
+  toInvocationErrorResponse,
+} from '../../src/invocation/invocation-model.js';
 import {
   getServiceUnitProfile,
   resolveAsyncWorkerState,
-  resolveDeploymentPreset,
   resolveDeploymentProfileCompatibility,
   resolveRuntimeDeployment,
   resolveServiceUnit,

@@ -1,11 +1,10 @@
-import { describe, expect, it } from 'vitest';
-
 import type { G6Edge, G6Node } from '@trapmap/web-panel/shared/enum-types';
+import { describe, expect, it } from 'vitest';
 import {
-  type TrapNodeFilterState,
   applyTrapGraphView,
   isTrapNodeVisibleForLayers,
   parseTrapNeighborhoodDepth,
+  type TrapNodeFilterState,
 } from '../../../src/pages/trap-graph/trap-graph-view';
 
 const nodes: G6Node[] = [

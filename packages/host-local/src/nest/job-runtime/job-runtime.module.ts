@@ -6,8 +6,8 @@ import { createJobRuntimeRouteDefs } from '@trapmap/service-job-runtime';
 
 import { AuthGuard } from '../runtime/auth.guard.js';
 import { serviceRouteDefsForMonolith } from '../runtime/monolith-route-defs.js';
-import { JobRuntimeWorkerService } from './job-runtime-worker.service.js';
 import { JOB_RUNTIME_PORT, JOB_RUNTIME_WORKER_CONFIG } from './job-runtime.tokens.js';
+import { JobRuntimeWorkerService } from './job-runtime-worker.service.js';
 
 /**
  * Nest module for the job-runtime bounded context.

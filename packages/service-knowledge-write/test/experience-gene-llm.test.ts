@@ -1,8 +1,7 @@
-import { describe, expect, it } from 'vitest';
-
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { ExperienceGeneSourceSnapshot } from '@trapmap/contracts';
 import { experienceGeneSchema } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import { GenerateStructuredExperienceGeneExtractor } from '../src/experience-gene-llm.js';
 
 const snapshot: ExperienceGeneSourceSnapshot = {

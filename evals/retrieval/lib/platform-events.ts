@@ -1,5 +1,3 @@
-import type { EvalPlatformEvent, RetrievalEvalCase, RetrievalEvalTier } from '../../types/index.js';
-
 import {
   buildCaseAssertionEvent,
   buildCaseLifecycleEvents,
@@ -8,6 +6,7 @@ import {
   deriveStartedAt,
   groupFailuresByCase,
 } from '../../lib/platform-events.js';
+import type { EvalPlatformEvent, RetrievalEvalCase, RetrievalEvalTier } from '../../types/index.js';
 import type { RetrievalEvalFailureRecord, RetrievalEvalReport } from '../../types/report.js';
 import { getRetrievalEvaluationCases, getRetrievalScenarioIds } from './runner-api.js';
 

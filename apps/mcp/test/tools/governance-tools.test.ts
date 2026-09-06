@@ -1,14 +1,15 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  assertRole,
   PermissionDeniedError,
   type Role,
-  assertRole,
   resolveSessionRole,
 } from '../../src/permissions.js';
 import { allTools } from '../../src/tools/registry.js';
 import { stubFetchCapture } from '../../src/tools/stub-fetch.js';
 import { makeToolCaller } from '../../src/tools/tool-caller.js';
+
 const originalFetch = globalThis.fetch;
 
 afterEach(() => {

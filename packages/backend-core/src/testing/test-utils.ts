@@ -6,8 +6,7 @@
  * contracts without performing real I/O.
  */
 
-import type { AuditLogPort } from '../ports/audit-ports.js';
-import type { AuditMetricsPort } from '../ports/audit-ports.js';
+import type { AuditLogPort, AuditMetricsPort } from '../ports/audit-ports.js';
 import type {
   AccessKeyRepositoryPort,
   AuditRepositoryPort,
@@ -16,12 +15,12 @@ import type {
   KnowledgeEntryRecord,
   KnowledgeRepositoryPort,
   MembershipRepositoryPort,
+  RepositoryPorts,
   SessionRecord,
   SessionRepositoryPort,
   TeamRepositoryPort,
   UserRepositoryPort,
 } from '../ports/repo-ports.js';
-import type { RepositoryPorts } from '../ports/repo-ports.js';
 
 // ---------------------------------------------------------------------------
 // Stub: AuditLogPort

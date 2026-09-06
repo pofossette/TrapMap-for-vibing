@@ -1,11 +1,10 @@
 import type { LifecycleState } from '@trapmap/contracts';
-import type { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
-
 import type {
   ActivityEventViewModel,
   ReviewItemViewModel,
   ReviewWarning,
 } from '@trapmap/web-panel/shared/enum-types';
+import type { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 
 type Translate = ReturnType<typeof useI18nStore.getState>['t'];
 

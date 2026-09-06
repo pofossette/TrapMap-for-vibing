@@ -1,8 +1,6 @@
 import type { ReviewQueueItem } from '@trapmap/contracts';
-
-import { calculateReviewQueueRiskScore } from '../mappers/review-item-mapper';
-
 import type { ReviewQueueRequest } from '@trapmap/web-panel/shared/enum-types';
+import { calculateReviewQueueRiskScore } from '../mappers/review-item-mapper';
 
 type QueueQueryRequest = NonNullable<ReviewQueueRequest>;
 

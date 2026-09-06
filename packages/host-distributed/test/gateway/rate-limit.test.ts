@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TokenBucketRateLimiter, resolveRateLimitConfig } from '../../src/gateway/rate-limit.js';
+import { resolveRateLimitConfig, TokenBucketRateLimiter } from '../../src/gateway/rate-limit.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();

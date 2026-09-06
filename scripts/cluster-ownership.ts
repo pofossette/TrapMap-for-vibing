@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { createJobRuntimeOutboxConsumer } from '@trapmap/service-job-runtime';
-import { createJobRuntimeAsyncTransport } from '@trapmap/service-job-runtime';
+import {
+  createJobRuntimeAsyncTransport,
+  createJobRuntimeOutboxConsumer,
+} from '@trapmap/service-job-runtime';
 import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
 

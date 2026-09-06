@@ -1,8 +1,7 @@
-import { type ReactElement, lazy } from 'react';
-import { Navigate, RouterProvider, createBrowserRouter } from 'react-router-dom';
-
 import { AppShell } from '@trapmap/web-panel/app/shell/app-shell';
 import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
+import { lazy, type ReactElement } from 'react';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 
 const ActivityPage = lazy(() =>
   import('@trapmap/web-panel/pages/activity/activity-page').then(({ ActivityPage }) => ({

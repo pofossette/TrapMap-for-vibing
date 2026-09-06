@@ -4,9 +4,9 @@ import {
   cosineSimilarity,
   versionMatchMultiplier,
 } from '@trapmap/backend-core';
-import { batchCosineWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
-import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
 import type { RetrievalQuery } from '@trapmap/contracts';
+import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
+import { batchCosineWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
 
 import type { SkillShareerServices } from './context.js';
 import { getDefaultRetrievalInfra, getRetrievalInfra } from './retrieval-infra.js';

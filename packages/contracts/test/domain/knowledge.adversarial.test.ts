@@ -10,7 +10,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   agentReviewResultSchema,
-  agentReviewStatusSchema,
   knowledgeEntrySchema,
   knowledgeListItemSchema,
   knowledgeRevisionSchema,

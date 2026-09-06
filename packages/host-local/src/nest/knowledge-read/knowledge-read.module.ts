@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 
 import {
-  type KnowledgeReadPort,
   createKnowledgeReadModule,
   createNestAdapter,
+  type KnowledgeReadPort,
 } from '@trapmap/backend-core';
 import {
-  type KnowledgeReadPortDeps,
   createKnowledgeReadDeps,
   createKnowledgeReadRouteDefs,
+  type KnowledgeReadPortDeps,
 } from '@trapmap/service-knowledge-read';
 
 import { AuthGuard } from '../runtime/auth.guard.js';

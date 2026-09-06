@@ -11,9 +11,8 @@
  * - Scenario/case split: fixture state is reusable across endpoint slices
  */
 
-import { z } from 'zod';
-
 import { entityIdSchema, labelSchema, scopeSchema, securityLevelSchema } from '@trapmap/contracts';
+import { z } from 'zod';
 
 // =============================================================================
 // Evaluation Tier Enum

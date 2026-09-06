@@ -1,7 +1,7 @@
-import type { RegistryAdapter, RegistrySearchQuery } from '../adapters/registry-adapter.js';
 import { AiPkgsCompatAdapter } from '../adapters/ai-pkgs-compat.js';
 import { GithubAdapter } from '../adapters/github.js';
 import { LocalAdapter } from '../adapters/local.js';
+import type { RegistryAdapter, RegistrySearchQuery } from '../adapters/registry-adapter.js';
 import { SkillsShAdapter } from '../adapters/skills-sh.js';
 import type { SkillRegistryEntry, SkillSource } from '../contracts/skill-source.js';
 import { skillSourceSchema } from '../contracts/skill-source.js';

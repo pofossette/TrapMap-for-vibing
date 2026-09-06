@@ -1,5 +1,11 @@
-import { Injectable, Logger, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  type OnModuleDestroy,
+  type OnModuleInit,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   ConsulHttpAdapter,
   type DiscoveredService,
@@ -8,7 +14,7 @@ import {
   type HealthCheckResult,
   type ServiceRegistration,
 } from '@trapmap/backend-core';
-import type { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
+import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 
 /**
  * NestJS adapter for the shared Consul HTTP plugin (design D5 single-plugin
@@ -35,8 +41,8 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   private consulEnabled = false;
 
   constructor(
-    private readonly config: ConfigService,
-    private readonly lifecycleManager: LifecycleManagerService,
+    @Inject(ConfigService) private readonly config: ConfigService,
+    @Inject(LifecycleManagerService) private readonly lifecycleManager: LifecycleManagerService,
   ) {}
 
   // ─── NestJS lifecycle ────────────────────────────────────────────────

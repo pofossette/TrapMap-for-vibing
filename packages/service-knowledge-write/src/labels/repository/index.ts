@@ -6,11 +6,11 @@
  * either `labels/repository.js` or `labels/repository/index.js`.
  */
 
+export { createPgLabelRepository } from './factory.js';
+
+export { PgLabelRepository } from './pg-repository.js';
 export type {
   CanonicalLabelRecord,
   LabelAliasRecord,
   LabelRepository,
 } from './types.js';
-
-export { PgLabelRepository } from './pg-repository.js';
-export { createPgLabelRepository } from './factory.js';

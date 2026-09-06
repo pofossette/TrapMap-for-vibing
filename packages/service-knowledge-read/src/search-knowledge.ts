@@ -1,5 +1,5 @@
-import { InvocationError } from '@trapmap/backend-core';
 import type { IntentRecognitionPort } from '@trapmap/backend-core';
+import { InvocationError } from '@trapmap/backend-core';
 import {
   type RetrievalQuery,
   type RetrievalResponse,
@@ -13,10 +13,10 @@ import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
 import {
-  type PipelineStep,
-  type RagLogEntry,
   generateQueryId,
   logRagRetrieval,
+  type PipelineStep,
+  type RagLogEntry,
 } from './rag-log.js';
 import { buildRetrievalReadModel } from './read-model.js';
 import {

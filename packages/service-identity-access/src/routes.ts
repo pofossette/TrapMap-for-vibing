@@ -7,9 +7,6 @@
  * and throw on error; the adapters map errors to responses.
  */
 
-import type { FastifyInstance } from 'fastify';
-import { type ZodType, z } from 'zod';
-
 import {
   type HttpMethod,
   type IdentityAccessPort,
@@ -18,6 +15,9 @@ import {
   registerFastifyRoutes,
   routeResponse,
 } from '@trapmap/backend-core';
+import { loginResponseSchema } from '@trapmap/contracts';
+import type { FastifyInstance } from 'fastify';
+import { type ZodType, z } from 'zod';
 
 const emptyRecord = z.record(z.string(), z.unknown());
 
@@ -107,7 +107,14 @@ export function createIdentityAccessRouteDefs(_module: IdentityAccessPort): Rout
       schema: loginSchema,
       handler: async (ctx, deps) => {
         const result = await deps.login(ctx.body.handle, ctx.body.password);
-        return result;
+        const session = await deps.describeSession(result.sessionToken);
+        if (!session) {
+          throw new Error('Login succeeded but no session could be described');
+        }
+        // Fail loud on contract drift: the external login body must stay
+        // exactly `{ session }` (token travels via header at the gateway).
+        const parsed = loginResponseSchema.parse({ session });
+        return { session: parsed.session, sessionToken: result.sessionToken };
       },
     }),
 
@@ -117,7 +124,12 @@ export function createIdentityAccessRouteDefs(_module: IdentityAccessPort): Rout
       schema: systemAdminLoginSchema,
       handler: async (ctx, deps) => {
         const result = await deps.loginSystemAdmin(ctx.body.systemAdminKey);
-        return result;
+        const session = await deps.describeSession(result.sessionToken);
+        if (!session) {
+          throw new Error('Login succeeded but no session could be described');
+        }
+        const parsed = loginResponseSchema.parse({ session });
+        return { session: parsed.session, sessionToken: result.sessionToken };
       },
     }),
 

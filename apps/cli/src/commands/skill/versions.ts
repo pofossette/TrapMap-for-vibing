@@ -1,11 +1,10 @@
-import { skillHistoryResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import { skillHistoryResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
-import { type SkillVersionsPayload, formatSkillVersionsResponse } from './formatters.js';
+import { formatSkillVersionsResponse, type SkillVersionsPayload } from './formatters.js';
 
 /**
  * Register the skill versions subcommand.

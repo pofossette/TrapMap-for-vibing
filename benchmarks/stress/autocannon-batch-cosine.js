@@ -2,6 +2,7 @@
 // autocannon wrapper — batch-cosine (not auto-run)
 // Usage: node benchmarks/stress/autocannon-batch-cosine.js [--url http://localhost:4100]
 import { spawnSync } from 'node:child_process';
+
 const url = process.argv[2] ?? 'http://localhost:4100/v1/vector/batch-cosine';
 const payload = (() => {
   const dim = 384,

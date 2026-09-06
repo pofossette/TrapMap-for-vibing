@@ -87,7 +87,7 @@ export function buildSummaryFromText(text: string): string {
   }
 
   // Fallback: use first 500 chars
-  const fallback = body.replace(/[#*`\[\]]/g, '').trim();
+  const fallback = body.replace(/[#*`[\]]/g, '').trim();
   return fallback.length > 500 ? `${fallback.slice(0, 497)}...` : fallback;
 }
 

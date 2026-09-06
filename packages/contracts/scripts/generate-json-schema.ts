@@ -27,7 +27,8 @@ const OUT_DIR_KR = join(ROOT, 'contracts', 'json-schema', 'knowledge-read-go');
 type SchemaMap = Record<string, { toJSONSchema: () => unknown }>;
 
 function toSortedJson(value: unknown): string {
-  return JSON.stringify(value, null, 2) + '\n';
+  return `${JSON.stringify(value, null, 2)}
+`;
 }
 
 async function main(): Promise<void> {

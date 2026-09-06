@@ -5,12 +5,11 @@
  * and inject the shared config/database services, and that the job-runtime
  * node carries the D7 worker children declaration.
  */
-import { describe, expect, it } from 'vitest';
 
 import { startupChecks } from '@trapmap/assembly';
+import { describe, expect, it } from 'vitest';
 
 import {
-  SERVICE_SERVER_SERVICE,
   candidateIngestionServiceNode,
   candidateProcessingWorkerNode,
   conflictDetectionWorkerNode,
@@ -23,6 +22,7 @@ import {
   knowledgeReadServiceNode,
   knowledgeWriteServiceNode,
   outboxDispatchWorkerNode,
+  SERVICE_SERVER_SERVICE,
 } from '../../../src/assembly/nodes/distributed-service-nodes.js';
 import { SERVICE_CONFIG_SERVICE } from '../../../src/assembly/nodes/service-config.js';
 import { SERVICE_DATABASE_SERVICE } from '../../../src/assembly/nodes/service-database.js';

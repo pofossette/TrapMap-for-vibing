@@ -16,12 +16,12 @@ export const KNOWLEDGE_READ_OWNED_CAPABILITIES = [
   'read-model',
 ] as const;
 
-export * from './tokenization.js';
-export * from './eligibility.js';
-export * from './boundary.js';
-export * from './ranking.js';
 export * from './assembly.js';
+export * from './boundary.js';
+export * from './eligibility.js';
 export * from './gene-selection.js';
+export * from './graph-mapping.js';
+export * from './ranking.js';
 export * from './refinement.js';
 export * from './skill-lookup.js';
-export * from './graph-mapping.js';
+export * from './tokenization.js';

@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEACTIVATED_STATE,
-  KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS,
-  RESUBMIT_TARGET_STATE,
-  SUPERSEDE_TARGET_STATE,
   initialLifecycleEventType,
   initialSubmissionState,
   isDeactivationAction,
+  KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS,
+  RESUBMIT_TARGET_STATE,
   reviewDecisionTargetState,
+  SUPERSEDE_TARGET_STATE,
 } from '../../../src/knowledge-write/domain/policy.js';
 
 describe('knowledge-write policy domain', () => {

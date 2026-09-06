@@ -1,14 +1,13 @@
+import type { RetrievalCitation, RetrievalSummary } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
-import type { RetrievalCitation, RetrievalSummary } from '@trapmap/contracts';
-
 import {
-  type MatchableEntryView,
-  type ScoredEntryLike,
   assembleResponseBuckets,
   buildEmptyResponse,
   buildRetrievalResponse,
   generateMatchReason,
+  type MatchableEntryView,
+  type ScoredEntryLike,
   toRetrievalMatch,
 } from '../../../src/knowledge-read/domain/index.js';
 

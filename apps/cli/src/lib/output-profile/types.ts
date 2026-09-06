@@ -1,17 +1,16 @@
 import type {
+  OutputGraphPlanMode,
+  OutputModelHint,
+  OutputToolProfile,
+  OutputVerbosity,
+} from '@trapmap/cli/lib/config.js';
+import type {
   GeneSearchResponse,
   GraphPlanSearchResponse,
   RetrievalResponse,
   RetrievalV2Response,
   SkillLookupResponse,
 } from '@trapmap/contracts';
-
-import type {
-  OutputGraphPlanMode,
-  OutputModelHint,
-  OutputToolProfile,
-  OutputVerbosity,
-} from '@trapmap/cli/lib/config.js';
 
 export type RenderKind =
   | 'retrieval-v1'

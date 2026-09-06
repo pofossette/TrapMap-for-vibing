@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  PathValidationError,
   activationFilePayloadSchema,
   activationResponseSchema,
   artifactBundleSchema,
@@ -20,6 +19,7 @@ import {
   knowledgeEntrySchema,
   knowledgeSubmissionSchema,
   loginRequestSchema,
+  PathValidationError,
   readNextReferenceHintSchema,
   retrievalQuerySchema,
   retrievalResponseSchema,
@@ -29,7 +29,6 @@ import {
   reviewDecisionRequestSchema,
   scriptProfileHintSchema,
   securityLevelSchema,
-  skillArtifactDerivedSchema,
   skillArtifactFileKindSchema,
   skillArtifactFileSchema,
   skillArtifactRevisionSchema,
@@ -3263,7 +3262,6 @@ describe('Phase 19: Skill Edit and History Contracts', () => {
 // Phase 20: Skill Review Contracts (SKED-03)
 import {
   skillReviewDecisionResponseSchema,
-  skillReviewQueueItemSchema,
   skillReviewQueueResponseSchema,
 } from '../src/domain/operations.js';
 

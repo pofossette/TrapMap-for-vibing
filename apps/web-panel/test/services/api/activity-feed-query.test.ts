@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { ActivityEventViewModel } from '@trapmap/web-panel/shared/enum-types';
+import { describe, expect, it } from 'vitest';
 import { applyActivityFeedQuery } from '../../../src/services/api/activity-feed-query';
 
 function createEvent(overrides: Partial<ActivityEventViewModel>): ActivityEventViewModel {

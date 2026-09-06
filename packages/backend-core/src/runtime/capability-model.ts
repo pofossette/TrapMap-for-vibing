@@ -9,6 +9,6 @@
  * Consumers keep importing from this module; the export surface is unchanged.
  */
 
-export * from './capability-model/types.js';
 export * from './capability-model/boot.js';
 export * from './capability-model/resolution.js';
+export * from './capability-model/types.js';

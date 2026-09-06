@@ -7,8 +7,8 @@
  * PostgreSQL owner uses them for remediation projections.
  */
 
-import { BADCASE_TAXONOMY_VALUES, normalizeBadcaseTaxonomy } from '@trapmap/contracts';
 import type { FeedbackRemediationState, LifecycleTriggerRule } from '@trapmap/contracts';
+import { BADCASE_TAXONOMY_VALUES, normalizeBadcaseTaxonomy } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Feedback / remediation policy

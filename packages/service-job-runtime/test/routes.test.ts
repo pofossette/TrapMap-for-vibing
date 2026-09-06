@@ -1,10 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import { InvocationError, type JobRuntimePort, type RouteTestApp } from '@trapmap/backend-core';
 import {
   type AdapterName,
   buildRouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
+import { describe, expect, it, vi } from 'vitest';
 import { createJobRuntimeRouteDefs } from '../src/routes.js';
 
 const ADAPTERS: readonly AdapterName[] = ['fastify', 'nest'];

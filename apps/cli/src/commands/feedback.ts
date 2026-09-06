@@ -1,9 +1,3 @@
-import { InvalidArgumentError } from 'commander';
-import type { Command } from 'commander';
-
-import type { FeedbackProblemType, FeedbackResponse } from '@trapmap/contracts';
-import { feedbackResponseSchema } from '@trapmap/contracts';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
@@ -14,6 +8,10 @@ import {
   promptSelect,
 } from '@trapmap/cli/lib/prompts.js';
 import { stripAnsi } from '@trapmap/cli/lib/sanitize.js';
+import type { FeedbackProblemType, FeedbackResponse } from '@trapmap/contracts';
+import { feedbackResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
+import { InvalidArgumentError } from 'commander';
 
 interface FeedbackCommandOptions {
   allowSubmit: boolean;

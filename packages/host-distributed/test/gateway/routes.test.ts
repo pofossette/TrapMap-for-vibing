@@ -18,13 +18,43 @@ type FeedbackAdminTestClient = {
   ): Promise<unknown>;
 };
 
+const TEST_SESSION = {
+  sessionId: 'session-1',
+  member: {
+    id: 'member-1',
+    teamId: 'team-1',
+    handle: 'alice',
+    roleTemplate: 'admin',
+    securityLevel: 5,
+    permissions: [],
+    notes: null,
+    isSystem: false,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  activeTeam: {
+    id: 'team-1',
+    slug: 'alpha',
+    name: 'Alpha',
+    description: null,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  effectivePermissions: ['session:read'],
+  expiresAt: null,
+  issuedAt: '2024-01-01T00:00:00Z',
+};
+
 function createClients(): InternalServiceClients & { feedbackAdmin: FeedbackAdminTestClient } {
   return {
     identityAccess: {
-      login: vi.fn(async () => ({ status: 200, body: { token: 'session' } })),
+      login: vi.fn(async () => ({
+        status: 200,
+        body: { session: TEST_SESSION, sessionToken: 'session' },
+      })),
       loginSystemAdmin: vi.fn(async () => ({
         status: 200,
-        body: { sessionToken: 'system-session' },
+        body: { session: TEST_SESSION, sessionToken: 'system-session' },
       })),
       logout: vi.fn(async () => ({ status: 200, body: { ok: true } })),
       validateSession: vi.fn(async () => ({
@@ -47,7 +77,15 @@ function createClients(): InternalServiceClients & { feedbackAdmin: FeedbackAdmi
     knowledgeRead: {
       getById: vi.fn(async () => ({ status: 200, body: { id: 'entry-1' } })),
       listMine: vi.fn(async () => ({ status: 200, body: [] })),
-      search: vi.fn(async () => ({ status: 200, body: { results: [] } })),
+      search: vi.fn(async () => ({
+        status: 200,
+        body: {
+          globalConstraints: [],
+          projectKnowledge: [],
+          refinementSummary: null,
+          summary: null,
+        },
+      })),
       getProjectionStatus: vi.fn(async () => ({
         status: 200,
         body: {
@@ -418,10 +456,32 @@ describe('registerGatewayRoutes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.headers['x-session-token']).toBe('system-session');
+    // External contract body is strictly `{ session }`: internal token must not leak.
+    expect(response.json()).toEqual({ session: TEST_SESSION });
     expect(clients.identityAccess.loginSystemAdmin).toHaveBeenCalledWith({
       systemAdminKey: 'correct-key',
     });
     expect(clients.identityAccess.login).not.toHaveBeenCalled();
+    await app.close();
+  });
+
+  it('passes login error envelopes through verbatim without a session header', async () => {
+    const clients = createClients();
+    vi.mocked(clients.identityAccess.loginSystemAdmin).mockResolvedValueOnce({
+      status: 401,
+      body: { error: 'Invalid system administrator key', kind: 'auth' },
+    });
+    const app = await buildApp(clients);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/v1/auth/login',
+      payload: { systemAdminKey: 'wrong-key' },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.headers['x-session-token']).toBeUndefined();
+    expect(response.json()).toEqual({ error: 'Invalid system administrator key', kind: 'auth' });
     await app.close();
   });
 
@@ -436,6 +496,8 @@ describe('registerGatewayRoutes', () => {
     });
 
     expect(response.statusCode).toBe(200);
+    expect(response.headers['x-session-token']).toBe('session');
+    expect(response.json()).toEqual({ session: TEST_SESSION });
     expect(clients.identityAccess.login).toHaveBeenCalledWith({
       handle: 'alice',
       password: 'secret',

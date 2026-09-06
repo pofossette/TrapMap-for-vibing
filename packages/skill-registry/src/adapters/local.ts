@@ -1,8 +1,7 @@
-import { readFile } from 'node:fs/promises';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './registry-adapter.js';
 import type { SkillRegistryEntry, SkillSource } from '../contracts/skill-source.js';
+import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './registry-adapter.js';
 
 /**
  * Local filesystem adapter — copies ccswitch local skill handling.

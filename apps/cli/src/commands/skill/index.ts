@@ -5,10 +5,10 @@ import { registerDuplicateJobCommands } from './duplicate-job.js';
 import { registerEditCommand } from './edit.js';
 import { registerFindCommand } from './find.js';
 import { registerHistoryCommand } from './history.js';
+import { registerRegistryCommands, registerSkillAddTopLevel } from './registry.js';
 import { registerReviewCommands } from './review.js';
 import { registerSearchCommand } from './search.js';
 import { registerVersionsCommand } from './versions.js';
-import { registerRegistryCommands, registerSkillAddTopLevel } from './registry.js';
 
 export interface SkillCommandOptions {
   allowSearch: boolean;

@@ -1,10 +1,9 @@
-import type { SkillLookupResponse } from '@trapmap/contracts';
-import { skillLookupResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
+import type { SkillLookupResponse } from '@trapmap/contracts';
+import { skillLookupResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 import { formatSkillLookupResponse } from './formatters.js';
 

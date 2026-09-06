@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
-
-import { enrichConflictHints } from '../../src/domain/conflict-projection.js';
 import type { ConflictReadProjection } from '../../src/domain/conflict-projection.js';
+import { enrichConflictHints } from '../../src/domain/conflict-projection.js';
 
 describe('conflict read projection', () => {
   it('returns only hints visible to the retrieval actor', () => {

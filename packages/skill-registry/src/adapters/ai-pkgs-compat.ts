@@ -1,5 +1,5 @@
-import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './registry-adapter.js';
 import type { SkillRegistryEntry, SkillSource } from '../contracts/skill-source.js';
+import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './registry-adapter.js';
 
 /**
  * ai-pkgs compatibility adapter — copies ai-pkgs CLI behavior (npm: ai-pkgs).

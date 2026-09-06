@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  correlationContextSchema,
+  defaultObservabilityContract,
   OBSERVABILITY_FAILURE_CLASSIFICATIONS,
   OBSERVABILITY_INTERNAL_ONLY_CORRELATION_KEYS,
   OBSERVABILITY_PUBLIC_ADDITIVE_FIELDS,
-  correlationContextSchema,
-  defaultObservabilityContract,
   observabilityContractSchema,
   observabilityFailureClassificationSchema,
   observabilityFailureTaxonomyItems,

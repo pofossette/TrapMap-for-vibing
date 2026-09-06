@@ -18,14 +18,14 @@
  * Such modules without the marker fail the check.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { finishCheckRun } from './lib/check-result.js';
 import {
-  type ImportRef,
   collectImportRefs,
   hasEvalOnlyMarker,
+  type ImportRef,
   resolvePackageTarget,
   sourcePathFor,
 } from './lib/eval-import-lib.js';

@@ -1,9 +1,8 @@
+import * as http from '@trapmap/cli/lib/http.js';
+import * as outputProfile from '@trapmap/cli/lib/output-profile.js';
 import type { SkillLookupResponse } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as http from '@trapmap/cli/lib/http.js';
-import * as outputProfile from '@trapmap/cli/lib/output-profile.js';
 import { registerSkillCommands } from '../../src/commands/skill.js';
 
 vi.mock('../../src/lib/http.js', () => ({

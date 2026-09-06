@@ -27,10 +27,10 @@ import type { GraphExtractionBridgeReport } from '../graph-extraction/bridge.js'
 import type { IngestionBridgeReport } from '../ingestion/bridge.js';
 import { pushSliceTable } from '../lib/eval-report.js';
 import {
-  type EvalPlatformAdapterKind,
-  type EvalPlatformEvent,
   closePlatformAdapterSafely,
   createEvalPlatformAdapter,
+  type EvalPlatformAdapterKind,
+  type EvalPlatformEvent,
   publishPlatformEventSafely,
 } from '../lib/platform/adapter.js';
 import { resolveLangfuseAdapterConfigFromEnv } from '../lib/platform/langfuse-config.js';
@@ -38,7 +38,6 @@ import { buildRetrievalPlatformEvents } from '../retrieval/lib/platform-events.j
 import type { RunnerSummary } from '../retrieval/lib/types.js';
 import { buildSummaryPlatformEvents } from '../summary/lib/platform-events.js';
 import type { AgentPlanningEvalReport } from '../types/agent-planning.js';
-import type { AgentPlanningEvalCase } from '../types/agent-planning.js';
 import type { LabelAlignmentEvalReport } from '../types/label-alignment.js';
 import type { RetrievalEvalReport, SummaryEvalReport } from '../types/report.js';
 

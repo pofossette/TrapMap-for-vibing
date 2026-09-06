@@ -15,8 +15,6 @@
  * Phase 2: LLM-enhanced duplicate/conflict detection
  */
 
-import { z } from 'zod';
-
 import type { ChatProvider } from '@trapmap/ai-providers';
 import { stripCodeFences } from '@trapmap/ai-providers/ai-parse.js';
 import {
@@ -27,6 +25,7 @@ import {
   LLM_DUPLICATE_REASONING_MIN,
   type LlmDuplicateJudgment,
 } from '@trapmap/backend-core';
+import { z } from 'zod';
 
 export type { LlmDuplicateJudgment } from '@trapmap/backend-core';
 

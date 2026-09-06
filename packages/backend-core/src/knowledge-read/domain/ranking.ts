@@ -17,7 +17,7 @@ import type {
 import { cosineSimilarity as sharedCosineSimilarity } from '@trapmap/lib';
 
 import { type BoundaryEntryView, computeBoundaryScoreDelta } from './boundary.js';
-import { type TokenMatchDetailLike, normalizeQuery } from './tokenization.js';
+import { normalizeQuery, type TokenMatchDetailLike } from './tokenization.js';
 
 export const cosineSimilarity = sharedCosineSimilarity;
 

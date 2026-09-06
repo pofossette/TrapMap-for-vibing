@@ -2,10 +2,10 @@ import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
 import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.js';
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import {
-  type IdentityAccessServer,
   createIdentityAccessDeps,
   createIdentityAccessPgDeps,
   createIdentityAccessServer as createServiceIdentityAccessServer,
+  type IdentityAccessServer,
 } from '@trapmap/service-identity-access';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 

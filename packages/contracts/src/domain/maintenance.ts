@@ -53,7 +53,7 @@ export const maintenanceEntryListRequestSchema = z
     /** Filter to entries with stale verification (lastVerifiedAt older than staleDays) */
     staleVerification: z.preprocess(
       (val) => val === 'true' || val === true,
-      z.boolean().optional(),
+      z.boolean().default(false),
     ),
     /** Number of days since last verification to consider stale (requires staleVerification) */
     staleDays: z.coerce.number().int().min(1).max(3650).optional(),

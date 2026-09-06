@@ -1,11 +1,10 @@
 import { toast } from '@heroui/react';
-import type { ReactElement } from 'react';
-import { useNavigate } from 'react-router-dom';
-
 import { useDashboardPageModel } from '@trapmap/web-panel/features/dashboard/use-dashboard-page-model';
 import { PageTransition } from '@trapmap/web-panel/shared/motion';
 import { ErrorPanel, PageContainer, SkeletonBlock } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import type { ReactElement } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
   DashboardHeader,

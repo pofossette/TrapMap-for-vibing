@@ -23,7 +23,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 type CheckResult = { name: string; ok: boolean; details: string[]; ciGate?: string };
@@ -192,6 +192,7 @@ function checkTransportDefault(): CheckResult {
   // docker-compose defaults
   const compose = readFileSync(path.resolve('docker-compose.yml'), 'utf8');
   const hasPgDefault = compose.includes(
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: compose-file shell expansion syntax under test, not a JS template
     'TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}',
   );
   const hasRabbitMqEnv = compose.includes('TRAPMAP_RABBITMQ_URL');

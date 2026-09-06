@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.5.12/schema.json",
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
@@ -8,48 +8,57 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "correctness": {
-        "recommended": true,
+        "preset": "recommended",
         "noUnusedVariables": "error"
       },
       "suspicious": {
-        "recommended": true,
+        "preset": "recommended",
         "noExplicitAny": "off"
       },
       "complexity": {
-        "recommended": true
+        "preset": "recommended"
       },
       "style": {
-        "recommended": true,
+        "preset": "recommended",
         "noNonNullAssertion": "off"
       },
       "a11y": {
-        "recommended": true
+        "preset": "recommended"
       }
     }
   },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
   "files": {
-    "ignore": [
-      "dist",
-      "coverage",
-      "node_modules",
-      ".pnpm-store",
-      "data",
-      ".tmp",
-      ".data",
-      ".agent",
-      ".claude",
-      ".codex",
-      ".gemini",
-      ".kilo",
-      ".opencode",
-      "reports",
-      "packages/*/src/**/*.js",
-      "packages/*/src/**/*.js.map",
-      "packages/*/src/**/*.d.ts",
-      "packages/*/src/**/*.d.ts.map",
-      "scripts/codemods"
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/coverage",
+      "!**/node_modules",
+      "!**/.pnpm-store",
+      "!**/data",
+      "!**/.tmp",
+      "!**/temp",
+      "!**/.data",
+      "!**/.agent",
+      "!**/.claude",
+      "!**/.codex",
+      "!**/.gemini",
+      "!**/.kilo",
+      "!**/.opencode",
+      "!**/reports",
+      "!**/.vitest",
+      "!**/benchmarks/results",
+      "!**/packages/**/*/src/**/*.js",
+      "!**/packages/**/*/src/**/*.js.map",
+      "!**/packages/**/*/src/**/*.d.ts",
+      "!**/packages/**/*/src/**/*.d.ts.map",
+      "!**/scripts/codemods"
     ]
   },
   "javascript": {

@@ -29,12 +29,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@langchain/core": "^1.1.39",
-    "@langchain/openai": "^1.4.4",
+    "@ai-sdk/google": "^4.0.64",
+    "@ai-sdk/openai": "^4.0.60",
+    "@ai-sdk/openai-compatible": "^3.0.44",
     "@trapmap/lib": "workspace:*",
-    "zod": "^4.3.6"
+    "ai": "^7.0.93",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
-    "vitest": "^3.2.1"
+    "vitest": "^5.0.0"
   }
 }

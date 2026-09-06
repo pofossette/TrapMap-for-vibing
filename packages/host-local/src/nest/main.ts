@@ -64,8 +64,17 @@ export async function bootstrapNest(
 
   const assembly = builder.build();
   const running = await assembly.boot();
-  const app = running.ctx.get(HTTP_SURFACE_SERVICE) as NestFastifyApplication | undefined;
+  // The transport node's apply is async (NestFactory.create + listen), and
+  // cordis does not await providing fibers, so httpSurface lands after boot()
+  // resolves. Wait for it with a bound instead of racing ctx.get().
+  let app = running.ctx.get(HTTP_SURFACE_SERVICE) as NestFastifyApplication | undefined;
+  const deadline = Date.now() + 30_000;
+  while (!app && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    app = running.ctx.get(HTTP_SURFACE_SERVICE) as NestFastifyApplication | undefined;
+  }
   if (!app) {
+    await running.dispose().catch(() => undefined);
     throw new Error(`Assembly boot did not produce an httpSurface (profile=${profile})`);
   }
 

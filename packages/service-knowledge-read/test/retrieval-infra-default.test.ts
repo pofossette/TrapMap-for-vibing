@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { Pool } from 'pg';
+import { describe, expect, it } from 'vitest';
 import type { KnowledgeEmbeddingVectorSearchPort } from '../src/knowledge-vector-search-port.js';
 import { createDefaultKnowledgeReadRetrievalInfra } from '../src/retrieval-infra-default.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from '../src/retrieval-semantic.js';

@@ -1,7 +1,6 @@
-import type { ApplyResolutionResponse } from '@trapmap/contracts';
-
 import type { loadCliState } from '@trapmap/cli/lib/config.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import type { ApplyResolutionResponse } from '@trapmap/contracts';
 
 export function printApplyResolutionResult(
   parsed: ApplyResolutionResponse,

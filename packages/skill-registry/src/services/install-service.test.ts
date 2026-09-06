@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { RegistryService } from './registry-service.js';
-import { InstallService } from './install-service.js';
-import { mkdtemp, rm, readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { describe, expect, it } from 'vitest';
 import { skillLockfileSchema } from '../contracts/skill-lock.js';
+import { InstallService } from './install-service.js';
+import { RegistryService } from './registry-service.js';
 
 describe('InstallService', () => {
   it('installs from local path and writes lockfile', async () => {

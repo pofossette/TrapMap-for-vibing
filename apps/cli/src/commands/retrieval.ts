@@ -1,3 +1,7 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { collectValues, resolveSearchSeed } from '@trapmap/cli/lib/input.js';
+import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
 import type {
   ConflictHint,
   GeneSearchResponse,
@@ -10,13 +14,8 @@ import {
   retrievalResponseSchema,
   retrievalV2ResponseSchema,
 } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { collectValues, resolveSearchSeed } from '@trapmap/cli/lib/input.js';
-import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
 import { formatStrategyGene } from '@trapmap/lib';
+import type { Command } from 'commander';
 
 interface RetrievalCommandOptions {
   allowSearch: boolean;
@@ -294,8 +293,11 @@ export function registerRetrievalCommands(
 
           printAdaptiveResult('retrieval-v2', parsed, state, flags, formatV2RetrievalResponse);
         } else {
-          // Legacy v1 retrieval (COMP-03)
+          // Legacy v1 retrieval (COMP-03). The v1 contract body requires
+          // `query` (see contracts `retrievalSearchBodySchema`); `seed` is
+          // the v2-only field name, kept here for CLI-side continuity.
           const body = {
+            query: searchSeed,
             seed: searchSeed,
             filters,
             maxResults: Number.parseInt(flags.maxResults, 10),

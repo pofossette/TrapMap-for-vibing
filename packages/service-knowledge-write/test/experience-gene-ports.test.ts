@@ -1,12 +1,11 @@
-import { Pool } from 'pg';
-import { describe, expect, it } from 'vitest';
-
 import {
   createExperienceGeneContentHash,
   createExperienceGeneIdempotencyKeyFromGene,
 } from '@trapmap/backend-core';
 import { createExperienceGeneFixture } from '@trapmap/backend-core/testing/index.js';
 import { experienceGeneEventSchema, experienceGeneSchema } from '@trapmap/contracts';
+import { Pool } from 'pg';
+import { describe, expect, it } from 'vitest';
 import { PgExperienceGeneRepository } from '../src/experience-gene-repository.js';
 
 type QueryHandler = (sql: string, params: unknown[]) => { rows: unknown[]; rowCount?: number };

@@ -33,7 +33,7 @@ function createMemoryBundle(jobs: CronJob[]): {
       },
       async applyRunSuccess(id, { nextRunAt, lastRunAt }) {
         const job = store.get(id);
-        if (!job || !job.enabled) return;
+        if (!job?.enabled) return;
         if (job.nextRunAt !== null && new Date(job.nextRunAt) > lastRunAt) return;
         job.nextRunAt = nextRunAt.toISOString();
         job.lastRunAt = lastRunAt.toISOString();

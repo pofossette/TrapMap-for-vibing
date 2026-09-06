@@ -1,3 +1,8 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 import type {
   KnowledgeEntry,
   KnowledgeEntryResponse,
@@ -5,12 +10,6 @@ import type {
 } from '@trapmap/contracts';
 import { knowledgeEntryResponseSchema, knowledgeHistoryResponseSchema } from '@trapmap/contracts';
 import type { Command } from 'commander';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { collectValues, resolveTextInput } from '@trapmap/cli/lib/input.js';
-import { printCommandResult } from '@trapmap/cli/lib/output.js';
-import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 
 export interface KnowledgeEntryDescriptor {
   readonly actionPrefix: 'knowledge' | 'trap';

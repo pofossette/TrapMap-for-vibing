@@ -1,9 +1,5 @@
 import { InvocationError } from '@trapmap/backend-core';
-import {
-  type RetrievalQuery,
-  createRetrievalArtifactFixture,
-  retrievalQuerySchema,
-} from '@trapmap/contracts';
+import { createRetrievalArtifactFixture, retrievalQuerySchema } from '@trapmap/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 import { artifactToRetrievalEntry } from '../src/artifact-entry-merge.js';
@@ -16,8 +12,7 @@ import {
 } from '../src/retrieval-orchestration.js';
 import { dispatchByMode, semanticRecall } from '../src/retrieval-recall-coordinator.js';
 import type { MergedCandidate, ScoredEntry } from '../src/retrieval-types.js';
-import type { SkillArtifactRecord } from '../src/store.js';
-import type { KnowledgeRecord } from '../src/store.js';
+import type { KnowledgeRecord, SkillArtifactRecord } from '../src/store.js';
 
 function makeMockChannel(name: string): KnowledgeReadRecallChannel {
   return {

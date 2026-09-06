@@ -9,9 +9,9 @@
 
 import type { DedupStrategyPort, DedupStrategyResult } from '@trapmap/backend-core';
 import { createCandidateDuplicateDetector, dedupTokens } from '@trapmap/backend-core';
-import { prefixedId } from '@trapmap/lib';
 import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
 import { dedupBatchSimilarityWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
+import { prefixedId } from '@trapmap/lib';
 
 export interface RuleDedupStrategyDeps {
   now?(): string;

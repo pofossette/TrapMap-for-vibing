@@ -1,6 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import type { ChatProvider } from '@trapmap/ai-providers';
+import { describe, expect, it, vi } from 'vitest';
 
 import { alignLabel } from '../../src/labels/llm-align.js';
 import type { LabelRepository } from '../../src/labels/repository.js';

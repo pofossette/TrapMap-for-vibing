@@ -14,10 +14,9 @@
  * Phase 2: LLM-enhanced duplicate/conflict detection
  */
 
-import { z } from 'zod';
-
 import type { ChatProvider } from '@trapmap/ai-providers';
 import { stripCodeFences } from '@trapmap/ai-providers/ai-parse.js';
+import { z } from 'zod';
 
 // ---------------------------------------------------------------------------
 // Types

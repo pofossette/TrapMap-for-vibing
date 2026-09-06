@@ -6,13 +6,12 @@
  * Canonical schemas for machine-readable evaluation reports.
  */
 
-import { z } from 'zod';
-
 import {
   retrievalStrategySchema,
   routeFamilySchema,
   routingReasonSchema,
 } from '@trapmap/contracts';
+import { z } from 'zod';
 import { retrievalEvalEndpointSchema, retrievalEvalTierSchema } from './retrieval.js';
 import { summaryEvalEndpointSchema, summaryEvalTierSchema } from './summary.js';
 

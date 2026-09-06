@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LabelRepository } from '../../src/labels/repository.js';
-import { PgLabelRepository, createPgLabelRepository } from '../../src/labels/repository.js';
+import { createPgLabelRepository, PgLabelRepository } from '../../src/labels/repository.js';
 
 describe('LabelRepository', () => {
   describe('factory function', () => {

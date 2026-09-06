@@ -1,18 +1,17 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
 import type {
   ApplyResolutionResponse,
   DuplicateJobBundleResponse,
   ManualResultResponse,
 } from '@trapmap/contracts';
 import {
-  DuplicateJobBundleResponseSchema,
   applyResolutionResponseSchema,
+  DuplicateJobBundleResponseSchema,
   manualResultResponseSchema,
 } from '@trapmap/contracts';
 import type { Command } from 'commander';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { printCommandResult } from '@trapmap/cli/lib/output.js';
 
 import { printApplyResolutionResult } from './apply-resolution-result.js';
 import {

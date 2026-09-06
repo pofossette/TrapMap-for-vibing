@@ -39,9 +39,7 @@ function countCapsules(
   }, 0);
 }
 
-function hasDerivedRevision(artifact: {
-  history: Array<{ derived?: unknown }>;
-}): boolean {
+function hasDerivedRevision(artifact: { history: Array<{ derived?: unknown }> }): boolean {
   return artifact.history.some((revision) => Boolean(revision.derived));
 }
 

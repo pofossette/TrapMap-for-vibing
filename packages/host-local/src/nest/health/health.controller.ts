@@ -1,10 +1,10 @@
-import { Controller, Get, Header, Res, ServiceUnavailableException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { Controller, Get, Header, Inject, Res, ServiceUnavailableException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { HealthCheckResult } from '@trapmap/backend-core';
 import type { HealthStatus } from '@trapmap/contracts';
 import type { FastifyReply } from 'fastify';
-import type { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
-import type { PrometheusService } from '../observability/prometheus.service.js';
+import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
+import { PrometheusService } from '../observability/prometheus.service.js';
 
 /**
  * Health check and metrics controller.
@@ -21,9 +21,9 @@ export class HealthController {
   private readonly startedAt = new Date().toISOString();
 
   constructor(
-    private readonly prometheus: PrometheusService,
-    private readonly lifecycle: LifecycleManagerService,
-    private readonly config: ConfigService,
+    @Inject(PrometheusService) private readonly prometheus: PrometheusService,
+    @Inject(LifecycleManagerService) private readonly lifecycle: LifecycleManagerService,
+    @Inject(ConfigService) private readonly config: ConfigService,
   ) {}
 
   @Get('health')

@@ -1,13 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  type CiGuardrailFact,
-  type DeploymentProfileFact,
-  type DocTruthManifest,
-  type EnvironmentFact,
-  type RuntimeRouteFact,
-  type ScriptFact,
-  type TelemetryFact,
-  type WorkspacePackageFact,
   extractCiGuardrails,
   extractDeploymentProfiles,
   extractDocTruthManifest,

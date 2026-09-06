@@ -14,8 +14,8 @@
  * claimed. `ownsWork = false` keeps a standby instance polling nothing.
  */
 
-import { computeNextRun } from '@trapmap/backend-core';
 import type { TaskEnqueueOptions } from '@trapmap/backend-core';
+import { computeNextRun } from '@trapmap/backend-core';
 import type { CronJob } from '@trapmap/contracts';
 import type { CronOwnerBundle } from './pg-ports.js';
 

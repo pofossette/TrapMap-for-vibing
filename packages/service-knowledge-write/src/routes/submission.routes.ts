@@ -5,33 +5,32 @@ import {
   type RouteDef,
   routeResponse,
 } from '@trapmap/backend-core';
-import { knowledgeWriteRouteDef } from './helpers.js';
-import type { KnowledgeWriteRouteDeps } from './helpers.js';
-import {
-  reviewDecisionSchema,
-  maintenanceDecisionSchema,
-  publishCandidateSchema,
-  experienceGeneDerivationSchema,
-  experienceGeneStalenessSchema,
-  rpcSchema,
-  healthSchema,
-  adminArtifactListSchema,
-  adminArtifactDetailSchema,
-  reviewDecisionArgs,
-  maintenanceDecisionArgs,
-  getArtifactAuth,
-  isArtifactVisible,
-  parseArtifactCursor,
-  fetchAllArtifacts,
-  fetchArtifactById,
-  invokeKnowledgeWriteRpc,
-  toConflictCandidate,
-  readinessHandler,
-  KNOWLEDGE_WRITE_OWNERSHIP,
-} from './helpers.js';
-import { trustedActor } from '../route-helpers.js';
 import type { AdminArtifactQuery } from '@trapmap/contracts';
 import { z } from 'zod';
+import { trustedActor } from '../route-helpers.js';
+import type { KnowledgeWriteRouteDeps } from './helpers.js';
+import {
+  adminArtifactDetailSchema,
+  adminArtifactListSchema,
+  experienceGeneDerivationSchema,
+  experienceGeneStalenessSchema,
+  fetchAllArtifacts,
+  fetchArtifactById,
+  getArtifactAuth,
+  healthSchema,
+  invokeKnowledgeWriteRpc,
+  isArtifactVisible,
+  KNOWLEDGE_WRITE_OWNERSHIP,
+  knowledgeWriteRouteDef,
+  maintenanceDecisionArgs,
+  maintenanceDecisionSchema,
+  parseArtifactCursor,
+  publishCandidateSchema,
+  readinessHandler,
+  reviewDecisionArgs,
+  reviewDecisionSchema,
+  rpcSchema,
+} from './helpers.js';
 
 const emptyRecord = z.record(z.string(), z.unknown());
 const headersSchema = z.record(z.string(), z.unknown());
@@ -272,8 +271,17 @@ export function createKnowledgeSubmissionRouteDefs(): RouteDef<
           return artifact;
         } catch (e) {
           const fs = await import('node:fs');
-          const msg = e instanceof Error ? e.message + '\n' + e.stack : String(e);
-          fs.appendFileSync('/tmp/kw_handler_error.log', msg + '\n---\n');
+          const msg =
+            e instanceof Error
+              ? `${e.message}
+${e.stack}`
+              : String(e);
+          fs.appendFileSync(
+            '/tmp/kw_handler_error.log',
+            `${msg}
+---
+`,
+          );
           throw e;
         }
       },

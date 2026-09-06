@@ -1,15 +1,15 @@
 import {
-  serviceNameForInternalHost,
   resolveInternalTimeoutMs,
+  serviceNameForInternalHost,
 } from '@trapmap/host-distributed/config/index.js';
 import { CircuitOpenError, resolveRetryPolicy, withResilience } from '../resilience.js';
 import type { InternalRequestOptions, ServiceResponse } from './types.js';
 import {
   breakerForOrigin,
-  TransientInternalResponseError,
+  callInternalServiceOnce,
   INTERNAL_UNAVAILABLE_RESPONSE,
   isTransientStatus,
-  callInternalServiceOnce,
+  TransientInternalResponseError,
 } from './types.js';
 
 export function withEnvTimeout(

@@ -1,10 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import {
   type AdapterName,
-  type RouteTestApp,
   buildRouteTestApp,
+  type RouteTestApp,
 } from '@trapmap/backend-core/testing/route-test-app.js';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   createExperienceGeneRouteDefs,

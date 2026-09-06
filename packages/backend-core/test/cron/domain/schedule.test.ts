@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { CronJob } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 
 import {
   applyRunFailure,

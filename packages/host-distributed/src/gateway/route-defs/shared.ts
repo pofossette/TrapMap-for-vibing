@@ -10,9 +10,6 @@
  * mapping.
  */
 
-import type { FastifyRequest } from 'fastify';
-import { type ZodType, z } from 'zod';
-
 import {
   type HttpMethod,
   InvocationError,
@@ -21,13 +18,15 @@ import {
   routeResponse,
 } from '@trapmap/backend-core';
 import {
-  type SkillLookupQuery,
   adminActivityQuerySchema,
   adminArtifactQuerySchema,
   adminGraphQuerySchema,
   adminReviewQueueQuerySchema,
+  type SkillLookupQuery,
   skillLookupQuerySchema,
 } from '@trapmap/contracts';
+import type { FastifyRequest } from 'fastify';
+import { type ZodType, z } from 'zod';
 
 import type { InternalServiceClients } from '../internal-client/index.js';
 

@@ -24,7 +24,7 @@ export const GOVERNANCE_REVIEW_OWNED_CAPABILITIES = [
  */
 export const GOVERNANCE_REVIEW_SHORTHAND = 'review' as const;
 
-export * from './policy.js';
 export * from './conflict.js';
 export * from './invariants.js';
+export * from './policy.js';
 export * from './review-queue-query.js';

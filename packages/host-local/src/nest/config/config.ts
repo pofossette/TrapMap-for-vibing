@@ -1,12 +1,11 @@
 import path from 'node:path';
-import { z } from 'zod';
-
 import { loadAiProviderConfig } from '@trapmap/ai-providers';
 import {
   resolveDeploymentProfileCompatibility,
   resolveRuntimeDeployment,
 } from '@trapmap/backend-core';
 import { type ExperienceGeneMode, experienceGeneModeSchema } from '@trapmap/contracts';
+import { z } from 'zod';
 
 import { GraphDbConfigSchema, loadGraphDbConfig } from './graph-db-config.js';
 import { loadRagLogConfig } from './rag-log.js';

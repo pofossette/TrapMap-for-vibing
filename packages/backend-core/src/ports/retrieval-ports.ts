@@ -6,6 +6,8 @@
  * implementations backed by the retrieval pipeline.
  */
 
+import type { RetrievalResponse } from '@trapmap/contracts';
+
 // ---------------------------------------------------------------------------
 // Retrieval query port
 // ---------------------------------------------------------------------------
@@ -15,20 +17,6 @@ export interface RetrievalSearchParams {
   teamId?: string;
   limit?: number;
   filters?: Record<string, unknown>;
-}
-
-export interface RetrievalSearchResult {
-  entryId: string;
-  score: number;
-  snippet?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface RetrievalSearchResponse {
-  results: RetrievalSearchResult[];
-  totalEstimate?: number;
-  channel?: string;
-  latencyMs?: number;
 }
 
 export type ReadModelConsistency = 'strong' | 'eventual';
@@ -75,8 +63,13 @@ export interface ReadModelProjectionStatus {
 export interface RetrievalQueryPort {
   /**
    * Execute a retrieval search across available recall channels.
+   *
+   * Returns the full contract `RetrievalResponse` (matches, refinement,
+   * summary) so gateway v1/v3 surfaces can forward it verbatim to CLI
+   * consumers. Callers needing a reduced row view project from
+   * `globalConstraints` / `projectKnowledge` themselves.
    */
-  search(params: RetrievalSearchParams): Promise<RetrievalSearchResponse>;
+  search(params: RetrievalSearchParams): Promise<RetrievalResponse>;
 
   /**
    * Execute a retrieval plan (structured multi-step search).

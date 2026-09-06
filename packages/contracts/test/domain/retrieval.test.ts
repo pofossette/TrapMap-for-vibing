@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import * as retrievalContracts from '../../src/domain/retrieval.js';
 import {
   capsuleMatchSchema,
   graphPlanSearchResponseSchema,
@@ -16,7 +17,6 @@ import {
   routingTraceSchema,
   skillLookupResponseSchema,
 } from '../../src/domain/retrieval.js';
-import * as retrievalContracts from '../../src/domain/retrieval.js';
 
 describe('retrieval schema contracts', () => {
   describe('retrievalQueryModeSchema', () => {

@@ -8,11 +8,11 @@ import type {
 import { describe, expect, it } from 'vitest';
 
 import {
-  type OutputProfile,
   createRenderEnvelope,
   getDefaultOutputProfile,
-  resolveRenderKind,
+  type OutputProfile,
   resolveRenderer,
+  resolveRenderKind,
 } from '../../src/lib/output-profile.js';
 
 describe('output profile helpers', () => {

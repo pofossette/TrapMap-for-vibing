@@ -3,11 +3,11 @@ import type {
   GovernanceConflictWorkflowPort,
 } from '@trapmap/backend-core';
 import {
-  PROBLEM_OVERLAP_THRESHOLD,
   canonicalEntries,
   classifyConflict,
   generateConflictContext,
   overlapScore,
+  PROBLEM_OVERLAP_THRESHOLD,
   relationKey,
   tokenize,
 } from '@trapmap/backend-core';
@@ -40,7 +40,7 @@ export interface GovernanceConflictWorkflowDeps {
   now?: () => string;
 }
 
-export { tokenize, overlapScore, classifyConflict, generateConflictContext };
+export { classifyConflict, generateConflictContext, overlapScore, tokenize };
 
 export function createGovernanceConflictWorkflow(
   deps: GovernanceConflictWorkflowDeps,

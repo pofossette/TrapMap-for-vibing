@@ -1,8 +1,8 @@
 export {
+  type CreateMockLoginResponseOptions,
   createMockEntry,
-  createMockTeam,
   createMockLoginResponse,
   createMockSessionResponse,
+  createMockTeam,
   MOCK_BASE_STATE,
-  type CreateMockLoginResponseOptions,
 } from './cli-test-utils.js';

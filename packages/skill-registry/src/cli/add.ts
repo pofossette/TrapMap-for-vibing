@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
-import { RegistryService } from '../services/registry-service.js';
 import { InstallService } from '../services/install-service.js';
+import { RegistryService } from '../services/registry-service.js';
 export function registerSkillAddCommand(program: Command): void {
   program
     .command('add')

@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+
 /**
  * Generate OpenAPI TS + Go stubs check.
  *
@@ -9,10 +10,10 @@
  * Otherwise writes placeholder checks and succeeds (CI will still gate via `git diff`).
  */
 
-import { readFile, writeFile } from 'node:fs/promises';
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import { readFile, writeFile } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');

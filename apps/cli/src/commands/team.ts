@@ -1,10 +1,9 @@
-import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
-import { loginResponseSchema, teamListResponseSchema, teamSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState, updateCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import type { LoginResponse, Team, TeamListResponse } from '@trapmap/contracts';
+import { loginResponseSchema, teamListResponseSchema, teamSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 interface TeamCommandOptions {
   allowCreate: boolean;

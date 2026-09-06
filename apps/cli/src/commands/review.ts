@@ -1,3 +1,7 @@
+import { loadCliState } from '@trapmap/cli/lib/config.js';
+import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
+import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 import type { Boundary, KnowledgeEntryResponse, ReviewQueueResponse } from '@trapmap/contracts';
 import {
   evidenceLevelSchema,
@@ -6,11 +10,6 @@ import {
   reviewQueueResponseSchema,
 } from '@trapmap/contracts';
 import type { Command } from 'commander';
-
-import { loadCliState } from '@trapmap/cli/lib/config.js';
-import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
-import { printCommandResult } from '@trapmap/cli/lib/output.js';
-import { parseBoundaryJson } from '@trapmap/cli/lib/parse-boundary.js';
 
 /**
  * Evidence input from CLI flags.

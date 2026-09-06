@@ -1,7 +1,7 @@
 import {
   type AiProviders,
-  type ObservationCorrelationContext,
   createAiProviders,
+  type ObservationCorrelationContext,
   wrapProvidersWithObservation,
 } from '@trapmap/ai-providers';
 import type { GraphQueryBackend, GraphQueryRuntimeState } from '@trapmap/contracts';

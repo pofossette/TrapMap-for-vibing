@@ -6,6 +6,8 @@
  * client manifests), boundary sub-tables, maintenance assignments,
  * agent reviews, metadata, and lifecycle events.
  */
+
+import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -19,8 +21,6 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core';
-
-import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
 import {
   artifactFileDetailsColumns,
   artifactRevisionItemColumns,

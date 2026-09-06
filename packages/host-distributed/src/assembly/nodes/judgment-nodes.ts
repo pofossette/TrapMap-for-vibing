@@ -14,8 +14,9 @@
  * contracts registry (host-local `judgment-contracts`) validates the
  * descriptors at build time via `startupChecks`.
  */
-import { defineNode } from '@trapmap/assembly';
+
 import type { CapabilityNode } from '@trapmap/assembly';
+import { defineNode } from '@trapmap/assembly';
 import {
   artifactDerivationConfigSchema,
   channelMergeConfigSchema,

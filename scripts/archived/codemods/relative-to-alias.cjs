@@ -75,7 +75,7 @@ module.exports = (fileInfo, api, options) => {
   root.find(j.CallExpression).forEach((nodePath) => {
     if (nodePath.value.callee?.type !== 'Import') return;
     const arg = nodePath.value.arguments[0];
-    if (!arg || arg.type !== 'StringLiteral') return;
+    if (arg?.type !== 'StringLiteral') return;
     const result = convertImport(fileRelPath, arg.value, projectRoot, convertSameDir);
     if (!result) return;
     arg.value = result;
@@ -85,7 +85,7 @@ module.exports = (fileInfo, api, options) => {
   // 处理 TypeScript import() 类型: import('../store.js').Type
   root.find(j.TSImportType).forEach((nodePath) => {
     const arg = nodePath.value.argument;
-    if (!arg || arg.type !== 'StringLiteral') return;
+    if (arg?.type !== 'StringLiteral') return;
     const result = convertImport(fileRelPath, arg.value, projectRoot, convertSameDir);
     if (!result) return;
     arg.value = result;

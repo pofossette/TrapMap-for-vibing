@@ -1,5 +1,3 @@
-import Fastify from 'fastify';
-
 import {
   InvocationError,
   type JobRuntimePort,
@@ -12,6 +10,7 @@ import { createRemoteKnowledgeWriteClient } from '@trapmap/host-distributed/shar
 import { registerGovernanceReviewRoutes } from '@trapmap/service-governance-review';
 import { registerJobRuntimeRoutes } from '@trapmap/service-job-runtime';
 import { registerKnowledgeWriteRoutes } from '@trapmap/service-knowledge-write';
+import Fastify from 'fastify';
 
 type ServiceRole =
   | 'gateway'

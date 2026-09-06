@@ -1,5 +1,5 @@
-import { ApiError as ClientApiError, apiRequest as clientApiRequest } from '@trapmap/client-core';
 import type { ApiResponse as ClientApiResponse, RequestOptions } from '@trapmap/client-core';
+import { ApiError as ClientApiError, apiRequest as clientApiRequest } from '@trapmap/client-core';
 
 import { CliSessionProvider } from './client-core-adapter.js';
 import type { CliState } from './config.js';
@@ -11,9 +11,9 @@ import type { CliState } from './config.js';
 // We re-export the canonical types from client-core to avoid divergence.
 // ---------------------------------------------------------------------------
 
-export { ClientApiError as ApiError };
 // fallow-ignore-next-line unused-type -- stable re-export for CLI compat
 export type { ClientApiResponse as ApiResponse };
+export { ClientApiError as ApiError };
 
 /** CLI-level request options (backward compatible with the pre-extraction shape). */
 export interface ApiRequestOptions {

@@ -1,14 +1,13 @@
-import { create } from 'zustand';
-
 import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/enum-types';
 import { buildJsonDraftState } from '@trapmap/web-panel/shared/lib/json-editor';
 import {
-  type RequestState,
   createErrorRequestState,
   createIdleRequestState,
   createLoadingRequestState,
   createSuccessRequestState,
+  type RequestState,
 } from '@trapmap/web-panel/shared/lib/request-state';
+import { create } from 'zustand';
 
 type JsonEditorSnapshot = {
   activeFilePath: string | null;

@@ -5,18 +5,18 @@ import { registry } from './output-profile/registry.js';
 import type {
   RenderEnvelope,
   RenderEnvelopeContext,
-  RenderKind,
   Renderer,
+  RenderKind,
 } from './output-profile/types.js';
 
+export type { OutputProfile } from '@trapmap/cli/lib/config.js';
 export type {
   RenderEnvelope,
   RenderEnvelopeContext,
+  Renderer,
   RenderKind,
   RenderPayload,
-  Renderer,
 } from './output-profile/types.js';
-export type { OutputProfile } from '@trapmap/cli/lib/config.js';
 
 export function getDefaultOutputProfile(): OutputProfile {
   return getConfigDefaultOutputProfile();

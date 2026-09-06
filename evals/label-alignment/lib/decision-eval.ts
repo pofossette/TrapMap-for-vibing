@@ -1,5 +1,5 @@
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
-import { type LabelRepository, alignLabel } from '@trapmap/service-knowledge-write';
+import { alignLabel, type LabelRepository } from '@trapmap/service-knowledge-write';
 import type {
   LabelAlignmentEvalCase,
   LabelAlignmentEvalCaseResult,

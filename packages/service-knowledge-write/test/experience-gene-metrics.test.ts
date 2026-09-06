@@ -1,7 +1,6 @@
-import { describe, expect, it, vi } from 'vitest';
-
 import { createExperienceGeneFixture } from '@trapmap/backend-core/testing/index.js';
 import type { ExperienceGeneDerivationTaskPayload } from '@trapmap/contracts';
+import { describe, expect, it, vi } from 'vitest';
 import { withExperienceGeneDerivationMetrics } from '../src/experience-gene-metrics.js';
 
 const gene = createExperienceGeneFixture();

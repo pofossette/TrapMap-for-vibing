@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { ScriptWithPolicyMetadata } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import {
   canExecuteImmediately,
   explainEffectivePolicy,

@@ -4,8 +4,7 @@ import { execSync } from 'node:child_process';
 // For each package/app under packages/* and apps/*, find src tests, compute target test,
 // create directories, git mv the file, and rewrite relative imports.
 // The core rewriteImportPath is unit-tested; see Task 1 Step 2.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { readdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 /**

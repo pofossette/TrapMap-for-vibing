@@ -1,4 +1,4 @@
-import { type Locator, type Page, expect } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 import type { VCursor } from '../helpers/v-cursor.js';
 import { BasePage } from './base-page.js';

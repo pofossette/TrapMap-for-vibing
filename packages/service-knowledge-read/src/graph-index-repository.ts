@@ -1,4 +1,5 @@
 import type { GraphIndexDocumentRecord, GraphIndexRepositoryPort } from '@trapmap/contracts';
+
 interface Queryable {
   query<T = Record<string, unknown>>(sql: string, values?: unknown[]): Promise<{ rows: T[] }>;
 }

@@ -1,11 +1,11 @@
 import {
+  createExperienceGeneContentHash,
+  createExperienceGeneIdempotencyKeyFromGene,
   type ExperienceGeneAccessContext,
   type ExperienceGeneDuplicateProjection,
   type ExperienceGeneDuplicateProjectionPort,
   type ExperienceGeneReadPort,
   type ExperienceGeneWritePort,
-  createExperienceGeneContentHash,
-  createExperienceGeneIdempotencyKeyFromGene,
 } from '@trapmap/backend-core';
 import {
   EXPERIENCE_GENE_SOLIDIFIED_OUTBOX_EVENT,

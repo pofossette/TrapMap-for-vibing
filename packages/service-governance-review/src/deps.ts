@@ -1,11 +1,11 @@
 import {
+  createGovernanceReviewModule,
   type GovernanceAsyncCommandPort,
   type GovernanceConflictWorkflowPort,
   type GovernanceRetrievalProjection,
   type GovernanceReviewAdminPort,
   type GovernanceReviewDeps,
   type ReviewPort,
-  createGovernanceReviewModule,
 } from '@trapmap/backend-core';
 
 export type { GovernanceReviewDeps } from '@trapmap/backend-core';

@@ -1,12 +1,11 @@
-import type { GraphPlanSearchResponse } from '@trapmap/contracts';
-import { graphPlanSearchResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { collectValues, resolveSearchSeed } from '@trapmap/cli/lib/input.js';
 import { formatLoadContext } from '@trapmap/cli/lib/markdown-formatter.js';
 import { printAdaptiveResult } from '@trapmap/cli/lib/output.js';
+import type { GraphPlanSearchResponse } from '@trapmap/contracts';
+import { graphPlanSearchResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 interface LoadCommandOptions {
   allowSearch: boolean;

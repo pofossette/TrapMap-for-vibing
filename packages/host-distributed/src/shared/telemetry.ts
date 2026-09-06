@@ -1,9 +1,9 @@
 import {
+  context as otelContext,
+  propagation,
   type Span,
   SpanKind,
   SpanStatusCode,
-  context as otelContext,
-  propagation,
   trace,
 } from '@opentelemetry/api';
 import { bootstrapOtelSdk, boundedOtelShutdown } from '@trapmap/backend-core';

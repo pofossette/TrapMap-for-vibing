@@ -6,10 +6,10 @@ import {
   loadServiceConfig,
 } from '../../src/config/index.js';
 import {
-  type ServicePoolCounters,
   createServiceDatabase,
   getServicePoolConfig,
   getServicePoolSnapshot,
+  type ServicePoolCounters,
 } from '../../src/shared/database.js';
 
 describe('distributed database pool configuration', () => {

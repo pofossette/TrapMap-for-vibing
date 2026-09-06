@@ -1,7 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest';
-import { vi } from 'vitest';
-
 import { createRetrievalArtifactFixture, createRetrievalMockRepos } from '@trapmap/contracts';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SkillShareerRepos } from '../src/context.js';
 
 import { buildOwnerReadModel, buildRetrievalReadModel } from '../src/read-model.js';

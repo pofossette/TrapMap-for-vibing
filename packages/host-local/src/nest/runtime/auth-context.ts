@@ -1,7 +1,6 @@
+import type { Permission, RoleTemplate } from '@trapmap/contracts';
 import { sha256 } from '@trapmap/lib';
 import type { FastifyRequest } from 'fastify';
-
-import type { Permission, RoleTemplate } from '@trapmap/contracts';
 import type { HostLocalServices } from './host-services.js';
 import { resolveEffectivePermissions } from './permissions.js';
 

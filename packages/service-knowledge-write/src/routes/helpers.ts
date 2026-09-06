@@ -2,23 +2,17 @@
 // fallow-ignore-file complexity -- admin artifact handlers keep filtering + governance + pagination co-located for T6 closeout
 // fallow-ignore-file code-duplication -- artifact projection helpers reuse existing ArtifactReadProjection shape
 import {
-  InvocationError,
+  createServiceReadinessHandler,
   type KnowledgeWritePort,
   type RouteContext,
   type RouteDef,
-  createServiceReadinessHandler,
-  registerFastifyRoutes,
-  routeResponse,
 } from '@trapmap/backend-core';
-import type { ArtifactReadProjection, KnowledgeOwnerPort } from '@trapmap/contracts';
+import type { ArtifactReadProjection, KnowledgeOwnerPort, SkillArtifact } from '@trapmap/contracts';
 import {
-  type AdminArtifactQuery,
-  type ExperienceGeneDerivationTaskPayload,
   adminArtifactQuerySchema,
+  type ExperienceGeneDerivationTaskPayload,
   experienceGeneDerivationTaskPayloadSchema,
 } from '@trapmap/contracts';
-import type { SkillArtifact } from '@trapmap/contracts';
-import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 import { trustedActor } from '../route-helpers.js';
 

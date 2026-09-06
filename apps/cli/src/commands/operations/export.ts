@@ -1,7 +1,3 @@
-import type { ArtifactExportResponse, ExportBundle } from '@trapmap/contracts';
-import { artifactExportResponseSchema, exportBundleSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import {
@@ -10,6 +6,9 @@ import {
   materializeSkillDirectory,
   validateOutputPath,
 } from '@trapmap/cli/lib/skill-artifact-export.js';
+import type { ArtifactExportResponse, ExportBundle } from '@trapmap/contracts';
+import { artifactExportResponseSchema, exportBundleSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerExportCommand(program: Command, options: OperationsCommandOptions): void {

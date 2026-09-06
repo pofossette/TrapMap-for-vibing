@@ -1,8 +1,8 @@
 import type { GovernanceAsyncCommandPort, TaskHandler } from '@trapmap/backend-core';
 import {
   type BadcaseExportDraftPayload,
-  type RemediationReactivationPayload,
   badcaseExportDraftPayloadSchema,
+  type RemediationReactivationPayload,
   remediationReactivationPayloadSchema,
 } from '@trapmap/contracts';
 

@@ -1,7 +1,6 @@
 import process from 'node:process';
-
-import { ALL_SERVICES } from './config/index.js';
 import type { ServiceName } from './config/index.js';
+import { ALL_SERVICES } from './config/index.js';
 
 export interface DistributedServiceHandle {
   config: { port: number };

@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { createMockAdminPanelApi } from '@trapmap/web-panel/services/api/mock-admin-panel-api';
+import { describe, expect, it } from 'vitest';
 import {
   loadReviewDetail,
   submitReviewDecision,

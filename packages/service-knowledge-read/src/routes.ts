@@ -1,23 +1,22 @@
 // fallow-ignore-file complexity -- admin graph handlers keep governance + search + pagination co-located for T6 closeout
 // fallow-ignore-file code-duplication -- graph helpers mirror panel applyArtifactQuery / applyActivityFeedQuery shapes
+
+import type { KnowledgeReadPort } from '@trapmap/backend-core';
 import {
+  ADMIN_GRAPH_DEPTH_1_MAX_NODES,
+  ADMIN_GRAPH_DEPTH_2_MAX_NODES,
   InvocationError,
   type RouteContext,
   type RouteDef,
   registerFastifyRoutes,
   routeResponse,
 } from '@trapmap/backend-core';
-import type { KnowledgeReadPort } from '@trapmap/backend-core';
-import {
-  ADMIN_GRAPH_DEPTH_1_MAX_NODES,
-  ADMIN_GRAPH_DEPTH_2_MAX_NODES,
-} from '@trapmap/backend-core';
+import type { AdminGraphQuery, AdminGraphResponse } from '@trapmap/contracts';
 import {
   adminGraphQuerySchema,
   retrievalSearchBodySchema,
   skillLookupQuerySchema,
 } from '@trapmap/contracts';
-import type { AdminGraphQuery, AdminGraphResponse } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
 import { type ZodType, z } from 'zod';
 

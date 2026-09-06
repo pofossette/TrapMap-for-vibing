@@ -1,29 +1,23 @@
 export {
+  createJobRuntimeAsyncTransport,
+  type JobRuntimeAsyncTransport,
+  type JobRuntimeAsyncTransportConfig,
+} from './async-runtime.js';
+export {
   createJobRuntimeDeps,
   createJobRuntimeServiceModule,
   type JobRuntimeDeps,
   type JobRuntimePortDeps,
   type JobRuntimeServiceDeps,
 } from './deps.js';
-export { assertJobRuntimeMigrationSet, runJobRuntimeMigrations } from './migrations.js';
-export { createJobRuntimeRouteDefs, registerJobRuntimeRoutes } from './routes.js';
-export { createGovernanceConflictTaskHandler } from './handlers/governance-conflict.js';
 export { createExperienceGeneDerivationTaskHandler } from './handlers/experience-gene.js';
 export { createExperienceGeneOutboxHandlers } from './handlers/experience-gene-outbox.js';
+export { createGovernanceConflictTaskHandler } from './handlers/governance-conflict.js';
 export {
   createGovernanceBadcaseExportDraftTaskHandler,
   createGovernanceRemediationTaskHandler,
 } from './handlers/governance-feedback.js';
-export {
-  createJobRuntimeServer,
-  type JobRuntimeServer,
-  type JobRuntimeServiceConfig,
-} from './server.js';
-export {
-  createJobRuntimeAsyncTransport,
-  type JobRuntimeAsyncTransport,
-  type JobRuntimeAsyncTransportConfig,
-} from './async-runtime.js';
+export { assertJobRuntimeMigrationSet, runJobRuntimeMigrations } from './migrations.js';
 export {
   createJobRuntimeOutboxConsumer,
   type JobRuntimeOutboxConsumer,
@@ -36,3 +30,9 @@ export {
   type RabbitMqTaskTransport,
   type RabbitMqTaskTransportConfig,
 } from './rabbitmq-task-transport.js';
+export { createJobRuntimeRouteDefs, registerJobRuntimeRoutes } from './routes.js';
+export {
+  createJobRuntimeServer,
+  type JobRuntimeServer,
+  type JobRuntimeServiceConfig,
+} from './server.js';

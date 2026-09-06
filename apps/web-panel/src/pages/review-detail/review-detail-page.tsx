@@ -1,7 +1,4 @@
 import { toast } from '@heroui/react';
-import { type ReactElement, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-
 import { useReviewDetailController } from '@trapmap/web-panel/features/review-detail/use-review-detail-controller';
 import {
   localizeActivityType,
@@ -23,6 +20,8 @@ import {
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import { useSessionStore } from '@trapmap/web-panel/stores/session-store';
+import { type ReactElement, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 
 export function ReviewDetailPage(): ReactElement {
   const params = useParams();

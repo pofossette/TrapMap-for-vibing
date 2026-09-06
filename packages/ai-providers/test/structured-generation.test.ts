@@ -1,8 +1,7 @@
+import { sha256 } from '@trapmap/lib';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-
-import { sha256 } from '@trapmap/lib';
-import { StructuredGenerationError, generateStructured } from '../src/structured-generation.js';
+import { generateStructured, StructuredGenerationError } from '../src/structured-generation.js';
 import type { ChatProvider } from '../src/types.js';
 
 const schema = z.object({ answer: z.number() }).strict();

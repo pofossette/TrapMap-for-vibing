@@ -10,17 +10,17 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import {
-  type KnowledgeWriteOwnerBundle,
-  type KnowledgeWriteReadinessOptions,
-  type KnowledgeWriteServer,
   createExperienceGeneDerivationOperation,
+  createExperienceGeneDerivationPlanner,
   createExperienceGeneStaleOperation,
   createKnowledgeWriteDeps,
   createKnowledgeWriteOutboxDiagnostics,
   createKnowledgeWriteOwnerBundle,
   createKnowledgeWriteServer as createServiceKnowledgeWriteServer,
+  type KnowledgeWriteOwnerBundle,
+  type KnowledgeWriteReadinessOptions,
+  type KnowledgeWriteServer,
 } from '@trapmap/service-knowledge-write';
-import { createExperienceGeneDerivationPlanner } from '@trapmap/service-knowledge-write';
 import { createExperienceGeneOtelMetrics } from '../gateway/internal-observability.js';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';
 

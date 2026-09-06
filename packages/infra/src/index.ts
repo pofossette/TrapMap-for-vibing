@@ -6,7 +6,6 @@
  * no domain rules — only database/transport/vector primitives.
  */
 
-export * from './vector/index.js';
 export * from './embedding/index.js';
-
 export * from './go-accelerator/index.js';
+export * from './vector/index.js';

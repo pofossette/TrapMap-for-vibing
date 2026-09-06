@@ -1,5 +1,3 @@
-import type { ToolDefinition } from './shared.js';
-
 import { searchExperienceGenesTool } from './experience-gene.js';
 import {
   completeRemediationTool,
@@ -8,6 +6,7 @@ import {
   reviewDecisionTool,
 } from './governance-tools.js';
 import { searchKnowledgeTool } from './search-knowledge.js';
+import type { ToolDefinition } from './shared.js';
 import { readSkillFilesTool } from './skill-files.js';
 import { getSkillManifestTool } from './skill-manifest.js';
 import { submitFeedbackTool } from './submit-feedback.js';

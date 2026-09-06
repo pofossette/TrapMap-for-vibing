@@ -1,11 +1,10 @@
-import type { ApplyResolutionResponse } from '@trapmap/contracts';
-import { applyResolutionResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { sanitizeForDisplay } from '@trapmap/cli/lib/sanitize.js';
 import { formatApplyResolutionText } from '@trapmap/cli/lib/skill-utils.js';
+import type { ApplyResolutionResponse } from '@trapmap/contracts';
+import { applyResolutionResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 import { printApplyResolutionResult } from './apply-resolution-result.js';
 
 /**

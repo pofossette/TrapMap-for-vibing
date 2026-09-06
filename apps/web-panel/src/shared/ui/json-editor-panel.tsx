@@ -1,8 +1,7 @@
 import { Button } from '@heroui/react';
+import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/enum-types';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
 import type { ReactElement } from 'react';
-
-import type { ReviewArtifactFile } from '@trapmap/web-panel/shared/enum-types';
 
 type JsonEditorPanelProps = {
   activeFilePath: string | null;

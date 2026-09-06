@@ -1,9 +1,9 @@
 import { InvocationError, type RouteContext, type RouteDef } from '@trapmap/backend-core';
 import {
+  disabledExperienceGeneSearchResponse,
   type ExperienceGeneMode,
   type GeneSearchQuery,
   type GeneSearchResponse,
-  disabledExperienceGeneSearchResponse,
   geneSearchQuerySchema,
 } from '@trapmap/contracts';
 import { type ZodType, z } from 'zod';

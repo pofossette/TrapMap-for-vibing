@@ -30,9 +30,9 @@ import { dirname, relative, resolve } from 'node:path';
 
 import { finishCheckRun } from './lib/check-result.js';
 import {
-  type ImportRef,
   collectImportRefs,
   hasEvalOnlyMarker,
+  type ImportRef,
   resolvePackageTarget,
   sourcePathFor,
 } from './lib/eval-import-lib.js';

@@ -1,7 +1,3 @@
-import type { LoginResponse, SessionStatusResponse } from '@trapmap/contracts';
-import { loginResponseSchema, sessionStatusResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import {
   clearSession,
   loadCliState,
@@ -10,6 +6,9 @@ import {
 } from '@trapmap/cli/lib/config.js';
 import { apiRequest } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import type { LoginResponse, SessionStatusResponse } from '@trapmap/contracts';
+import { loginResponseSchema, sessionStatusResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 export function registerAuthCommands(program: Command): void {
   program

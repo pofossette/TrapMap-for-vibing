@@ -8,8 +8,8 @@ import type {
   GraphQueryRuntimeState,
 } from '@trapmap/contracts';
 import {
-  buildGraphRuntimeSnapshot,
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
+  buildGraphRuntimeSnapshot,
   calculateSourceRelationStrength,
   expandSourcesOneHop,
 } from './graph-query-core.js';

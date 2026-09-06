@@ -1,3 +1,10 @@
+import type {
+  GeneEventType,
+  GeneGeneratorKind,
+  GeneIndexStatus,
+  GeneSourceKind,
+  GeneStatus,
+} from '@trapmap/contracts';
 import { sql } from 'drizzle-orm';
 import {
   check,
@@ -10,14 +17,6 @@ import {
   uniqueIndex,
   vector,
 } from 'drizzle-orm/pg-core';
-
-import type {
-  GeneEventType,
-  GeneGeneratorKind,
-  GeneIndexStatus,
-  GeneSourceKind,
-  GeneStatus,
-} from '@trapmap/contracts';
 
 import { auditTimestamps } from './column-factories.js';
 

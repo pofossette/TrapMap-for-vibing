@@ -11,11 +11,11 @@
  *   await runDistributedServices({ startService: startDistributedService });
  */
 
+import type { ServiceName } from './config/index.js';
 import {
   assertDistributedConnectionBudget,
   assertDistributedResilienceConfig,
 } from './config/index.js';
-import type { ServiceName } from './config/index.js';
 import type { DistributedServiceHandle } from './runner.js';
 
 export {

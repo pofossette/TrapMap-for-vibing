@@ -101,7 +101,7 @@ async function recallByExactAlias(
   breakdown: CandidateRecallResult['recallBreakdown'],
 ): Promise<void> {
   const exactAliasResult = await repository.findCanonicalByAlias(rawLabel);
-  if (!exactAliasResult || exactAliasResult.status !== 'active') return;
+  if (exactAliasResult?.status !== 'active') return;
   seenIds.add(exactAliasResult.id);
   const aliases = await repository.listAliases(exactAliasResult.id);
   candidates.push({

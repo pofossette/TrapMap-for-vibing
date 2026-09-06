@@ -1,13 +1,12 @@
-import { create } from 'zustand';
-
 import type { DashboardSnapshot } from '@trapmap/web-panel/features/dashboard/service';
 import {
-  type RequestState,
   createErrorRequestState,
   createIdleRequestState,
   createLoadingRequestState,
   createSuccessRequestState,
+  type RequestState,
 } from '@trapmap/web-panel/shared/lib/request-state';
+import { create } from 'zustand';
 
 type DashboardStore = {
   request: RequestState<DashboardSnapshot>;

@@ -4,9 +4,12 @@
  */
 
 import { KNOWLEDGE_PROJECTION_OPERATION_CONDITIONS } from '@trapmap/backend-core';
-import type { KnowledgeEntry, KnowledgeIndexingEntry, LifecycleState } from '@trapmap/contracts';
-
-import type { KnowledgeOwnerPort } from '@trapmap/contracts';
+import type {
+  KnowledgeEntry,
+  KnowledgeIndexingEntry,
+  KnowledgeOwnerPort,
+  LifecycleState,
+} from '@trapmap/contracts';
 
 type Queryable = {
   query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;

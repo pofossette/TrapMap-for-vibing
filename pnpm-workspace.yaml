@@ -5,8 +5,8 @@ packages:
   - benchmarks
 
 overrides:
-  pg: 8.20.0
-  "@types/pg": 8.20.0
+  pg: 8.23.0
+  "@types/pg": 8.23.1
 
 allowBuilds:
   "@biomejs/biome": true

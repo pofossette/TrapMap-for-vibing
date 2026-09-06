@@ -1,5 +1,3 @@
-import type { EvalPlatformEvent, SummaryEvalCase, SummaryEvalTier } from '../../types/index.js';
-
 import {
   buildCaseAssertionEvent,
   buildCaseLifecycleEvents,
@@ -8,6 +6,7 @@ import {
   deriveStartedAt,
   groupFailuresByCase,
 } from '../../lib/platform-events.js';
+import type { EvalPlatformEvent, SummaryEvalCase, SummaryEvalTier } from '../../types/index.js';
 import type { SummaryEvalFailureRecord, SummaryEvalReport } from '../../types/report.js';
 import { getSummaryEvaluationCases, getSummaryScenarioIds } from './runner-api.js';
 

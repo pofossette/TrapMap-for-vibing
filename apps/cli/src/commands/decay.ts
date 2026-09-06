@@ -1,11 +1,10 @@
-import type { BatchOperationResponse, DecayEntryListResponse } from '@trapmap/contracts';
-import { batchOperationResponseSchema, decayEntryListResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { formatBatchResultHeader } from '@trapmap/cli/lib/batch-result.js';
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
+import type { BatchOperationResponse, DecayEntryListResponse } from '@trapmap/contracts';
+import { batchOperationResponseSchema, decayEntryListResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 export interface DecayCommandOptions {
   allowManage: boolean;

@@ -1,8 +1,7 @@
+import * as http from '@trapmap/cli/lib/http.js';
 import type { SkillRevisionSummary } from '@trapmap/contracts';
 import { Command } from 'commander';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import * as http from '@trapmap/cli/lib/http.js';
 import { registerSkillCommands } from '../../../src/commands/skill/index.js';
 
 vi.mock('../../../src/lib/http.js', () => ({

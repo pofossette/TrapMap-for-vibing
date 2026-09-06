@@ -1,19 +1,19 @@
-import type { Pool } from 'pg';
+import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
 
 import {
   type ExperienceGeneRecallCandidate,
   normalizeQuery,
   selectExperienceGenes,
 } from '@trapmap/backend-core';
-import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
 import {
+  disabledExperienceGeneSearchResponse,
   type ExperienceGene,
   type ExperienceGeneMode,
   type GeneSearchQuery,
   type GeneSearchResponse,
-  disabledExperienceGeneSearchResponse,
 } from '@trapmap/contracts';
 import { appendExperienceGeneGovernanceFilters, formatVectorLiteral } from '@trapmap/infra';
+import type { Pool } from 'pg';
 
 import { withExperienceGeneSearchMetrics } from './experience-gene-metrics.js';
 

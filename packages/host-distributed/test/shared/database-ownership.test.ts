@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  DatabaseOwnershipError,
   assertDatabaseWriteOwner,
+  DatabaseOwnershipError,
   getDatabaseWriteOwner,
   withDatabaseWriteGuard,
 } from '../../src/shared/database-ownership.js';

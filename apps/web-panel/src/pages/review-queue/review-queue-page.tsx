@@ -1,7 +1,4 @@
 import { Button } from '@heroui/react';
-import type { ReactElement } from 'react';
-import { Link } from 'react-router-dom';
-
 import { useReviewQueuePageModel } from '@trapmap/web-panel/features/review-queue/use-review-queue-page-model';
 import {
   localizeLifecycleState,
@@ -21,6 +18,8 @@ import {
   StatusBadge,
 } from '@trapmap/web-panel/shared/ui';
 import { useI18nStore } from '@trapmap/web-panel/stores/i18n-store';
+import type { ReactElement } from 'react';
+import { Link } from 'react-router-dom';
 
 export function ReviewQueuePage(): ReactElement {
   const model = useReviewQueuePageModel();

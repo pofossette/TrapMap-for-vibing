@@ -4,13 +4,13 @@ import type { FastifyInstance } from 'fastify';
 import { type ArtifactRouteDeps, createArtifactRouteDefs } from './artifact-routes.js';
 import {
   type ComposedKnowledgeWriteDeps,
-  type KnowledgeWriteDeps,
   createKnowledgeWriteServiceModule,
+  type KnowledgeWriteDeps,
 } from './deps.js';
 import {
+  createKnowledgeWriteRouteDefs,
   type KnowledgeWriteReadinessOptions,
   type KnowledgeWriteRouteDeps,
-  createKnowledgeWriteRouteDefs,
 } from './routes.js';
 
 export interface KnowledgeWriteServiceConfig {

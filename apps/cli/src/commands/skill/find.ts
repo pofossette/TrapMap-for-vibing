@@ -1,11 +1,10 @@
-import type { CandidateListResponse } from '@trapmap/contracts';
-import { candidateListResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import { printCommandResult } from '@trapmap/cli/lib/output.js';
 import { formatCandidateTable } from '@trapmap/cli/lib/skill-utils.js';
+import type { CandidateListResponse } from '@trapmap/contracts';
+import { candidateListResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 /**
  * Register the skill find subcommand.

@@ -7,10 +7,10 @@
  * duplicate_matches → duplicate_cases.matches jsonb,
  * manual_results+resolution_outcomes → candidate_outcomes.
  */
-import { sql } from 'drizzle-orm';
-import { check, index, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
 
 import type { AnalysisSnapshot, CandidatePayload } from '@trapmap/contracts';
+import { sql } from 'drizzle-orm';
+import { check, index, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
 import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================

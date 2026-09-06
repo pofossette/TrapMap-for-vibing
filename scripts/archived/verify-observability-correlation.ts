@@ -15,16 +15,16 @@
  */
 
 import {
-  type LogEntry,
   buildLokiLabels,
   formatLogForStdout,
+  type LogEntry,
   logEntrySchema,
   redactLogContext,
 } from '../../packages/contracts/src/domain/log-schema.js';
 import { validateSentryPolicy } from '../../packages/contracts/src/domain/observability-config.js';
 import {
-  RequestContextService,
   extractRequestContext,
+  RequestContextService,
 } from '../../packages/host-local/src/nest/runtime/request-context.service.js';
 
 // ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { threeWayMerge } from './merge.js';
 import type { SkillSnapshot } from './diff.js';
+import { threeWayMerge } from './merge.js';
 
 function snap(slug: string, files: Record<string, string>): SkillSnapshot {
   return {
@@ -35,6 +35,7 @@ describe('threeWayMerge', () => {
 });
 
 import { diffSnapshots } from './diff.js';
+
 describe('diffSnapshots union', () => {
   it('diff works', () => {
     const base = { slug: 's', files: [{ path: 'a', sha256: '1', content: '1' }] };

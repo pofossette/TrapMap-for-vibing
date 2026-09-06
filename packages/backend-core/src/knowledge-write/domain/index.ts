@@ -15,8 +15,8 @@ export const KNOWLEDGE_WRITE_OWNED_CAPABILITIES = [
   'knowledge-lifecycle',
 ] as const;
 
+export * from './experience-gene-derivation.js';
+export * from './experience-gene-hashing.js';
+export * from './experience-gene-staleness.js';
 export * from './lifecycle.js';
 export * from './policy.js';
-export * from './experience-gene-hashing.js';
-export * from './experience-gene-derivation.js';
-export * from './experience-gene-staleness.js';

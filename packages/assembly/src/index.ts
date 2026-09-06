@@ -1,18 +1,27 @@
-export { defineNode, defineContract } from './define-node.js';
-export { startupChecks } from './startup-checks.js';
-export { createAssembly } from './create-assembly.js';
+export {
+  artifactDerivationContract,
+  channelMergeContract,
+  conflictTriggerContract,
+  dedupStrategyContract,
+  intentRecognitionContract,
+  judgmentContracts,
+  labelAlignmentContract,
+} from './contracts/judgment-contracts.js';
 export type {
   Assembly,
   AssemblyBuilder,
   AssemblyOptions,
   RunningAssembly,
 } from './create-assembly.js';
-export { createShutdownController } from './shutdown-controller.js';
+export { createAssembly } from './create-assembly.js';
+export { defineContract, defineNode } from './define-node.js';
 export type {
   ShutdownController,
   ShutdownControllerOptions,
   ShutdownState,
 } from './shutdown-controller.js';
+export { createShutdownController } from './shutdown-controller.js';
+export { startupChecks } from './startup-checks.js';
 export type {
   AssemblyContext,
   CapabilityNode,
@@ -21,12 +30,3 @@ export type {
   StartupIssue,
 } from './types.js';
 export { AssemblyStartupError } from './types.js';
-export { judgmentContracts } from './contracts/judgment-contracts.js';
-export {
-  intentRecognitionContract,
-  dedupStrategyContract,
-  conflictTriggerContract,
-  artifactDerivationContract,
-  labelAlignmentContract,
-  channelMergeContract,
-} from './contracts/judgment-contracts.js';

@@ -1,6 +1,6 @@
 import type { Command } from 'commander';
-import { RegistryService } from '../services/registry-service.js';
 import { InstallService } from '../services/install-service.js';
+import { RegistryService } from '../services/registry-service.js';
 import { UpdateService } from '../services/update-service.js';
 export function registerSkillOutdatedCommand(program: Command): void {
   program

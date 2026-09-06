@@ -10,13 +10,13 @@
 
 import {
   type ArtifactReadProjection,
+  attachRemediationProjection,
+  buildCachedRetrievalReadModelFromRepositories,
   type ConflictRelation,
   type KnowledgeOwnerPort,
   type RetrievalGovernanceProjection,
   type RetrievalReadModelRepositories,
   type RetrievalReadProjection,
-  attachRemediationProjection,
-  buildCachedRetrievalReadModelFromRepositories,
 } from '@trapmap/contracts';
 import type { SkillShareerRepos } from './context.js';
 import {

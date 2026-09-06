@@ -13,8 +13,9 @@
  * nodes belong in the host package, not `packages/assembly` (the assembly
  * zone cannot import hosts).
  */
-import { defineNode } from '@trapmap/assembly';
+
 import type { CapabilityNode } from '@trapmap/assembly';
+import { defineNode } from '@trapmap/assembly';
 
 import { createServer as createCandidateIngestionServer } from '../../candidate-ingestion/server.js';
 import type { ServiceConfig } from '../../config/index.js';

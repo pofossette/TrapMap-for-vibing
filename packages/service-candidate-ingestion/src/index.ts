@@ -1,42 +1,42 @@
 export {
-  createCandidateIngestionDeps,
-  createCandidateIngestionServiceModule,
+  buildNormalizedDuplicateInput,
+  type CandidateCorpusReadPort,
+  createCandidateDuplicateDetector,
+  type NormalizedDuplicateInput,
+} from '@trapmap/backend-core';
+export { createRuleDedupStrategy } from './dedup-strategy/rule-dedup-strategy.js';
+export {
   type CandidateIngestionDeps,
   type CandidateIngestionPortDeps,
+  createCandidateIngestionDeps,
+  createCandidateIngestionServiceModule,
 } from './deps.js';
 export {
   assertCandidateIngestionMigrationSet,
   runCandidateIngestionMigrations,
 } from './migrations.js';
 export {
-  createCandidateIngestionPgOwnerBundle,
   type CandidateDuplicateCaseRepository,
   type CandidateIngestionPgOwnerBundle,
   type CandidateLineageRepository,
   type CandidateResolutionOutcomeRepository,
+  createCandidateIngestionPgOwnerBundle,
 } from './pg-ports.js';
-export { createRuleDedupStrategy } from './dedup-strategy/rule-dedup-strategy.js';
-export {
-  buildNormalizedDuplicateInput,
-  createCandidateDuplicateDetector,
-  type CandidateCorpusReadPort,
-  type NormalizedDuplicateInput,
-} from '@trapmap/backend-core';
 export {
   CANDIDATE_PROCESSING_TASK_TYPE,
-  createCandidateProcessingHandler,
-  createCandidateProcessingRuntime,
-  processCandidate,
-  recoverInterruptedCandidates,
   type CandidateProcessingDeps,
   type CandidateProcessingRuntime,
   type CandidateProcessingRuntimeDeps,
   type CandidateRecoveryDeps,
+  createCandidateProcessingHandler,
+  createCandidateProcessingRuntime,
+  processCandidate,
+  recoverInterruptedCandidates,
 } from './processing.js';
 export { createCandidateProcessingTaskQueue } from './processing-task-queue.js';
 export { createCandidateIngestionRouteDefs, registerCandidateIngestionRoutes } from './routes.js';
 export {
-  createCandidateIngestionServer,
   type CandidateIngestionServer,
   type CandidateIngestionServiceConfig,
+  createCandidateIngestionServer,
 } from './server.js';

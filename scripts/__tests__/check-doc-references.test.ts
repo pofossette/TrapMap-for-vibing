@@ -1,12 +1,12 @@
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  type ReferenceIssue,
   checkDocReferences,
   expandBracePattern,
   parseBacktickedPaths,
   parseHeadingAnchors,
   parseMarkdownLinks,
+  type ReferenceIssue,
   validateReference,
 } from '../check-doc-references.js';
 

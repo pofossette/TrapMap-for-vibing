@@ -1,15 +1,13 @@
-import { afterEach, describe, expect, it } from 'vitest';
-
 import { sha256 } from '@trapmap/lib';
+import { describe, expect, it } from 'vitest';
 import type { RetrievalEvalScenario } from '../../types/index.js';
-
+import type { ExecutionContext } from './adapters.js';
 import {
   closeExecutionContext,
   createActorSession,
   createExecutionContext,
   seedScenarioFixtures,
 } from './adapters.js';
-import type { ExecutionContext } from './adapters.js';
 
 const hasDatabase = !!process.env.TRAPMAP_DATABASE_URL;
 

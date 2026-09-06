@@ -1,15 +1,15 @@
 import {
   type AuditLogPort,
-  FEEDBACK_REMEDIATION_THRESHOLD,
-  type FeedbackRepositoryPort,
-  type GovernanceReviewAdminPort,
-  InvocationError,
-  type JobRuntimePort,
   activeFeedback,
   ageDays,
   batchActionEligibility,
   batchActionUpdates,
+  FEEDBACK_REMEDIATION_THRESHOLD,
+  type FeedbackRepositoryPort,
   failureClassificationSummary,
+  type GovernanceReviewAdminPort,
+  InvocationError,
+  type JobRuntimePort,
   matchesLifecycleTriggerRule,
   qualityScore,
   remediationState,
@@ -55,11 +55,8 @@ type AdminFeedbackRecord = FeedbackRepositoryRecord & {
   failureClassification?: string | null;
 };
 
-type FeedbackRepositoryRecord = Awaited<
-  ReturnType<FeedbackRepositoryPort['getById']>
-> extends infer T
-  ? Exclude<T, null>
-  : never;
+type FeedbackRepositoryRecord =
+  Awaited<ReturnType<FeedbackRepositoryPort['getById']>> extends infer T ? Exclude<T, null> : never;
 
 async function entryShortcut(
   record: AdminFeedbackRecord,

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { type IdentityAccessPort, createNestAdapter } from '@trapmap/backend-core';
+import { createNestAdapter, type IdentityAccessPort } from '@trapmap/backend-core';
 import { createIdentityAccessRouteDefs } from '@trapmap/service-identity-access';
 
 import { AuthGuard } from '../runtime/auth.guard.js';

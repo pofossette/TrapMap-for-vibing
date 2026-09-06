@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { type LlmObservationSink, wrapProvidersWithObservation } from '../src/observability.js';
-import type { AiProviders, ChatProvider, EmbeddingsProvider } from '../src/types.js';
+import type { ChatProvider, EmbeddingsProvider } from '../src/types.js';
 
 function createMockChatProvider(overrides: Partial<ChatProvider> = {}): ChatProvider {
   return {

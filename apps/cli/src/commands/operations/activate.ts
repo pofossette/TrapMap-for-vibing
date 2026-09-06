@@ -1,13 +1,12 @@
-import type { ActivationResponse, ArtifactBundle } from '@trapmap/contracts';
-import { activationResponseSchema } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import { apiRequest, requireSessionToken } from '@trapmap/cli/lib/http.js';
 import {
   materializeSkillDirectory,
   validateOutputPath,
 } from '@trapmap/cli/lib/skill-artifact-export.js';
+import type { ActivationResponse, ArtifactBundle } from '@trapmap/contracts';
+import { activationResponseSchema } from '@trapmap/contracts';
+import type { Command } from 'commander';
 import type { OperationsCommandOptions } from './types.js';
 
 export function registerActivateCommand(program: Command, options: OperationsCommandOptions): void {

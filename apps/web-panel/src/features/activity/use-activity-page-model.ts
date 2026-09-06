@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
 import { getAdminPanelApi } from '@trapmap/web-panel/services/admin-panel-service-context';
 import type { ActivityFeedFilters, ActivityFeedPage } from '@trapmap/web-panel/shared/enum-types';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { loadActivityFeed } from './service';
 
 const initialFilters: ActivityFeedFilters = {

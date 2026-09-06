@@ -5,14 +5,13 @@
  * resolveScriptEffectivePolicy from the activation-policy module.
  */
 
-import type { ScriptActivationPolicy, ScriptWithPolicyMetadata } from '@trapmap/contracts';
-import type { Command } from 'commander';
-
 import {
   explainEffectivePolicy,
   getPolicyDescription,
   resolveScriptEffectivePolicy,
 } from '@trapmap/cli/lib/activation-policy.js';
+import type { ScriptActivationPolicy, ScriptWithPolicyMetadata } from '@trapmap/contracts';
+import type { Command } from 'commander';
 
 interface PolicyCommandOptions {
   allowSearch: boolean;

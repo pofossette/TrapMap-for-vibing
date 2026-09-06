@@ -8,10 +8,10 @@ import type { ServiceDatabase } from '@trapmap/host-distributed/shared/database.
 import { attachRuntimeMetricsRoute } from '@trapmap/host-distributed/shared/observability.js';
 import { createIdentityAccessPgDeps } from '@trapmap/service-identity-access';
 import {
-  type JobRuntimeServer,
   createJobRuntimeAsyncTransport,
   createJobRuntimeDeps,
   createJobRuntimeServer,
+  type JobRuntimeServer,
 } from '@trapmap/service-job-runtime';
 import { z } from 'zod';
 import { attachRuntimeTelemetry } from '../shared/telemetry.js';

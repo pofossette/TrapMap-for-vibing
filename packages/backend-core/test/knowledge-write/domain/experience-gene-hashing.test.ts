@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import { buildExperienceGeneContentProjection } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import {
   createExperienceGeneContentHash,
   createExperienceGeneIdempotencyKey,

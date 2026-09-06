@@ -1,6 +1,5 @@
-import { describe, expect, it } from 'vitest';
-
 import type { ReviewQueueResponse } from '@trapmap/contracts';
+import { describe, expect, it } from 'vitest';
 import { createAdminPanelApi } from '../../../src/services/api/admin-panel-api';
 import type { HttpClient } from '../../../src/services/api/http-client';
 

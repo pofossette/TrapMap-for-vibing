@@ -1,9 +1,8 @@
-import type { KnowledgeEntryResponse, KnowledgeHistoryResponse } from '@trapmap/contracts';
-import { Command } from 'commander';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
 import * as http from '@trapmap/cli/lib/http.js';
 import { createMockEntry } from '@trapmap/cli/testing/cli-test-utils.js';
+import type { KnowledgeHistoryResponse } from '@trapmap/contracts';
+import { Command } from 'commander';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../src/lib/http.js', () => ({
   apiRequest: vi.fn(),

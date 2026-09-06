@@ -1,5 +1,5 @@
-import { validateOtelPolicy } from '@trapmap/contracts';
 import type { OtelPolicyInput, OtelPolicyResult } from '@trapmap/contracts';
+import { validateOtelPolicy } from '@trapmap/contracts';
 
 /**
  * Maximum time (ms) to wait for OTel SDK shutdown before giving up.

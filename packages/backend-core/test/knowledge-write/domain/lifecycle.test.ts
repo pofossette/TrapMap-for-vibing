@@ -1,11 +1,10 @@
+import type { LifecycleState } from '@trapmap/contracts';
 import { describe, expect, it } from 'vitest';
 
-import type { LifecycleState } from '@trapmap/contracts';
-
 import {
-  LIFECYCLE_TRANSITIONS,
   assertValidLifecycleTransition,
   canTransition,
+  LIFECYCLE_TRANSITIONS,
   lifecycleEventType,
   lifecycleOutboxEventName,
 } from '../../../src/knowledge-write/domain/lifecycle.js';

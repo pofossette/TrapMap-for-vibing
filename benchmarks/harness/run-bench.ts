@@ -5,7 +5,7 @@
  * Writes benchmarks/results/*.json ; does NOT fail on threshold unless --check
  */
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 
 const mode = process.argv[2] ?? '--compute';
 mkdirSync('benchmarks/results', { recursive: true });

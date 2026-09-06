@@ -7,7 +7,7 @@
  * of "what evals imports" cannot drift apart.
  */
 
-import { type Dirent, readFileSync, readdirSync } from 'node:fs';
+import { type Dirent, readdirSync, readFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 
 export const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.mts', '.cts']);

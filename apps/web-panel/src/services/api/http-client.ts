@@ -1,4 +1,4 @@
-import { type RequestOptions, type SessionProvider, apiRequest } from '@trapmap/client-core';
+import { apiRequest, type RequestOptions, type SessionProvider } from '@trapmap/client-core';
 
 export type HttpClient = {
   request<T>(options: RequestOptions): Promise<T>;

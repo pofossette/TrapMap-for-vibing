@@ -1,10 +1,10 @@
 import { versionMatchMultiplier } from '@trapmap/backend-core';
 import type { retrievalQuerySchema } from '@trapmap/contracts';
-import { getRetrievalInfra } from '../retrieval-infra.js';
-import type { SkillShareerServices } from '../context.js';
-import type { Pool } from 'pg';
-import { type ScoredEntry, artifactVersionOf } from '../retrieval-types.js';
 import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
+import type { Pool } from 'pg';
+import type { SkillShareerServices } from '../context.js';
+import { getRetrievalInfra } from '../retrieval-infra.js';
+import { artifactVersionOf, type ScoredEntry } from '../retrieval-types.js';
 import type { KnowledgeRecord } from '../store.js';
 
 export interface DbSearchConfig {

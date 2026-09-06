@@ -19,11 +19,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.27",
-    "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.27",
-    "@nestjs/platform-fastify": "^11.1.27",
-    "@sentry/node": "^9.0.0",
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/config": "^12.0.0",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/microservices": "^12.0.1",
+    "@nestjs/platform-fastify": "^12.0.1",
+    "@nestjs/websockets": "^12.0.1",
+    "@sentry/node": "^10.73.0",
     "@opentelemetry/api": "^1.9.0",
     "@trapmap/ai-providers": "workspace:*",
     "@trapmap/assembly": "workspace:*",
@@ -32,6 +34,7 @@
     "@trapmap/infra": "workspace:*",
     "@trapmap/lib": "workspace:*",
     "@trapmap/service-candidate-ingestion": "workspace:*",
+    "@trapmap/service-cron": "workspace:*",
     "@trapmap/service-governance-review": "workspace:*",
     "@trapmap/service-identity-access": "workspace:*",
     "@trapmap/service-job-runtime": "workspace:*",
@@ -50,9 +53,9 @@
     "langfuse": "3.38.20"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.27",
-    "@types/node": "^25.6.0",
+    "@nestjs/testing": "^12.0.1",
+    "@types/node": "^26.4.1",
     "@types/pg": "8.20.0",
-    "vitest": "^3.2.1"
+    "vitest": "^5.0.0"
   }
 }

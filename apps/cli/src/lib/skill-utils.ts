@@ -6,8 +6,11 @@
  * - Apply result display (apply)
  */
 
-import type { ApplyResolutionResponse, CandidateSubmission } from '@trapmap/contracts';
-import type { SkillApplyResult } from '@trapmap/contracts';
+import type {
+  ApplyResolutionResponse,
+  CandidateSubmission,
+  SkillApplyResult,
+} from '@trapmap/contracts';
 
 import { stripNewlines } from './sanitize.js';
 

@@ -5,7 +5,7 @@
  * `createHostLocalRuntime()` runs in the Nest bootstrap (outside cordis) so
  * every node apply stays synchronous and boot is deterministic.
  */
-import { type PilotProfileOptions, composePilotProfile } from './compose.js';
+import { composePilotProfile, type PilotProfileOptions } from './compose.js';
 
 export type LocalAgentProfileOptions = PilotProfileOptions;
 

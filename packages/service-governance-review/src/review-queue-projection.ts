@@ -1,5 +1,8 @@
-import { type ReviewQueueProjectionAuth, filterReviewQueueEntries } from '@trapmap/backend-core';
-import { applyReviewQueueQuery } from '@trapmap/backend-core';
+import {
+  applyReviewQueueQuery,
+  filterReviewQueueEntries,
+  type ReviewQueueProjectionAuth,
+} from '@trapmap/backend-core';
 import {
   type KnowledgeEntry,
   type KnowledgeOwnerPort,
@@ -7,9 +10,9 @@ import {
   type KnowledgeReviewDecisionRecord,
   type KnowledgeReviewNoteRecord,
   type KnowledgeRevisionRecord,
+  knowledgeEntrySchema,
   type ReviewQueueItem,
   type ReviewQueueQuery,
-  knowledgeEntrySchema,
 } from '@trapmap/contracts';
 
 export type { ReviewQueueProjectionAuth } from '@trapmap/backend-core';

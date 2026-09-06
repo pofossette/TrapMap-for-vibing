@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest';
-
-import { createExperienceGeneFixture } from '../../src/domain/experience-gene-fixtures.js';
 import {
   buildExperienceGeneContentProjection,
   experienceGeneLlmOutputSchema,
   experienceGeneModeSchema,
   experienceGeneSchema,
 } from '../../src/domain/experience-gene.js';
+import { createExperienceGeneFixture } from '../../src/domain/experience-gene-fixtures.js';
 
 describe('experience gene contract', () => {
   it('accepts a bounded candidate Gene and defaults optional control arrays', () => {

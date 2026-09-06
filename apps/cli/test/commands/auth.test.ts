@@ -1,6 +1,3 @@
-import { Command } from 'commander';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-
 import { loadCliState } from '@trapmap/cli/lib/config.js';
 import * as http from '@trapmap/cli/lib/http.js';
 import {
@@ -8,6 +5,8 @@ import {
   createMockSessionResponse,
   executeCommandForResult,
 } from '@trapmap/cli/testing/cli-test-utils.js';
+import { Command } from 'commander';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('../../src/lib/http.js', () => ({
@@ -23,8 +22,7 @@ vi.mock('../../src/lib/config.js', () => ({
   ),
 }));
 
-import { clearSession } from '@trapmap/cli/lib/config.js';
-import { updateCliState } from '@trapmap/cli/lib/config.js';
+import { clearSession, updateCliState } from '@trapmap/cli/lib/config.js';
 import { registerAuthCommands } from '../../src/commands/auth.js';
 
 const mockBaseState = {

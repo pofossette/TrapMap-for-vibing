@@ -129,7 +129,12 @@ function createModule(): KnowledgeReadPort {
       teamId: 'team-1',
     })),
     listMine: vi.fn(async () => []),
-    search: vi.fn(async () => ({ results: [], totalEstimate: 0, channel: 'derived-index' })),
+    search: vi.fn(async () => ({
+      globalConstraints: [],
+      projectKnowledge: [],
+      refinementSummary: null,
+      summary: null,
+    })),
     skillLookup: vi.fn(async () => ({ matches: [] })),
     getProjectionStatus: vi.fn(async () => createProjectionStatus()),
     rebuildProjection: vi.fn(async () => createProjectionStatus()),
@@ -217,10 +222,21 @@ describe.each(ADAPTERS)('knowledge-read routes (%s adapter)', (adapter) => {
   it('serves retrieval search from derived read-side state with body passthrough', async () => {
     const module = createModule();
     vi.mocked(module.search).mockResolvedValueOnce({
-      results: [{ entryId: 'entry-1', score: 0.98, snippet: 'hello' }],
-      totalEstimate: 1,
-      channel: 'derived-index',
-      latencyMs: 12,
+      globalConstraints: [],
+      projectKnowledge: [
+        {
+          entryId: 'entry-1',
+          scope: 'project',
+          requiredLevel: 0,
+          shortcut: 'entry-1',
+          detail: 'hello',
+          labels: [],
+          score: 0.98,
+          reason: 'test match',
+        },
+      ],
+      refinementSummary: null,
+      summary: null,
     });
     const app = await buildApp(module, adapter);
 
@@ -232,10 +248,21 @@ describe.each(ADAPTERS)('knowledge-read routes (%s adapter)', (adapter) => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({
-      results: [{ entryId: 'entry-1', score: 0.98, snippet: 'hello' }],
-      totalEstimate: 1,
-      channel: 'derived-index',
-      latencyMs: 12,
+      globalConstraints: [],
+      projectKnowledge: [
+        {
+          entryId: 'entry-1',
+          scope: 'project',
+          requiredLevel: 0,
+          shortcut: 'entry-1',
+          detail: 'hello',
+          labels: [],
+          score: 0.98,
+          reason: 'test match',
+        },
+      ],
+      refinementSummary: null,
+      summary: null,
     });
     expect(module.search).toHaveBeenCalledWith({
       query: 'hello',

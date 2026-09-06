@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { normalizeObservabilityRouteFamily } from '@trapmap/contracts';
-import { Counter, Gauge, Histogram, collectDefaultMetrics, register } from 'prom-client';
+import { Counter, collectDefaultMetrics, Gauge, Histogram, register } from 'prom-client';
 
 /**
  * Prometheus metrics service for host-local.
@@ -22,7 +22,7 @@ export class PrometheusService {
   readonly httpRequestDuration: Histogram | null;
   readonly activeConnections: Gauge | null;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService) {
     const raw = this.config.get<string>('TRAPMAP_METRICS_ENABLED', 'true');
     this.enabled = raw === 'true';
 
