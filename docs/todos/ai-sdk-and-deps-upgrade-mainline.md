@@ -368,3 +368,40 @@
   2. `GET /v1/operations/status` 兼容端点：要产品语义（legacy 定义/日落规则/
      coexistence 条件），已问三次无回复。
   3. 语义质量门：要有效 LLM key（当前 Google leaked、MiMo invalid）。
+
+## 第十六轮进展（本 turn：合入 main + 待办清收，single active 收口）
+
+- 合并：`pre@bb694df9`（610 文件）→ `main@25a06fa3`，24 文本冲突 + 1 重命名/重命名，
+  逐一按语义解（import union 保留 main 新增 json-edit/runtime RouteDefs；
+  `package.json` 取 pre hard-cut + main `test:cli-integration*`；`biome.json` 取
+  Biome 2 `includes[]`；plan/README 按合并态重组）。main 侧 Biome 2 摩擦 7 文件
+  已行为保持修复。
+- 阻塞 #2 关闭（compat-status）：核查权威面发现 `GET /v1/operations/status`
+  早在 d90eb4fa 由网关退役（`docs/reference/api-surface.md` 退役表 +
+  `SURFACE_INVENTORY_DRIFT`），缺的不是服务端实现而是 CLI 侧残留。已退役
+  CLI `status` 命令（删 `status.ts` + 注册/export/`allowStatus` plumbing +
+  相关单测 60/60 全绿），contracts schema 保留（共享类型 + 自有单测）。
+- CLI 单测隔离修复：`http.test.ts`（cli）与 `api-request.test.ts`（client-core）
+  的 network-failure 用例被常驻 live 网关（:4000）掩盖 statusCode-0 路径
+  （client-core localhost fallback 会连上真网关）。改走保证关闭的
+  `127.0.0.1:9` + 前缀断言，两处全绿（28/28、21/21）。
+- Wave 6 清零：`check:asserts` 34→0。gov-review 路由的 `module as unknown as
+  Record` 全是冗余桥接——Deps 类型经 `ReviewPort` 早已声明对应端口
+  （admin/asyncCommands/conflictWorkflow/projection/getOperatorStatus），
+  改为直接访问；`withAdminActor` 返回类型诚实化
+  （`Promise<T> | RouteSuccess`）；`governanceRouteDef` 参数收紧
+  （`HttpMethod` + 直接返回）；entry 散读降为单 `as`（实证可编译）；
+  client-core 用真 `Response` 替代 mock 造型；pg-ports 删冗余复述断言。
+  豁免表已 `--record` 归零。回归：gov-routes 38、cli 全量绿、candidate
+  pg-ports 17、`typecheck`/Biome/`check:docs/structure/fallow` 绿。
+- 阻塞 #1 进展（Docker，还差一格）：rootlesskit 2.3.4 + slirp4netns 1.3.1
+  已装至 `~/.local/bin`，wrapper `dockerd-rootless-wrap.sh` 就绪（处理
+  symlink farm + `--rootless -s vfs --iptables=false`）；daemon 已能走到
+  network controller。硬墙：内核 `bridge` 模块未加载且无权限装载
+  （`--bridge=none` 外 compose 的 bridge 网络 + 端口发布跑不起来）。
+  解锁只需一次 root：`modprobe bridge veth`（overlayfs 可选，vfs 可跑），
+  然后重跑 wrapper 即可。`eval:smoke`/compose closeout 仍待 daemon。
+- 阻塞 #3 复探：env/常用落点无可用 LLM key（昔日 Google leaked、MiMo
+  invalid），语义质量门继续等待外部凭证。
+- 收口：根 `plan.md` + `todos/README.md` 已收敛为 single active mainline
+  （本主线），cli-integration Phase 4-5 与 Web Panel 列为排队项。

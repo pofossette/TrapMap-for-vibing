@@ -10,7 +10,7 @@ pnpm check:asserts || exit 1
 pnpm check:docs || exit 1
 
 # Run fallow boundary and dependency check (fail only on critical new issues)
-pnpm exec fallow list --boundaries --format json --quiet | grep -q '"configured": true' || {
+pnpm exec fallow list --boundaries --format json --quiet | grep -Eq '"configured": ?true' || {
   echo "Fallow boundaries not configured. Run 'fallow list --boundaries' to check."
   exit 1
 }

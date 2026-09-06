@@ -32,7 +32,7 @@ export function createGovernanceAdminRouteDefs(): RouteDef<
       handler: (ctx, module) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const admin = (module as unknown as Record<string, unknown>).admin as
+        const admin = module.admin as
           | { listRemediation?: (a: unknown) => Promise<unknown> }
           | undefined;
         if (!admin?.listRemediation) throw InvocationError.unavailable('Admin unavailable');
@@ -51,7 +51,7 @@ export function createGovernanceAdminRouteDefs(): RouteDef<
       handler: (ctx, module) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const admin = (module as unknown as Record<string, unknown>).admin as
+        const admin = module.admin as
           | { getRemediation?: (a: unknown) => Promise<unknown> }
           | undefined;
         if (!admin?.getRemediation) throw InvocationError.unavailable('Admin unavailable');
@@ -68,7 +68,7 @@ export function createGovernanceAdminRouteDefs(): RouteDef<
       handler: async (ctx, module) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const admin = (module as unknown as Record<string, unknown>).admin as
+        const admin = module.admin as
           | { completeRemediation?: (a: unknown) => Promise<unknown> }
           | undefined;
         if (!admin?.completeRemediation) throw InvocationError.unavailable('Admin unavailable');
@@ -126,10 +126,7 @@ export function createGovernanceAdminRouteDefs(): RouteDef<
       schema: healthSchema,
       handler: async (_ctx, module) => {
         try {
-          const details =
-            (await (module as unknown as Record<string, unknown>).getOperatorStatus?.call(
-              module,
-            )) ?? {};
+          const details = (await module.getOperatorStatus?.call(module)) ?? {};
           return {
             service: 'governance-review',
             owner: GOVERNANCE_REVIEW_OWNERSHIP.boundedContext,

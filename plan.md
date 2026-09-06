@@ -12,11 +12,12 @@
 
 ## 当前主线
 
-- **CLI 真实服务对接测试（Three-Artifact Live Verification + Docker 资源观测）已激活（2026-09-02）：** 三构建产物（A light `trap-map-host-local` / B heavy-Node `trap-map-server` / C heavy+Go `knowledge-read-go+go-accelerator`）各 ≥3 轮 CLI 全量回归 + `docker stats`/`system df` CPU/内存/磁盘量化，细则见 [cli-server-integration-mainline.md](docs/todos/cli-server-integration-mainline.md)（Phase 0 基建 → Phase 1 light → Phase 2 heavy → Phase 3 heavy+Go → Phase 4 综合报告 → Phase 5 自动化 closeout）。
+- **依赖升级与 AI SDK 统一（single active mainline，2026-09-06 收口）：** TypeScript pin 6.0.3 + Biome 2 / Nest 12 依赖波、langchain 移除、Vercel AI SDK provider 统一（`@trapmap/ai-providers` 集中 LLM/embedding 调用），pre 已合入 main（`25a06fa3`）。本轮收尾：compat-status 走服务端退役对齐（CLI `status` 命令已退役，见 d90eb4fa 退役决议）、Wave 6 裸断言清零（`check:asserts` 绿）、CLI/http 单测隔离修复。剩余外部阻塞：Docker daemon（rootless 地基就绪，仅缺 bridge 内核模块一次 root 装载）、有效 LLM key（语义质量门）。细则与执行记录见 [ai-sdk-and-deps-upgrade-mainline.md](docs/todos/ai-sdk-and-deps-upgrade-mainline.md)。
 
-- **依赖升级与 AI SDK 统一已合入（2026-09-06）：** TypeScript pin 6.0.3 + Biome 2 / Nest 12 依赖波、langchain 移除、Vercel AI SDK 最新版 provider 统一（`@trapmap/ai-providers` 集中 LLM/embedding 调用），细则与执行记录见 [ai-sdk-and-deps-upgrade-mainline.md](docs/todos/ai-sdk-and-deps-upgrade-mainline.md)（外部阻塞：Docker daemon / compat-status 产品语义 / 有效 LLM key，待输入后继续验证）。
+## 已排队（按顺序，非 active）
 
-- **Web Panel 功能补全与 UI 美化优化为 active execution surface（pre 侧 2026-09-03 恢复）：** 该主线原为 paused successor，已于 Experience Gene 归档时经 `git mv docs/plans/web-panel-feature-and-ui-optimization-paused.md → docs/todos/web-panel-feature-and-ui-optimization.md` 恢复；与 CLI 主线存在 active 并行，待 owner 收口为单一 active mainline。执行顺序、owner、证据与问题池以 [web-panel-feature-and-ui-optimization.md](docs/todos/web-panel-feature-and-ui-optimization.md) 为准。
+- **CLI 真实服务对接测试 Phase 4-5：** Phase 1-3 已完成，三产物 CLI 全量回归 + Docker 资源观测量化见 [cli-server-integration-mainline.md](docs/todos/cli-server-integration-mainline.md)；Phase 4 综合报告与 Phase 5 自动化 closeout 待当前主线外部阻塞解除后接续（其中 Docker 资源观测依赖 daemon）。
+- **Web Panel 功能补全与 UI 美化：** main 侧 2026-09-02 已归档 39/39（见归档），pre 侧 2026-09-03 又恢复为 active——两者冲突，本次收口暂列为排队项，恢复执行需 owner 另行确认；细则见 [web-panel-feature-and-ui-optimization.md](docs/todos/web-panel-feature-and-ui-optimization.md)。
 
 ## 下一候选
 
@@ -24,7 +25,7 @@
 
 ## 历史主线与入口
 
-- **Web Panel 功能补全与 UI 美化优化 main 侧曾于 2026-09-02 归档：** Phase 0-4 39/39（7-route baseline 18 images + Phase2 runtime-overview + json-edits 双宿主），`check:docs/structure/complexity` green，见 [web-panel-feature-and-ui-optimization-archived.md](docs/archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md)。注：pre 侧 2026-09-03 又恢复为 active（见上），以收口结论为准。
+- **Web Panel 功能补全与 UI 美化优化 main 侧曾于 2026-09-02 归档：** Phase 0-4 39/39（7-route baseline 18 images + Phase2 runtime-overview + json-edits 双宿主），`check:docs/structure/complexity` green，见 [web-panel-feature-and-ui-optimization-archived.md](docs/archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md)。注：pre 侧 2026-09-03 曾恢复为 active，2026-09-06 已收口为排队项（见上）。
 - **Go 计算中枢深化已完成并归档（2026-09-02）：** P0 `generate:contracts:check` 22 schemas + `go vet/test` ok，见 [go-compute-hub-mainline-archived.md](docs/archived/archived-plans/go-compute-hub-mainline-archived.md)。
 - **跨语言类型对齐已完成并归档（2026-09-02）：** P0 `Zod→JSON Schema→Go` 22 schemas sync，见 [type-alignment-mainline-archived.md](docs/archived/archived-plans/type-alignment-mainline-archived.md)。
 - **Experience Gene Infrastructure and Pipeline 已完成并归档（2026-09-03）：** 5 阶段串行（infra → contracts/storage → derivation → retrieval/activation → governance/evaluation/rollout）全部完成，deterministic offline precision 1.0 / promotionEligible true，20-Gene 治理抽样与 rollback 验证均绿，架构已标注两篇论文灵感。归档见 [experience-gene-program-mainline-archived.md](docs/archived/archived-plans/experience-gene-program-mainline-archived.md) 及其 5 个 delegated phase 归档，验证命令见主细则 `Execution record` 与第四检查点。

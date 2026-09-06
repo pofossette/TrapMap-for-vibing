@@ -81,21 +81,16 @@ export async function apiRequest<T>(
               const chunks: Buffer[] = [];
               res.on('data', (c: Buffer) => chunks.push(c));
               res.on('end', () => {
-                const text = Buffer.concat(chunks).toString('utf8');
-                const headersMap = new Map<string, string>();
+                const headerRecord: Record<string, string> = {};
                 for (const [k, v] of Object.entries(
                   res.headers as Record<string, string | string[] | undefined>,
                 )) {
-                  if (typeof v === 'string') headersMap.set(k.toLowerCase(), v);
-                  else if (Array.isArray(v)) headersMap.set(k.toLowerCase(), v.join(', '));
+                  if (typeof v === 'string') headerRecord[k.toLowerCase()] = v;
+                  else if (Array.isArray(v)) headerRecord[k.toLowerCase()] = v.join(', ');
                 }
-                const mockResponse = {
-                  ok: (res.statusCode ?? 500) >= 200 && (res.statusCode ?? 500) < 300,
-                  status: res.statusCode ?? 500,
-                  headers: { get: (name: string) => headersMap.get(name.toLowerCase()) ?? null },
-                  text: async () => text,
-                } as unknown as Response;
-                resolve(mockResponse);
+                resolve(
+                  new Response(text, { status: res.statusCode ?? 500, headers: headerRecord }),
+                );
               });
             },
           );

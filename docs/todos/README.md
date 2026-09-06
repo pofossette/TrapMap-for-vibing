@@ -10,7 +10,7 @@
 |---|---|---|
 | [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Active mainline；2026-09-03 恢复（原 paused successor，5 阶段：Phase 0 token → Phase 1 Session/RBAC → Phase 2 Admin Contracts/Routes → Phase 3 Feature Completion → Phase 4/5 Polish & Perf） |
 | [gene-retrieval-eval.md](gene-retrieval-eval.md) | Gene 检索评测扩展（模仿四路检索新增 gene PG 评测） | Active detail（并行，2026-09-06 落规格）；T0 健康基线门控 → T1 types → (T2 scenarios ‖ T4 adapters) → T3 datasets → T5 metrics/governance → T6 runner/bridge；后续按 subagent-driven 并行执行 |
-| [ai-sdk-and-deps-upgrade-mainline.md](ai-sdk-and-deps-upgrade-mainline.md) | 依赖升级与 AI SDK 统一（TS 6.0.3 / Biome 2 / Nest 12 / langchain 移除 / AI SDK provider 统一） | Active mainline（2026-09-06 合入 main；外部阻塞：Docker daemon / compat-status 产品语义 / 有效 LLM key，待输入后继续验证） |
+| [ai-sdk-and-deps-upgrade-mainline.md](ai-sdk-and-deps-upgrade-mainline.md) | 依赖升级与 AI SDK 统一（TS 6.0.3 / Biome 2 / Nest 12 / langchain 移除 / AI SDK provider 统一） | **Single active mainline**（2026-09-06 合入 main + 收口；compat-status 已按退役决议关闭、Wave 6 清零；剩余外部阻塞：Docker daemon（rootless 就绪、缺 bridge 模块）、有效 LLM key） |
 | [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
 | [experience-gene-program-mainline-archived.md](../archived/archived-plans/experience-gene-program-mainline-archived.md) | Experience Gene Infrastructure and Pipeline | 已完成并归档（2026-09-02，offline precision 1.0 + promotion eligible true，live CI deferred）；6 文件 mainline+5 phases |
@@ -53,9 +53,7 @@
 
 ## 当前状态说明
 
-**当前 active 主线为三并行（待 owner 收口为单一 active mainline）：CLI 真实服务对接测试（[cli-server-integration-mainline.md](cli-server-integration-mainline.md)，2026-09-02 激活，Phase 1-3 已完成）＋ Web Panel 功能补全与 UI 美化优化（[web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md)，2026-09-03 由 paused successor 恢复）＋ 依赖升级与 AI SDK 统一（[ai-sdk-and-deps-upgrade-mainline.md](ai-sdk-and-deps-upgrade-mainline.md)，2026-09-06 合入，外部阻塞待输入）。** 并行 active detail 见 [gene-retrieval-eval.md](gene-retrieval-eval.md)（Gene PG 检索评测，T0 门控，T1-T6 待 subagent dispatch）。Experience Gene 已于 2026-09-03 归档至 [`experience-gene-program-mainline-archived.md`](../archived/archived-plans/experience-gene-program-mainline-archived.md) 及其 5 个 delegated phase。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪（豁免清单已清零，存量 34 处待 Wave 6 清理）。
-
-并行双轨（已合入 `pre` 待深化）：
+**当前 active 主线唯一：依赖升级与 AI SDK 统一（[ai-sdk-and-deps-upgrade-mainline.md](ai-sdk-and-deps-upgrade-mainline.md)，2026-09-06 收口）。** CLI 真实服务对接测试（Phase 1-3 已完成，Phase 4-5 排队）与 Web Panel（归档/恢复争议，排队待确认）见 `plan.md` 已排队节。并行 active detail 见 [gene-retrieval-eval.md](gene-retrieval-eval.md)（Gene PG 检索评测，T0 门控，T1-T6 待 subagent dispatch）。Experience Gene 已于 2026-09-03 归档。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪（2026-09-06 已清零，`check:asserts` 绿）。并行双轨（已合入 `pre` 待深化）：
 - **Go 计算中枢**：`go-accelerator-mainline.md` scaffold 已合入 `pre@a9b413b5`，深化见 [`go-compute-hub-mainline.md`](go-compute-hub-mainline.md)（P0 批余弦/回退向量/hash 接线 → P1 ranking/keyword 批处理 → P2 dedup/派生管线 → P3 缓存/proto 可选）。
 - **Skill Registry**：`skill-registry-mainline.md` 已合入 `pre@a9b413b5`，子包 `@trapmap/skill-registry` 抽离完成。
 - **类型对齐**：[`type-alignment-mainline.md`](type-alignment-mainline.md) 以 `Zod(contracts) -> JSON Schema -> Go` 为 P0，`OpenAPI contract-first` 为 P1，`proto+buf` 为 P2（benchmark gated），为计算中枢提供类型门禁（`pnpm generate:contracts --check` + `git diff --exit-code`）。

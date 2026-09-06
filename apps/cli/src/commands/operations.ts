@@ -16,7 +16,6 @@ import {
   registerImportCommand,
   registerListCommand,
   registerMigrateCommand,
-  registerStatusCommand,
 } from './operations/index.js';
 import type { OperationsCommandOptions } from './operations/types.js';
 
@@ -36,6 +35,5 @@ export function registerOperationsCommands(
   registerImportCommand(program, options);
   registerActivateCommand(program, options);
   registerMigrateCommand(program, options);
-  registerStatusCommand(program, options);
   registerCapsuleIndexCommand(program, options);
 }

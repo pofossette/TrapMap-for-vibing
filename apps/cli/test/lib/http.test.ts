@@ -301,10 +301,24 @@ describe('apiRequest', () => {
     it('should include the request URL when fetch throws', async () => {
       mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
 
-      await expect(apiRequest(defaultState, { path: '/v1/auth/session' })).rejects.toMatchObject({
-        statusCode: 0,
-        message: 'Request to http://localhost:4000/v1/auth/session failed: fetch failed',
-      });
+      // NOTE: client-core falls back to raw node:http for localhost fetch failures,
+      // so this case must target a guaranteed-closed port (a live gateway on :4000
+      // would answer the fallback and mask the statusCode-0 path).
+      const error = await apiRequest(defaultState, {
+        path: '/v1/auth/session',
+        gatewayUrl: 'http://127.0.0.1:9',
+      }).then(
+        () => {
+          throw new Error('expected apiRequest to reject');
+        },
+        (e: unknown) => e,
+      );
+      expect(error).toMatchObject({ statusCode: 0 });
+      expect(
+        String((error as { message?: unknown }).message).startsWith(
+          'Request to http://127.0.0.1:9/v1/auth/session failed: ',
+        ),
+      ).toBe(true);
     });
   });
 

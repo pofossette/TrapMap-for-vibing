@@ -8,5 +8,4 @@ export { registerExportCommand } from './export.js';
 export { registerImportCommand } from './import.js';
 export { registerListCommand } from './list.js';
 export { registerMigrateCommand } from './migrate.js';
-export { registerStatusCommand } from './status.js';
 export type { OperationsCommandOptions } from './types.js';

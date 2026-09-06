@@ -100,7 +100,7 @@ describe('CLI operations commands (Phase 13)', () => {
       allowDeactivate: false,
       allowList: true,
       allowActivate: true,
-      allowStatus: true,
+
       allowMigrate: true,
       allowCapsuleIndex: true,
     });
@@ -380,7 +380,7 @@ describe('CLI operations commands (Phase 13)', () => {
         allowDeactivate: false,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -662,26 +662,6 @@ describe('CLI operations commands (Phase 13)', () => {
       sessionToken: 'test-token',
     };
 
-    const mockStatusResponse = {
-      data: {
-        totalLegacyEntries: 100,
-        migratedEntriesCount: 50,
-        unmigratedEntriesCount: 50,
-        totalArtifacts: 60,
-        artifactsBySourceKind: {
-          'skill-directory': 5,
-          'single-skill-md': 5,
-          'legacy-knowledge': 50,
-        },
-        unmigratedEntryIds: ['knowledge_10', 'knowledge_11'],
-        coexistenceActive: true,
-        sunsetReady: false,
-        sunsetBlockers: ['50 unmigrated entries remaining'],
-        reportedAt: '2024-01-01T00:00:00Z',
-      },
-      sessionToken: 'test-token',
-    };
-
     beforeEach(async () => {
       mockedApiRequest.mockReset();
       mockedLoadCliState.mockReset();
@@ -696,7 +676,7 @@ describe('CLI operations commands (Phase 13)', () => {
         allowDeactivate: false,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -812,70 +792,6 @@ describe('CLI operations commands (Phase 13)', () => {
         await expect(migrationProgram.parseAsync(['node', 'test', 'migrate'])).rejects.toThrow();
       });
     });
-
-    describe('status command', () => {
-      beforeEach(() => {
-        mockedApiRequest.mockResolvedValue(mockStatusResponse);
-      });
-
-      it('should call status endpoint', async () => {
-        await migrationProgram.parseAsync(['node', 'test', 'status']);
-
-        expect(mockedApiRequest).toHaveBeenCalledWith(
-          mockState,
-          expect.objectContaining({
-            path: '/v1/operations/status',
-          }),
-        );
-      });
-
-      it('should call status endpoint with team filter', async () => {
-        await migrationProgram.parseAsync(['node', 'test', 'status', '--team', 'team_1']);
-
-        expect(mockedApiRequest).toHaveBeenCalledWith(
-          mockState,
-          expect.objectContaining({
-            path: '/v1/operations/status?teamId=team_1',
-          }),
-        );
-      });
-
-      it('should provide human-readable output with migration status', async () => {
-        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-        await migrationProgram.parseAsync(['node', 'test', 'status']);
-
-        const calls = consoleSpy.mock.calls;
-        expect(calls.length).toBeGreaterThan(0);
-        const output = calls[0]?.[0] as string;
-        expect(output).toContain('Legacy entries: 100');
-        expect(output).toContain('Migrated: 50');
-        expect(output).toContain('Unmigrated: 50');
-        expect(output).toContain('Total artifacts: 60');
-        expect(output).toContain('Sunset ready: false');
-
-        consoleSpy.mockRestore();
-      });
-
-      it('should provide stable JSON output with status fields', async () => {
-        const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-        await migrationProgram.parseAsync(['node', 'test', 'status', '--json']);
-
-        const calls = consoleSpy.mock.calls;
-        expect(calls.length).toBeGreaterThan(0);
-        const output = calls[0]?.[0] as string;
-        const parsed = JSON.parse(output);
-        expect(parsed.totalLegacyEntries).toBe(100);
-        expect(parsed.migratedEntriesCount).toBe(50);
-        expect(parsed.unmigratedEntriesCount).toBe(50);
-        expect(parsed.totalArtifacts).toBe(60);
-        expect(parsed.sunsetReady).toBe(false);
-        expect(parsed.sunsetBlockers).toHaveLength(1);
-
-        consoleSpy.mockRestore();
-      });
-    });
   });
 });
 
@@ -899,7 +815,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -919,7 +835,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: false,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -938,32 +854,13 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: false,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
 
       const commands = program.commands.map((c) => c.name());
       expect(commands).not.toContain('activate');
-    });
-  });
-
-  describe('allowStatus=false should hide status command', () => {
-    it('should not register status command when allowStatus=false', () => {
-      registerOperationsCommands(program, {
-        allowImport: true,
-        allowExport: true,
-        allowEdit: true,
-        allowDeactivate: true,
-        allowList: true,
-        allowActivate: true,
-        allowStatus: false,
-        allowMigrate: true,
-        allowCapsuleIndex: true,
-      });
-
-      const commands = program.commands.map((c) => c.name());
-      expect(commands).not.toContain('status');
     });
   });
 
@@ -976,7 +873,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -993,7 +890,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1012,7 +909,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: false,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1029,7 +926,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1048,7 +945,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1065,7 +962,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1084,7 +981,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: false,
         allowCapsuleIndex: false,
       });
@@ -1101,7 +998,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1120,7 +1017,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: false,
       });
@@ -1137,7 +1034,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1148,7 +1045,7 @@ describe('Phase 85: Permission guards', () => {
   });
 
   describe('All permissions enabled should register all commands', () => {
-    it('should register all 10 command names when all permissions are true', () => {
+    it('should register all 9 command names when all permissions are true', () => {
       registerOperationsCommands(program, {
         allowImport: true,
         allowExport: true,
@@ -1156,7 +1053,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: true,
         allowList: true,
         allowActivate: true,
-        allowStatus: true,
+
         allowMigrate: true,
         allowCapsuleIndex: true,
       });
@@ -1173,7 +1070,6 @@ describe('Phase 85: Permission guards', () => {
           'import',
           'list',
           'migrate',
-          'status',
         ].sort(),
       );
     });
@@ -1188,7 +1084,7 @@ describe('Phase 85: Permission guards', () => {
         allowDeactivate: false,
         allowList: false,
         allowActivate: false,
-        allowStatus: false,
+
         allowMigrate: false,
         allowCapsuleIndex: false,
       });
@@ -1200,7 +1096,7 @@ describe('Phase 85: Permission guards', () => {
 });
 
 describe('Phase 85: Barrel export completeness', () => {
-  it('should export all 9 register functions from operations/index.ts', async () => {
+  it('should export all 8 register functions from operations/index.ts', async () => {
     const barrel = await import('../../src/commands/operations/index.js');
 
     expect(typeof barrel.registerListCommand).toBe('function');
@@ -1210,7 +1106,6 @@ describe('Phase 85: Barrel export completeness', () => {
     expect(typeof barrel.registerImportCommand).toBe('function');
     expect(typeof barrel.registerActivateCommand).toBe('function');
     expect(typeof barrel.registerMigrateCommand).toBe('function');
-    expect(typeof barrel.registerStatusCommand).toBe('function');
     expect(typeof barrel.registerCapsuleIndexCommand).toBe('function');
   });
 
@@ -1246,7 +1141,7 @@ describe('Phase 2: Input validation', () => {
         allowDeactivate: true,
         allowList: false,
         allowActivate: false,
-        allowStatus: false,
+
         allowMigrate: false,
         allowCapsuleIndex: false,
       });
@@ -1267,7 +1162,7 @@ describe('Phase 2: Input validation', () => {
         allowDeactivate: true,
         allowList: false,
         allowActivate: false,
-        allowStatus: false,
+
         allowMigrate: false,
         allowCapsuleIndex: false,
       });
@@ -1292,7 +1187,7 @@ describe('Phase 2: Input validation', () => {
         allowDeactivate: false,
         allowList: false,
         allowActivate: false,
-        allowStatus: false,
+
         allowMigrate: false,
         allowCapsuleIndex: false,
       });
@@ -1314,7 +1209,7 @@ describe('Phase 2: Input validation', () => {
         allowDeactivate: false,
         allowList: false,
         allowActivate: false,
-        allowStatus: false,
+
         allowMigrate: false,
         allowCapsuleIndex: false,
       });
@@ -1382,7 +1277,7 @@ describe('Phase 2: Input validation', () => {
         allowDeactivate: false,
         allowList: false,
         allowActivate: false,
-        allowStatus: false,
+
         allowMigrate: false,
         allowCapsuleIndex: false,
       });
@@ -1402,7 +1297,7 @@ describe('Phase 2: Input validation', () => {
 });
 
 describe('Phase 85: Thin router delegation', () => {
-  it('should have exactly 9 registerXxxCommand calls in operations.ts', async () => {
+  it('should have exactly 8 registerXxxCommand calls in operations.ts', async () => {
     const { readFileSync } = await import('node:fs');
     const { resolve } = await import('node:path');
 
@@ -1411,7 +1306,7 @@ describe('Phase 85: Thin router delegation', () => {
 
     // Count all registerXxxCommand(program, options) calls
     const registerCalls = content.match(/register\w+Command\(program,\s*options\)/g);
-    expect(registerCalls).toHaveLength(9);
+    expect(registerCalls).toHaveLength(8);
   });
 
   it('should have registerOperationsCommands export in operations.ts', async () => {
@@ -1488,7 +1383,7 @@ describe('fm-agent freeze: live gaps', () => {
       allowDeactivate: true,
       allowList: false,
       allowActivate: false,
-      allowStatus: false,
+
       allowMigrate: false,
       allowCapsuleIndex: false,
     });
@@ -1511,7 +1406,7 @@ describe('fm-agent freeze: live gaps', () => {
       allowDeactivate: true,
       allowList: false,
       allowActivate: false,
-      allowStatus: false,
+
       allowMigrate: false,
       allowCapsuleIndex: false,
     });
@@ -1542,7 +1437,7 @@ describe('fm-agent freeze: live gaps', () => {
       allowDeactivate: false,
       allowList: false,
       allowActivate: false,
-      allowStatus: false,
+
       allowMigrate: false,
       allowCapsuleIndex: false,
     });
@@ -1575,7 +1470,7 @@ describe('CLI capsule-index commands', () => {
       allowDeactivate: false,
       allowList: false,
       allowActivate: false,
-      allowStatus: false,
+
       allowMigrate: false,
       allowCapsuleIndex: true,
     });

@@ -37,7 +37,7 @@ export function createGovernanceQueueRouteDefs(): RouteDef<
       handler: async (ctx, deps) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const query = ctx.query as unknown as AdminReviewQueueQuery;
+        const query = ctx.query as AdminReviewQueueQuery;
         const auth = getGovernanceAuth((ctx.headers as Record<string, unknown>) ?? {});
         const allEntries = await fetchAllReviewEntries(deps);
         const governed = filterReviewQueueEntries(allEntries, {
@@ -59,7 +59,7 @@ export function createGovernanceQueueRouteDefs(): RouteDef<
         };
         const result = applyReviewQueueQuery(
           teamScoped,
-          queueQuery as unknown as Parameters<typeof applyReviewQueueQuery>[1],
+          queueQuery as Parameters<typeof applyReviewQueueQuery>[1],
         );
         const items = result.items.map(toReviewQueueItem);
         return {
@@ -92,7 +92,7 @@ export function createGovernanceQueueRouteDefs(): RouteDef<
       handler: async (ctx, deps) => {
         const actor = readAdminActor((ctx.headers as Record<string, unknown>) ?? {}, ctx.body);
         if (isRouteResponse(actor)) return actor;
-        const query = ctx.query as unknown as {
+        const query = ctx.query as {
           actor?: string;
           type?: string;
           search?: string;
@@ -154,18 +154,9 @@ export function createGovernanceQueueRouteDefs(): RouteDef<
           ...(note !== undefined ? { note } : {}),
           ...(body.evidence !== undefined ? { evidence: body.evidence } : {}),
         };
-        if (body.decision === 'approve')
-          return (deps as unknown as Record<string, (a: unknown) => Promise<unknown>>).approve(
-            input,
-          );
-        if (body.decision === 'reject')
-          return (deps as unknown as Record<string, (a: unknown) => Promise<unknown>>).reject(
-            input,
-          );
-        if (body.decision === 'return-for-correction')
-          return (
-            deps as unknown as Record<string, (a: unknown) => Promise<unknown>>
-          ).returnForCorrection(input);
+        if (body.decision === 'approve') return deps.approve(input);
+        if (body.decision === 'reject') return deps.reject(input);
+        if (body.decision === 'return-for-correction') return deps.returnForCorrection(input);
         throw InvocationError.validation('Unsupported decision');
       },
     }),

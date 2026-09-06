@@ -430,7 +430,7 @@ export function createCandidateIngestionPgOwnerBundle(
           candidateId,
         ]);
         const existing = rows[0]?.analysis as AnalysisSnapshot | null;
-        if (existing && sameAnalysis(existing as unknown as AnalysisSnapshot, snapshot)) return;
+        if (existing && sameAnalysis(existing, snapshot)) return;
         // fallback for legacy row shape
         if (rows[0]?.fingerprint && sameAnalysis(rowToAnalysis(rows[0] as Row), snapshot)) return;
         await writeAnalysis(client, candidateId, snapshot);

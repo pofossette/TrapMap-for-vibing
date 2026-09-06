@@ -32,9 +32,7 @@ export function createGovernanceFeedbackRouteDefs(): RouteDef<
         const body = ctx.body as Record<string, unknown>;
         if (body.actorId !== undefined && body.actorId !== requestActorId)
           throw InvocationError.forbidden('Body actor does not match authenticated actor');
-        return (
-          module as unknown as Record<string, (a: unknown) => Promise<unknown>>
-        ).submitFeedback({ ...(body as object), actorId: requestActorId as string });
+        return module.submitFeedback({ ...(body as object), actorId: requestActorId as string });
       },
     }),
     governanceRouteDef({
@@ -42,14 +40,9 @@ export function createGovernanceFeedbackRouteDefs(): RouteDef<
       path: '/internal/feedback/async/remediation-reactivation',
       schema: remediationReactivationSchema,
       handler: async (ctx, module) => {
-        if (!(module as unknown as Record<string, unknown>).asyncCommands)
+        if (!module.asyncCommands)
           throw InvocationError.unavailable('Governance async commands unavailable');
-        await (
-          module as unknown as Record<
-            string,
-            { reactivateRemediation: (a: unknown) => Promise<void> }
-          >
-        ).asyncCommands.reactivateRemediation(ctx.body);
+        await module.asyncCommands.reactivateRemediation(ctx.body);
         return { ok: true };
       },
     }),
@@ -58,11 +51,9 @@ export function createGovernanceFeedbackRouteDefs(): RouteDef<
       path: '/internal/feedback/async/badcase-export-draft',
       schema: badcaseExportDraftSchema,
       handler: async (ctx, module) => {
-        if (!(module as unknown as Record<string, unknown>).asyncCommands)
+        if (!module.asyncCommands)
           throw InvocationError.unavailable('Governance async commands unavailable');
-        await (
-          module as unknown as Record<string, { exportBadcaseDraft: (a: unknown) => Promise<void> }>
-        ).asyncCommands.exportBadcaseDraft(ctx.body);
+        await module.asyncCommands.exportBadcaseDraft(ctx.body);
         return { ok: true };
       },
     }),
@@ -71,12 +62,7 @@ export function createGovernanceFeedbackRouteDefs(): RouteDef<
       path: '/internal/governance-review/retrieval-projection',
       schema: retrievalProjectionSchema,
       handler: async (ctx, module) => {
-        const proj = (module as unknown as Record<string, unknown>).governanceRetrievalProjection as
-          | {
-              listFeedback: () => Promise<unknown>;
-              listConflicts: (ids: string[]) => Promise<unknown>;
-            }
-          | undefined;
+        const proj = module.governanceRetrievalProjection;
         if (!proj) throw InvocationError.unavailable('Governance retrieval projection unavailable');
         const [feedback, conflicts] = await Promise.all([
           proj.listFeedback(),

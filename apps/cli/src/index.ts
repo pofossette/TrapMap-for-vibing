@@ -170,7 +170,6 @@ registerOperationsCommands(program, {
   allowImport: visibility.allowKnowledgeImport,
   allowList: visibility.allowKnowledgeExport,
   allowActivate: visibility.allowKnowledgeExport,
-  allowStatus: visibility.allowKnowledgeExport,
   allowMigrate: visibility.allowKnowledgeImport,
   allowCapsuleIndex: visibility.allowKnowledgeUpdate,
 });

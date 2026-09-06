@@ -9,6 +9,7 @@ import type {
 } from '@trapmap/backend-core';
 import {
   createServiceReadinessHandler,
+  type HttpMethod,
   InvocationError,
   isRouteResponse,
   type RouteContext,
@@ -312,9 +313,9 @@ export function withAdminActor<T>(
   module: GovernanceReviewRouteDeps,
   ctx: RouteContext,
   fn: (admin: GovernanceReviewAdminPort, actorId: string) => Promise<T>,
-): Promise<T> {
+): Promise<T> | RouteSuccess {
   const actor = readAdminActor(ctx.headers ?? {}, ctx.body);
-  if (isRouteResponse(actor)) return actor as unknown as Promise<T>;
+  if (isRouteResponse(actor)) return actor;
   if (!module.admin) throw InvocationError.unavailable('Admin unavailable');
   return fn(module.admin, actor as string);
 }
@@ -335,13 +336,13 @@ export function readinessHandler(deps: GovernanceReviewRouteDeps) {
 }
 
 export function governanceRouteDef<Ctx extends RouteContext>(def: {
-  method: string;
+  method: HttpMethod;
   path: string;
   schema: ZodType;
   successStatus?: number;
   handler: (ctx: Ctx, deps: GovernanceReviewRouteDeps) => Promise<unknown>;
 }): RouteDef<Ctx, GovernanceReviewRouteDeps> {
-  return def as unknown as RouteDef<Ctx, GovernanceReviewRouteDeps>;
+  return def;
 }
 
 export function getGovernanceAuth(headers: Record<string, unknown>): {
@@ -375,17 +376,15 @@ export function getGovernanceAuth(headers: Record<string, unknown>): {
 export function toReviewQueueItem(entry: KnowledgeEntry) {
   return {
     entry,
-    agentReview: (entry as unknown as Record<string, unknown>).agentReview ?? null,
-    submittedBy: (entry as unknown as Record<string, unknown>).latestSubmission
-      ? (((entry as unknown as Record<string, unknown>).latestSubmission as Record<string, unknown>)
-          .submittedBy ?? (entry as unknown as Record<string, unknown>).owner)
-      : (entry as unknown as Record<string, unknown>).owner,
+    agentReview: (entry as Record<string, unknown>).agentReview ?? null,
+    submittedBy: (entry as Record<string, unknown>).latestSubmission
+      ? (((entry as Record<string, unknown>).latestSubmission as Record<string, unknown>)
+          .submittedBy ?? (entry as Record<string, unknown>).owner)
+      : (entry as Record<string, unknown>).owner,
     lastDecision:
-      ((entry as unknown as Record<string, unknown>).reviewHistory as unknown[] | undefined)?.at(
-        -1,
-      ) ?? null,
-    latestSubmission: (entry as unknown as Record<string, unknown>).latestSubmission ?? null,
-    reviewNotes: (entry as unknown as Record<string, unknown>).reviewNotes ?? [],
+      ((entry as Record<string, unknown>).reviewHistory as unknown[] | undefined)?.at(-1) ?? null,
+    latestSubmission: (entry as Record<string, unknown>).latestSubmission ?? null,
+    reviewNotes: (entry as Record<string, unknown>).reviewNotes ?? [],
   };
 }
 

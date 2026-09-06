@@ -8,7 +8,6 @@ export interface OperationsCommandOptions {
   allowImport: boolean;
   allowList: boolean;
   allowActivate: boolean;
-  allowStatus: boolean;
   allowMigrate: boolean;
   allowCapsuleIndex: boolean;
 }

@@ -22,55 +22,38 @@ export function createGovernanceMaintenanceRouteDefs(): RouteDef<
       method: 'POST',
       path: '/internal/review/approve',
       schema: reviewCommandSchema,
-      handler: (ctx, m) =>
-        (m as unknown as Record<string, (a: unknown) => Promise<unknown>>).approve(
-          reviewCommandArgs(ctx),
-        ),
+      handler: (ctx, m) => m.approve(reviewCommandArgs(ctx)),
     }),
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/reject',
       schema: reviewCommandSchema,
-      handler: (ctx, m) =>
-        (m as unknown as Record<string, (a: unknown) => Promise<unknown>>).reject(
-          reviewCommandArgs(ctx),
-        ),
+      handler: (ctx, m) => m.reject(reviewCommandArgs(ctx)),
     }),
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/return-for-correction',
       schema: reviewCommandSchema,
-      handler: (ctx, m) =>
-        (m as unknown as Record<string, (a: unknown) => Promise<unknown>>).returnForCorrection(
-          reviewCommandArgs(ctx),
-        ),
+      handler: (ctx, m) => m.returnForCorrection(reviewCommandArgs(ctx)),
     }),
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/maintenance',
       schema: maintenanceCommandSchema,
-      handler: (ctx, m) =>
-        (m as unknown as Record<string, (a: unknown) => Promise<unknown>>).applyMaintenance(
-          maintenanceCommandArgs(ctx),
-        ),
+      handler: (ctx, m) => m.applyMaintenance(maintenanceCommandArgs(ctx)),
     }),
     governanceRouteDef({
       method: 'POST',
       path: '/internal/review/decay',
       schema: maintenanceCommandSchema,
-      handler: (ctx, m) =>
-        (m as unknown as Record<string, (a: unknown) => Promise<unknown>>).applyDecay(
-          maintenanceCommandArgs(ctx),
-        ),
+      handler: (ctx, m) => m.applyDecay(maintenanceCommandArgs(ctx)),
     }),
     governanceRouteDef({
       method: 'POST',
       path: '/internal/conflicts/detect',
       schema: conflictDetectSchema,
       handler: async (ctx, module) => {
-        const wf = (module as unknown as Record<string, unknown>).conflictWorkflow as
-          | { detectConflicts: (a: unknown) => Promise<unknown> }
-          | undefined;
+        const wf = module.conflictWorkflow;
         if (!wf) throw InvocationError.unavailable('Conflict workflow unavailable');
         return wf.detectConflicts({ entryId: (ctx.body as { entryId: string }).entryId });
       },
@@ -80,12 +63,7 @@ export function createGovernanceMaintenanceRouteDefs(): RouteDef<
       path: '/internal/review/artifact',
       schema: reviewArtifactSchema,
       handler: async (ctx, module) => {
-        await (
-          module as unknown as Record<
-            string,
-            (a: string, b: string, c: string, d?: string) => Promise<void>
-          >
-        ).reviewArtifact(
+        await module.reviewArtifact(
           (ctx.body as { artifactId: string }).artifactId,
           (ctx.body as { decision: string }).decision,
           (ctx.body as { actorId: string }).actorId,
