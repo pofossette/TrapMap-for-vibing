@@ -47,6 +47,15 @@
         "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
       ],
       "mustNotContain": ["Phase 1 server/backend-core boundary freeze", "store_snapshot"]
+    },
+    {
+      "file": "docs/reference/ENVIRONMENT.md",
+      "mustContain": [
+        "TRAPMAP_DATABASE_URL",
+        "packages/host-local/src/nest/config/config.ts",
+        "packages/host-distributed/src/config/service-config.ts"
+      ],
+      "mustNotContain": ["最新", "目前"]
     }
   ]
 }
