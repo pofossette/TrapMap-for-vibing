@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
@@ -25,9 +25,16 @@ function readPackageJson(): PackageJson {
 }
 
 function readComplexityBudgets(): ComplexityBudgets {
-  return JSON.parse(
-    readFileSync(resolve(repoRoot, 'scripts/complexity-budgets.json'), 'utf-8'),
-  ) as ComplexityBudgets;
+  // docRules live in per-layer shards (single source with the guard).
+  const shardDir = resolve(repoRoot, 'scripts/doc-rules');
+  const docRules: DocRule[] = readdirSync(shardDir)
+    .filter((name) => name.endsWith('.json'))
+    .sort()
+    .flatMap((name) => {
+      const shard = JSON.parse(readFileSync(join(shardDir, name), 'utf-8')) as ComplexityBudgets;
+      return shard.docRules;
+    });
+  return { docRules };
 }
 
 function readDoc(relativePath: string): string {

@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 import { finishCheckRun } from './lib/check-result.js';
 
@@ -197,16 +197,44 @@ function checkCountByExpected(
 }
 
 /**
- * Run all doc-drift rules from a config file.
+ * Load docRules from the per-layer shards next to the given anchor config.
+ * Falls back to the anchor file itself when no shard directory exists.
+ * Exported so tests assert against the same rule set the guard enforces.
+ */
+export function loadDocRules(configPath: string): DocRule[] {
+  const shardDir = join(resolve(configPath, '..'), 'doc-rules');
+  let entries: string[] = [];
+  try {
+    entries = readdirSync(shardDir)
+      .filter((name) => name.endsWith('.json'))
+      .sort();
+  } catch {
+    entries = [];
+  }
+  if (entries.length > 0) {
+    return entries.flatMap((name) => {
+      const raw = readFileSync(join(shardDir, name), 'utf-8');
+      return (JSON.parse(raw) as Config).docRules;
+    });
+  }
+  const raw = readFileSync(configPath, 'utf-8');
+  return (JSON.parse(raw) as Config).docRules;
+}
+
+/**
+ * Run all doc-drift rules from the per-layer shard configs.
  * Pure function — no side effects beyond reading files.
+ *
+ * Shards live in <root>/scripts/doc-rules/<layer>.json
+ * (reference / architecture / ops / index). The legacy monolith
+ * scripts/complexity-budgets.json no longer carries docRules.
  */
 export function checkDocDrift(configPath: string, root?: string): CheckResult {
-  const raw = readFileSync(configPath, 'utf-8');
-  const config: Config = JSON.parse(raw);
-  const baseDir = root ?? resolve(configPath, '..');
+  const rules = loadDocRules(configPath);
+  const baseDir = root ?? resolve(configPath, '..', '..');
   const messages: string[] = [];
 
-  for (const rule of config.docRules) {
+  for (const rule of rules) {
     const filePath = resolve(baseDir, rule.file);
     let content: string;
     try {
@@ -229,14 +257,13 @@ const CONFIG_PATH = resolve(ROOT, 'scripts/complexity-budgets.json');
 
 function main(): void {
   const result = checkDocDrift(CONFIG_PATH, ROOT);
-  const raw = readFileSync(CONFIG_PATH, 'utf-8');
-  const config: Config = JSON.parse(raw);
+  const rules = loadDocRules(CONFIG_PATH);
 
   finishCheckRun({
     name: '[doc-drift]',
     result,
     remedy: 'Fix the docs and try again.',
-    passedMessage: `[doc-drift] All ${config.docRules.length} doc rule(s) passed.`,
+    passedMessage: `[doc-drift] All ${rules.length} doc rule(s) passed.`,
   });
 }
 

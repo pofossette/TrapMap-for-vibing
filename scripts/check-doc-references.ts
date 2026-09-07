@@ -13,6 +13,14 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
+import {
+  ACTIVE_DOCS_SUBDIRS,
+  ACTIVE_ROOT_FILES,
+  BACKTICK_PATH_PATTERN,
+  containsHistoryMarker,
+  EXCLUDED_DOCS_SUBDIRS,
+} from './docs-surface.js';
+
 // ── Types ────────────────────────────────────────────────────────────
 
 export interface ReferenceIssue {
@@ -52,8 +60,8 @@ export function parseMarkdownLinks(content: string, _filePath: string): ParsedLi
       const target = match[2];
       // Skip external URLs
       if (/^(https?:\/\/|mailto:)/.test(target)) continue;
-      // Skip historical references to deleted packages
-      if (target.includes('（Wave-10 已删除）')) continue;
+      // Skip historical references to deleted or frozen packages
+      if (containsHistoryMarker(target)) continue;
       links.push({ line: i + 1, text: match[1], target });
     }
   }
@@ -115,7 +123,7 @@ export function parseBacktickedPaths(content: string, _filePath: string): Parsed
   const lines = content.split('\n');
 
   // Patterns that look like repo paths (contain / and end with file extension)
-  const pathPattern = /^(packages|scripts|docs|evals|src)\/.+\.\w+$/;
+  const pathPattern = BACKTICK_PATH_PATTERN;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -124,8 +132,8 @@ export function parseBacktickedPaths(content: string, _filePath: string): Parsed
       const candidate = match[1];
       // Skip paths with wildcards (they're patterns, not actual paths)
       if (candidate.includes('*')) continue;
-      // Skip historical references to deleted packages
-      if (candidate.includes('（Wave-10 已删除）')) continue;
+      // Skip historical references to deleted or frozen packages
+      if (containsHistoryMarker(candidate)) continue;
       if (pathPattern.test(candidate)) {
         for (const expanded of expandBracePattern(candidate)) {
           paths.push({ line: i + 1, path: expanded });
@@ -201,10 +209,8 @@ export function validateReference(
 }
 
 // ── Active surface discovery ─────────────────────────────────────────
-
-const ACTIVE_ROOT_FILES = ['README.md', 'AGENTS.md', 'plan.md', 'architecture.md'];
-const ACTIVE_DOCS_SUBDIRS = ['architecture', 'guides', 'operations', 'reference', 'todos'];
-const EXCLUDED_DOCS_SUBDIRS = ['archived', 'plans', 'superpowers'];
+// Surface tables (ACTIVE_ROOT_FILES, ACTIVE_DOCS_SUBDIRS,
+// EXCLUDED_DOCS_SUBDIRS) live in ./docs-surface.js — single source.
 
 /**
  * Parse plan.md for links that reactivate files in excluded directories.

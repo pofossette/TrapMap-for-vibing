@@ -1,0 +1,67 @@
+{
+  "docRules": [
+    {
+      "file": "docs/architecture/ARCHITECTURE.md",
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md",
+        "host-local",
+        "host-distributed",
+        "有界上下文",
+        "RouteDef",
+        "PostgreSQL"
+      ],
+      "mustNotContain": ["packages/server", "Phase 0", "Phase 1", "历史说明"]
+    },
+    {
+      "file": "docs/architecture/components/EVALUATION.md",
+      "mustContain": [
+        "pnpm --filter @trapmap/evals eval:smoke",
+        "pnpm --filter @trapmap/evals eval:core",
+        "datasets/",
+        "scenarios/"
+      ],
+      "mustNotContain": ["pnpm eval:governance", "cases/"]
+    },
+    {
+      "file": "docs/architecture/components/AI_PROVIDER.md",
+      "mustContain": ["fallback", "google-genai", "gpt-4o-mini", "llama3"],
+      "mustNotContain": ["默认 openai", "llama2"]
+    },
+    {
+      "file": "docs/architecture/components/ARTIFACTS.md",
+      "mustContain": ["工件系统", "artifact_revisions", "capsule_embeddings"],
+      "mustNotContain": ["packages/server", "历史说明"]
+    },
+    {
+      "file": "docs/architecture/ARCHITECTURE.md",
+      "mustContain": ["PostgreSQL", "host-local"],
+      "mustNotContain": ["image: postgres:16"],
+      "mustNotContainRegex": ["curl.*-f.*health"]
+    },
+    {
+      "file": "docs/architecture/DEPLOYMENT.md",
+      "mustContain": [
+        "TRAPMAP_DATABASE_URL",
+        ".data/skill-shareer.json",
+        "light",
+        "heavy",
+        "distributed"
+      ],
+      "mustNotContain": ["packages/server", "Wave-10"]
+    },
+    {
+      "file": "docs/architecture/components/PERSISTENCE.md",
+      "mustContain": [
+        "docs/reference/DATABASE_SCHEMA.md",
+        "PostgreSQL 是主要且权威的生产存储后端",
+        "42 表"
+      ],
+      "mustNotContain": ["48 张表", "56 张表"]
+    },
+    {
+      "file": "docs/architecture/components/ASYNC_MODEL.md",
+      "mustContain": ["task_queue", "domain_event_outbox", "workflow_runs"],
+      "mustNotContain": ["Phase 4 closeout", "packages/server"]
+    }
+  ]
+}

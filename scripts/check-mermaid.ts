@@ -2,6 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { JSDOM } from 'jsdom';
 
+import { isExcludedDocsPath } from './docs-surface.js';
+
 export interface MermaidBlock {
   file: string;
   startLine: number;
@@ -66,7 +68,7 @@ async function getMermaidParser(): Promise<MermaidParser> {
   return mermaidParserPromise;
 }
 
-function walkMarkdownFiles(entryPath: string): string[] {
+function walkMarkdownFiles(root: string, entryPath: string): string[] {
   const statEntries = readdirSync(entryPath, { withFileTypes: true });
   const files: string[] = [];
 
@@ -77,7 +79,11 @@ function walkMarkdownFiles(entryPath: string): string[] {
 
     const nextPath = resolve(entryPath, entry.name);
     if (entry.isDirectory()) {
-      files.push(...walkMarkdownFiles(nextPath));
+      // Archived, plans, and superpowers sediment are never scanned.
+      if (isExcludedDocsPath(root, nextPath)) {
+        continue;
+      }
+      files.push(...walkMarkdownFiles(root, nextPath));
       continue;
     }
 
@@ -99,7 +105,7 @@ export function listMarkdownFiles(root: string): string[] {
       continue;
     }
 
-    files.push(...walkMarkdownFiles(absPath));
+    files.push(...walkMarkdownFiles(root, absPath));
   }
 
   return files.sort();
