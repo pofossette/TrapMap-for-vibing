@@ -33,7 +33,7 @@
 
 ## 3. 重计算热点全量盘点（按“并发×计算×调用频次”排序）
 
-> 扫描口径：`packages/backend-core/src/knowledge-read/domain/*.ts` + `packages/lib/src/vector.ts, canonical-json.ts, hash.ts` + `packages/service-knowledge-read/src/{retrieval-semantic,retrieval-keyword,retrieval-orchestration,channel-merge}/*.ts` + `packages/service-candidate-ingestion/src/{dedup-strategy,processing}.ts` + `packages/backend-core/src/experience-gene*` + `fallow health` CRITICAL。
+> 扫描口径：`packages/backend-core/src/knowledge-read/domain/*.ts` + `packages/lib/src/vector.ts`、`packages/lib/src/canonical-json.ts`、`packages/lib/src/hash.ts` + `packages/service-knowledge-read/src/{retrieval-semantic,retrieval-keyword,retrieval-orchestration,channel-merge}/*.ts` + `packages/service-candidate-ingestion/src/dedup-strategy/rule-dedup-strategy.ts`、`packages/service-candidate-ingestion/src/processing.ts` + `packages/backend-core/src/experience-gene*` + `fallow health` CRITICAL。
 
 ### 3.1 P0 — 下一迭代必做（高频 × 高算 × 已有 Go 半成品未接线）
 

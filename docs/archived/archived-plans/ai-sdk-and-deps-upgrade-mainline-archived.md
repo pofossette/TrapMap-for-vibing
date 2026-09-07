@@ -8,7 +8,7 @@
 - [x] **LangChain 彻底移除**：`packages/ai-providers` 删除 `@langchain/core` / `@langchain/openai`；
   源码内已无 `langchain` 导入（仅 `contracts` 测试夹具字符串含该词，非依赖）。
 - [x] **统一 AI 子包 = `@trapmap/ai-providers`**（不新增 `packages/ai`，避免 15+ 消费方改导入）：
-  新增 `src/adapters/aisdk.ts` 作为唯一 AI SDK 接入面，集中所有 LLM 调用（含 embedding）。
+  新增 `packages/ai-providers/src/adapters/aisdk.ts` 作为唯一 AI SDK 接入面，集中所有 LLM 调用（含 embedding）。
   - Chat 经 `generateText({ model, system, prompt, temperature })`（官方 `generateText` 形态）
   - Embedding 经 `embed({ model, value })` / 批量经 `embedMany({ model, values })`
   - Provider 映射：`openai`→`@ai-sdk/openai`；`openai-compatible`/`ollama`（`/v1`）→`@ai-sdk/openai-compatible`；
@@ -470,6 +470,27 @@
   key 基线完全持平，属 fallback 行为）。结论：语义项天花板还在，但阻塞已
   从“无有效 key”变为“缺 Responses-API 传输”——`@trapmap/ai-providers` 若要
   用该凭证，需新增 `openai.responses()` 通路（设计+测试另起项，不在本轮）。
+## 第十八轮进展（本 turn：P0-P4 文档收口 + 主线 closeout）
+
+- Wave-E 文档回写闭环（本 turn 落点，不回写已归档文档）：
+  - `packages/ai-providers/README.md`：`## 依赖` 改为 `ai` + `@ai-sdk/openai`/`@ai-sdk/openai-compatible`/`@ai-sdk/google` + `@trapmap/lib`/`zod`（`@langchain/*` 已移除）。
+  - `docs/architecture/components/AI_PROVIDER.md`：概述 + OpenAI/兼容/Ollama 三节 + 重试节收敛到 `packages/ai-providers/src/adapters/aisdk.ts`（`AiSdkChat`/`AiSdkEmbeddings`，历史类名仅薄别名）。
+  - `docs/README.md` 技术栈：`TypeScript 6.x（pin 6.0.3）`、`Commander.js 15.x`、AI 集成改为 Vercel AI SDK（唯一接入面 `adapters/aisdk.ts`）。
+  - `docs/PACKAGES.md`：`ai-providers` 行补唯一接入面说明；根 `README.md` TS badge `5.x→6.x`。
+  - `docs/architecture/DEPLOYMENT.md`：`TRAPMAP_SERVICE_POOL_SIZE` 澄清为代码默认 `5` + compose pin `4`（7×4=28 ≤ 30 预算）双事实。
+  - `docs/reference/SYSTEM_TRUTH_SOURCES.md`：新增 `AI 提供商统一入口` 权威行（`adapters/aisdk.ts` + `providers.ts`）。
+- 本轮未新增运行时语义；`pnpm outdated -r` 仅剩 `typescript 6.0.3→7.0.2` 一项（有意 pin 6，不跟 7）。
+- 残留另起项（已记入 `open-debt-and-compromises.md`，不阻塞本主线 closeout）：
+  - Responses-API 传输（`openai.responses()` 通路，设计+测试另起 tranche）。
+  - `apps/light` 镜像未构建验证（`apps/light/Dockerfile` deps/production 拷贝已修，需跑构建验证）。
+- 环境备注（不进仓库债务）：旧 vfs `~/.local/share/docker`（~19G）待回收；slirp 构建期无外部 DNS 需临时 `build.network: host`（已回退）。
+
+## Closeout（2026-09-08 主线收口）
+
+- 目标达成：`pnpm outdated -r` 57→仅 TS 一项（有意 pin）；LangChain 零依赖零导入；全仓仅 `adapters/aisdk.ts` 导入 `ai`/`@ai-sdk/*`；`typecheck`/`pnpm check`（Biome 2.5.12 零诊断）/`check:fallow`/`check:asserts`(0)/`generate:contracts:check`/`generate:openapi:check` 全绿；compose closeout EXIT 0（6247ms）；`eval:smoke` 确定性 44/44，语义项持平基线（Responses-only 根因已收敛）。
+- 归档：按目录规则 `git mv` 本文件至 `docs/archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md`；同步更新 `docs/archived/README.md` 归档表、`docs/todos/README.md` 索引、根 `plan.md`（切无 active mainline，排队项另行明确）。
+- 验证：`pnpm check:docs` / `pnpm check:structure` blocking 全绿（见本 turn 收尾）。
+
 - 遗留：`apps/light/Dockerfile` 同类 stale（lib/infra/assembly 缺失）一并
   修了 deps/production 拷贝与 app `node_modules`，但 light 镜像本次未构建
   验证；旧 `~/.local/share/docker`（vfs，~19G）待回收；`GET

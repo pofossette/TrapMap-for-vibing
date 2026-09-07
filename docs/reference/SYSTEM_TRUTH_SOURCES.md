@@ -2,7 +2,9 @@
 
 每个架构事实都有一个权威来源。当 secondary docs 漂移时，以权威来源为准。
 
-> `packages/server` 已于 Wave-10 删除；唯一事实源为 `host-local / host-distributed + 6 service owners + backend-core`。历史追溯见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> `packages/server` 已于 Wave-10 删除；唯一事实源为 `host-local / host-distributed + 6 service owners + backend-core`。状态：**已删除**（Wave-10）。历史追溯见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+>
+> 历史 closeout 证据（如文档校验与可观测性平台主线 `docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md`）仅作背景参考，不作执行入口。
 
 | 主题 | 权威来源 | Secondary Docs |
 |---|---|---|
@@ -19,6 +21,7 @@
 | 持久化姿态 | `packages/db/src/schema/` + 各 `packages/service-*/drizzle/` | `docs/architecture/components/PERSISTENCE.md` |
 | 异步 substrate | `packages/service-job-runtime/src/` + `packages/contracts/src/domain/async.ts` | `docs/architecture/components/ASYNC_MODEL.md` |
 | 检索系统 | `packages/service-knowledge-read/src/` | `docs/architecture/components/RETRIEVAL.md` |
+| AI 提供商统一入口 | `packages/ai-providers/src/adapters/aisdk.ts` + `packages/ai-providers/src/providers.ts`（`ai` + `@ai-sdk/openai`/`@ai-sdk/openai-compatible`/`@ai-sdk/google`；`@langchain/*` 已移除） | `docs/architecture/components/AI_PROVIDER.md`, `packages/ai-providers/README.md` |
 | 工件系统 | `packages/service-knowledge-write/src/` + `packages/db/src/schema/artifacts.ts` | `docs/architecture/components/ARTIFACTS.md` |
 | 治理/评测 | `packages/service-governance-review/src/` + `evals/` | `docs/architecture/components/GOVERNANCE.md`, `docs/architecture/components/EVALUATION.md` |
 | 可观测性 | `packages/host-local/src/nest/` + `packages/host-distributed/src/gateway/` + `packages/contracts/src/domain/observability.ts` | `docs/architecture/OBSERVABILITY.md` |

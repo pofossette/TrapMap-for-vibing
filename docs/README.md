@@ -6,7 +6,7 @@ TrapMap 是面向 AI 编程工作流的知识、Trap 经验与 Skill 工件治�
 
 ## 当前状态
 
-当前 active mainline 是 Web Panel 功能补全与 UI 美化优化，入口见根 [plan.md](../plan.md) 和 [todos/web-panel-feature-and-ui-optimization.md](todos/web-panel-feature-and-ui-optimization.md)（2026-09-03 恢复，原 paused successor）。Experience Gene Infrastructure and Pipeline 已于 2026-09-03 完成 closeout 并归档（[experience-gene-program-mainline-archived.md](archived/archived-plans/experience-gene-program-mainline-archived.md) 及其 5 个 delegated phase，deterministic offline precision 1.0 / promotionEligible true）。并行 active detail：Gene 检索评测扩展见 [todos/gene-retrieval-eval.md](todos/gene-retrieval-eval.md)（模仿四路检索新增 gene PG 评测，T0 门控，T1-T6 待 subagent dispatch）。并行双轨（已合入 `pre@a9b413b5`）：类型对齐见 [todos/type-alignment-mainline.md](todos/type-alignment-mainline.md)（Zod→JSON Schema→Go 三期）与 Go 计算中枢见 [todos/go-compute-hub-mainline.md](todos/go-compute-hub-mainline.md)（批余弦/回退向量/哈希接线），架构见 [architecture/GO-ACCELERATOR.md](architecture/GO-ACCELERATOR.md)；Skill 版本管理器见 [todos/skill-registry-mainline.md](todos/skill-registry-mainline.md) 与 [architecture/SKILL-REGISTRY.md](architecture/SKILL-REGISTRY.md)。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品（已激活为当前主线），不再暂停。
+当前无 active mainline（2026-09-08 收口）：依赖升级与 AI SDK 统一已完成 closeout 并归档（[ai-sdk-and-deps-upgrade-mainline-archived.md](archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md)：TS pin 6.0.3 + Biome 2 / Nest 12 + langchain 移除 + Vercel AI SDK 统一，compose closeout EXIT 0，`check:asserts` 0；残留 Responses-API 传输与 light 镜像验证已转长期债务）。排队项见根 [plan.md](../plan.md) 已排队节：CLI 仅剩 Phase 5.3 归档（[cli-server-integration-mainline.md](todos/cli-server-integration-mainline.md)）、Web Panel 仅剩 audit 断言（[web-panel-feature-and-ui-optimization.md](todos/web-panel-feature-and-ui-optimization.md)，已转债务）、Gene 检索评测为排队 spec（[gene-retrieval-eval.md](todos/gene-retrieval-eval.md)，T0-T6 待 dispatch）。Experience Gene Infrastructure and Pipeline 已于 2026-09-03 完成 closeout 并归档（[experience-gene-program-mainline-archived.md](archived/archived-plans/experience-gene-program-mainline-archived.md)及其 5 个 delegated phase，deterministic offline precision 1.0 / promotionEligible true）。并行双轨（已合入 `pre@a9b413b5`）：类型对齐见 [todos/type-alignment-mainline.md](todos/type-alignment-mainline.md)（Zod→JSON Schema→Go 三期）与 Go 计算中枢见 [todos/go-compute-hub-mainline.md](todos/go-compute-hub-mainline.md)（批余弦/回退向量/哈希接线），架构见 [architecture/GO-ACCELERATOR.md](architecture/GO-ACCELERATOR.md)；Skill 版本管理器见 [todos/skill-registry-mainline.md](todos/skill-registry-mainline.md) 与 [architecture/SKILL-REGISTRY.md](architecture/SKILL-REGISTRY.md)。最新的 Skill Lookup 契约漂移修复已于 2026-08-22 完成并归档（见 [Skill Lookup 归档细则](archived/archived-plans/skill-lookup-surface-mainline-archived.md)）；剩余工作进入[长期 debt 登记](todos/open-debt-and-compromises.md)。CI/testing truth source 始终以 [`reference/SYSTEM_TRUTH_SOURCES.md`](reference/SYSTEM_TRUTH_SOURCES.md) 为准。`apps/web-panel` 是保留的运维与 human-review 产品。
 
 light / heavy 后端构建目标与客户端选择已完成并归档，包含其未执行的部署级 runtime closeout 前置条件。其余历史主线、closeout 细则和背景材料同样不构成并行 active workstream，只能作为 archived/background reference 使用。
 
@@ -92,14 +92,14 @@ flowchart TB
 | 层级 | 技术 |
 |------|------|
 | 运行时 | Node.js 24+ (ESM) |
-| 语言 | TypeScript 5.x |
+| 语言 | TypeScript 6.x（pin 6.0.3，有意不跟 7.x，见主线归档） |
 | `light` 默认主入口终局 | NestJS（`packages/host-local/src/nest/**`），由 `@trapmap/host-local` 默认 `dev` / `start` / package export 提供 |
 | Fastify rollback path | 已删除 |
-| CLI | Commander.js 14.x |
+| CLI | Commander.js 15.x |
 | 验证 | Zod 4.x |
-| AI 集成 | LangChain Core |
+| AI 集成 | Vercel AI SDK（`ai` + `@ai-sdk/*`，唯一接入面 `packages/ai-providers/src/adapters/aisdk.ts`；`@langchain/*` 已移除） |
 | 图 | graphology + graphology-dag |
-| 向量搜索 | OpenAI embeddings |
+| 向量搜索 | AI SDK embeddings（`embed` / `embedMany`；无 key 时 deterministic fallback 向量） |
 | 数据库 | PostgreSQL + Drizzle ORM |
 | 兼容回退 | JSON 文件存储与 `store_snapshot` 兼容层已于 Wave-9/10 删除 |
 | 测试 | Vitest |

@@ -1,6 +1,6 @@
 # 持久化层
 
-> 真源：`packages/db/src/schema/`（42 表，owner-local baseline）与各 `packages/service-*/drizzle/`；镜像见 [DATABASE_SCHEMA.md](../../reference/DATABASE_SCHEMA.md)。
+> 真源：`packages/db/src/schema/`（42 表，owner-local baseline）与各 `packages/service-*/drizzle/`；完整表清单见 [docs/reference/DATABASE_SCHEMA.md](../../reference/DATABASE_SCHEMA.md)。PostgreSQL 是主要且权威的生产存储后端。
 
 ## 决策
 

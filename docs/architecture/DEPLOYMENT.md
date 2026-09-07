@@ -735,7 +735,7 @@ autoscaling:
 
 上述 `resources` / `autoscaling` 仍是平台化样例，不是当前仓库已 check-in 的 compose 默认值。当前 Phase 4 在仓库内真实落地的资源治理默认值只冻结到 distributed DB pool budget env seam：
 
-- `TRAPMAP_SERVICE_POOL_SIZE=5` 提供 distributed service 的 shared pool 默认值
+- `TRAPMAP_SERVICE_POOL_SIZE` 未设置时代码默认值为 `5`（见 `packages/host-distributed/src/config/service-config.ts:resolvePoolSize`）；但仓库 `docker-compose.yml` 为 9 个 distributed 服务统一 pin `TRAPMAP_SERVICE_POOL_SIZE=4`（7×4=28 ≤ 30 连接预算；不设则 7×5=35 会触发 `assertDistributedConnectionBudget` 启动失败，见 closeout 段）
 - `TRAPMAP_<SERVICE>_POOL_SIZE=<n>` 提供 per-service override，例如 `TRAPMAP_JOB_RUNTIME_POOL_SIZE=12`
 
 它们只影响 `packages/host-distributed/src/shared/database.ts` 创建的 `pg.Pool.max`，不代表已完成容器级 CPU/memory limit、Node heap preset、PgBouncer rollout 或 autoscaling policy。

@@ -11,7 +11,7 @@
 | `packages/db` | `src/schema/` | 42 表 Drizzle schema 真源（owner-local） |
 | `packages/assembly` | `src/index.ts` | 统一组装中心（cordis TS 组合器） |
 | `packages/lib` | `src/index.ts` | 纯函数工具（time/hash/string/collection） |
-| `packages/ai-providers` | `src/index.ts` | AI provider 工厂与 prompt 模板 |
+| `packages/ai-providers` | `src/index.ts` | AI provider 工厂与 prompt 模板；唯一 AI SDK 接入面 `src/adapters/aisdk.ts`（`AiSdkChat`/`AiSdkEmbeddings`，`@langchain/*` 已移除） |
 | `packages/client-core` | `src/index.ts` | Gateway HTTP SDK、会话与错误模型 |
 | `packages/service-identity-access` | `src/index.ts` | identity-access 服务（含路由与 repo） |
 | `packages/service-knowledge-write` | `src/index.ts` | knowledge-write 服务（权威写路径） |

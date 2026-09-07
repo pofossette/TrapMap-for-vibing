@@ -49,30 +49,30 @@ TrapMap 已经具备 trap 治理、skill artifact 版本化、capsule/profile/cl
 
 ## Execution order
 
-1. [Experience Gene Infrastructure Foundation](experience-gene-infrastructure-foundation.md)
-2. [Experience Gene Contracts and Storage](experience-gene-contracts-and-storage.md)
-3. [Experience Gene Derivation Pipeline](experience-gene-derivation-pipeline.md)
-4. [Experience Gene Retrieval and Activation](experience-gene-retrieval-and-activation.md)
-5. [Experience Gene Governance, Evaluation and Rollout](experience-gene-governance-evaluation-rollout.md)
+1. [Experience Gene Infrastructure Foundation](experience-gene-infrastructure-foundation-archived.md)
+2. [Experience Gene Contracts and Storage](experience-gene-contracts-and-storage-archived.md)
+3. [Experience Gene Derivation Pipeline](experience-gene-derivation-pipeline-archived.md)
+4. [Experience Gene Retrieval and Activation](experience-gene-retrieval-and-activation-archived.md)
+5. [Experience Gene Governance, Evaluation and Rollout](experience-gene-governance-evaluation-rollout-archived.md)
 
 阶段必须按上述顺序推进；后一阶段只能在相邻前置阶段的 focused tests、typecheck 和事实回写完成后开始。每个 delegated phase 文档的 Implementation checklist 全部完成且其 Test plan 通过后，才视为该阶段完成。
 
 ## Cross-phase acceptance gates
 
-- [x] [通用向量与 structured generation 抽离至 `@trapmap/infra` 并覆盖 tri-state 组装，既有检索行为保持不变](experience-gene-infrastructure-foundation.md)。
-- [x] [`ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地](experience-gene-contracts-and-storage.md#execution-record2026-08-25)。
-- [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline.md#execution-record2026-08-26)。
-- [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露，已补 off/shadow/serve 三态 route/config 回归](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
-- [x] [CLI/MCP 可渲染 `<strategy-gene>` 控制块](experience-gene-retrieval-and-activation.md#execution-record2026-08-26)。
+- [x] [通用向量与 structured generation 抽离至 `@trapmap/infra` 并覆盖 tri-state 组装，既有检索行为保持不变](experience-gene-infrastructure-foundation-archived.md)。
+- [x] [`ExperienceGene` contracts、枚举、持久化表和 repository tests 已落地](experience-gene-contracts-and-storage-archived.md#execution-record2026-08-25)。
+- [x] [trap/skill/capsule 派生管线具备 idempotency、validation、lineage、index retry 和 stale 处理](experience-gene-derivation-pipeline-archived.md#execution-record2026-08-26)。
+- [x] [gene-native retrieval 通过 RouteDef 在两个宿主暴露，已补 off/shadow/serve 三态 route/config 回归](experience-gene-retrieval-and-activation-archived.md#execution-record2026-08-26)。
+- [x] [CLI/MCP 可渲染 `<strategy-gene>` 控制块](experience-gene-retrieval-and-activation-archived.md#execution-record2026-08-26)。
 - [x] rollout 默认关闭，baseline 与 enabled 模式有评测证据（deterministic offline 已满足：`pnpm eval:experience-gene --tier smoke --mode shadow` 3 cases precision 1.0 与 `--tier core --mode serve` precision 1.0 / promotion eligible true 均已通过（2026-09-03 复测）；live 转 CI 必跑 `open-debt-and-compromises.md`，见 infrastructure 第四检查点）。
-- [x] [架构、API、数据模型、CLI/MCP 文档完成同步](experience-gene-governance-evaluation-rollout.md#documentation-closeout)。
+- [x] [架构、API、数据模型、CLI/MCP 文档完成同步](experience-gene-governance-evaluation-rollout-archived.md#documentation-closeout)。
 - [x] `pnpm typecheck`、相关 focused tests、`pnpm eval:smoke`、`pnpm exec fallow audit --base HEAD --no-cache`（activation-commit `5cbb2f93bdc895056446d43da1fc6de515b0a967` 等价于 PR merge-base，`--base main` legacy clones 已冻结为非阻塞）、`pnpm check:docs` 和 `pnpm check:structure` 通过（`typecheck/check:docs:blocking tiers green/check:structure/passed` 已于 2026-09-03 复测通过；`pnpm exec fallow audit --base HEAD --no-cache` 本机 `6 changed files vs HEAD / ✓ No issues in 6 changed files`；`eval:smoke`/`eval:experience-gene live` 因 Docker/DB 门控登记为 CI 必跑，见 infrastructure 第四检查点与 `open-debt-and-compromises.md`）。
 
 每项 gate 的回写记录必须包含：变更文件、执行的命令、关键测试名或评测指标、以及残余 debt/deferred 落点。只有 owner mainline 可以汇总宣告 cross-phase acceptance 完成。
 
 ## Web Panel resume condition
 
-Web Panel 已迁移到 [`docs/plans/web-panel-feature-and-ui-optimization-paused.md`](../plans/web-panel-feature-and-ui-optimization-paused.md)。只有本主线满足以下条件后才能恢复：
+Web Panel 已迁移到 [`docs/todos/web-panel-feature-and-ui-optimization.md`](../../todos/web-panel-feature-and-ui-optimization.md)（原 paused 文件的后继）。只有本主线满足以下条件后才能恢复：
 
 1. Cross-phase acceptance gates 全部完成并留证。
 2. 本细则完成 closeout 并按仓库规则归档。
@@ -81,8 +81,8 @@ Web Panel 已迁移到 [`docs/plans/web-panel-feature-and-ui-optimization-paused
 
 ## Problem pool
 
-- 新增问题先进入本节；影响长期架构能力的项同步登记到 [长期债务登记册](open-debt-and-compromises.md)。
-- Fallow audit baseline 与 Experience Gene 工作分支不一致的问题已于 2026-08-30 冻结：采用 `git merge-base main HEAD`（`5cbb2f93bdc895056446d43da1fc6de515b0a967`）作为 activation-commit，等价于 PR merge-base；`pnpm exec fallow audit --base HEAD --no-cache` 本机通过（1 file ✓ No issues），`--base main` 的 8 文件 legacy clones/complexity 已判定为 stale 继承债不再阻断 gate，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation.md#problem-pool) 与第四检查点。
+- 新增问题先进入本节；影响长期架构能力的项同步登记到 [长期债务登记册](../../todos/open-debt-and-compromises.md)。
+- Fallow audit baseline 与 Experience Gene 工作分支不一致的问题已于 2026-08-30 冻结：采用 `git merge-base main HEAD`（`5cbb2f93bdc895056446d43da1fc6de515b0a967`）作为 activation-commit，等价于 PR merge-base；`pnpm exec fallow audit --base HEAD --no-cache` 本机通过（1 file ✓ No issues），`--base main` 的 8 文件 legacy clones/complexity 已判定为 stale 继承债不再阻断 gate，详见 [infrastructure problem pool](experience-gene-infrastructure-foundation-archived.md#problem-pool) 与第四检查点。
 - `pnpm eval:smoke` 仍受本机 Docker 缺失约束（`dial unix /var/run/docker.sock: no such file or directory`），已登记为 CI 必跑，见 `open-debt-and-compromises.md` 刷新条目；`pnpm eval:experience-gene --tier smoke --mode shadow`（precision 1.0）与 `--tier core --mode serve`（precision 1.0, promotion eligible true）已在离线完成活证据，live baseline/shadow/serve comparison 仍待 runtime。
 
 

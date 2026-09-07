@@ -11,6 +11,22 @@
 
 ## 长期问题池
 
+### ai-providers Responses-API 传输缺失（2026-09-08 新立，ai-sdk 主线 closeout 残留）
+
+- 来源：第十七轮语义质量门探针实证：现网凭证为 Responses-API-only 代理（`/v1/responses` 200，`/v1/chat/completions` 500、`/v1/embeddings` 404），本仓 adapter 只走 Chat Completions（`packages/ai-providers/src/adapters/aisdk.ts`），`eval:smoke` 语义项（retrieval 5/26、summary 1/6、graph F1=0）顶天花板持平基线。
+- 影响：该凭证下语义评测无法推进；不影响确定性 44/44 与 fallback 行为。
+- 当前边界：`generateText`/`embed`/`embedMany` 单通路保持不变；新增 `openai.responses()` 通路前不得改现有调用语义。
+- 进入条件：需要用该 Responses-only 凭证跑通语义质量门，或产品明确要求 Responses 通路时。
+- 后续落点：另起 tranche 做 `openai.responses()` 设计+测试（含 chat/embed 等价性与回退策略），完成后重跑 `eval:smoke` 回填本条。
+
+### apps/light 镜像未构建验证（2026-09-08 新立，ai-sdk 主线 closeout 残留）
+
+- 来源：第十七轮修了 `apps/light/Dockerfile` 的 deps/production 拷贝与 app `node_modules`（同 distributed/light 三镜像同类 stale），但本轮只构建验证了 distributed/migration，未构建 light 镜像。
+- 影响：light 镜像 Dockerfile 改动无构建证据；不影响 `pnpm build:light` 与 `test:light-target`（已 EXIT 0）。
+- 当前边界：`apps/light/Dockerfile` 改动已合入；未验证前不得宣称 light 镜像 closeout。
+- 进入条件：具备 Docker 构建环境时。
+- 后续落点：跑 light 镜像构建并回填本条后关闭。
+
 ### web-panel real admin 路径不可运行（刷新于 2026-09-02，Phase2 部分闭环）
 
 - 来源/影响/边界：同原登记（原 5 个 `/api/admin/*` 无后端实现，2026-09-02 已闭环 2 个：`GET /api/admin/runtime-overview` 与 `POST /api/admin/reviews/:id/json-edits` 经 `service-governance-review` 双宿主 RouteDef + `contracts` Zod 实现并验证 `typecheck`/`check:docs` 全绿；剩余 3 个 `/api/admin/*` 仍 mock，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
@@ -20,6 +36,7 @@
 - 2026-08-23 追加：Artifacts 的 level/search/lifecycle/scope 过滤、确定性排序和 cursor 分页已在 mock seam 与页面完成；这不改变 `/api/admin/artifacts` 生产 RouteDef 缺失或 bearer/RBAC 债务。
 - 2026-08-23 追加：Trap/Skill 图谱的深度、搜索和模式状态已完成接线；Skill 工件选择器仍受最多 100 个 snapshot 工件约束，且不改变生产 admin graph/artifact RouteDef 缺失或 bearer/RBAC 债务。
 - 2026-09-02 追加（Phase2 真收敛）：`packages/contracts/src/domain/admin.ts` 新增 `adminRuntimeOverviewResponseSchema` + `adminManualJsonEditRequest/ResponseSchema`（`contracts 955`），`service-governance-review` 新增 `runtime.routes.ts` + `json-edit.routes.ts` 并聚合入 `createGovernanceAdminRouteDefs`，`host-distributed` 网关 `shared.ts`+`governance.ts`+`internal-client` 双宿主转发已落地，`typecheck`/`check:docs`/`check:complexity` 全绿；剩余 3 个 mock 债务保留。
+- 2026-09-08 追加（audit 缺口显式化）：`GET /api/admin/runtime-overview`、`reviews/:id/json-edits`、`reviews|/:id|/activity`、`graph/traps|skills`、`artifacts` 路由覆盖已完成（见 web-panel 细则 Phase2），但 governance 相关读/写的系统性 audit 断言未落地（仅注释），转本条跟踪。
 - 2026-08-26 追加（user-authorized tranche）：`browserSessionProvider` 已改为 token-bearing（`useSessionStore`），新增 `/login` 守卫与 `read-only-operator` 导航/操作区分，mock `login`/`logout` 与 bearer 透传已补回归；这不改变 `/api/admin/*` 生产 RouteDef 缺失与 server-side authorization tests 债务。
 - 进入条件：需要真实管理控制台时。
 - 后续落点：Gene 主线 closeout 后恢复 [`../plans/web-panel-feature-and-ui-optimization-paused.md`](../plans/web-panel-feature-and-ui-optimization-paused.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。

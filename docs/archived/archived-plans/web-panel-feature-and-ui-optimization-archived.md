@@ -4,7 +4,7 @@
 
 - **Active mainline（2026-09-02 从 Gene 恢复）。**
 - 本细则已于 2026-08-23 启动首批实现；2026-08-25 起暂停，2026-09-02 随 Experience Gene 完成 closeout（`docs/archived/archived-plans/experience-gene-program-mainline-archived.md`）后由根 `plan.md` 显式切回并恢复为 active mainline。
-- 原 paused 文件 `docs/plans/web-panel-feature-and-ui-optimization-paused.md` 已 `git mv` 至本路径；后续执行顺序、owner、证据和回写记录以本文件为准。
+- 原 paused 文件 docs/plans/web-panel-feature-and-ui-optimization-paused.md 已 `git mv` 至本路径；后续执行顺序、owner、证据和回写记录以本文件为准。
 
 ## Product Stance
 
@@ -166,14 +166,14 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - 新增 `apps/web-panel/src/stores/session-store.ts:resolveSessionTransportPreference/isCookieTransportPreferred`（`VITE_ADMIN_PANEL_SESSION_MODE=cookie|bearer` 显式或 `document.cookie` 含 `trapmap_session` 时判 `cookie`，否则 `bearer`，并文档化 bearer 持久化相对 `httpOnly` 的不安全警告）；`apps/web-panel/src/services/admin-panel-service-context.ts:browserSessionProvider.getFetchOptions/isGatewayCookieModePreferred` 在 cookie 偏好时始终返回 `{credentials:'include'}`（即使 store 仍有 bearer token 也优先 cookie），bearer 回退时仅无 token / 有 cookie 时 `include`；`apps/web-panel/src/services/api/http-client.ts:createHttpClient` 的 `wrappedProvider.getFetchOptions()` 优先尊重 `provider.getFetchOptions()` 显式偏好再回退到 token-presence 启发，保持并发隔离且不全局 patch。
 - 新增 `apps/web-panel/src/services/admin-panel-session-cookie-preference.test.ts` 4 个测试：env `cookie` 时即使有 bearer 也 `credentials:include`；env `bearer` 时有 token 则 `Authorization: Bearer` 且无 `credentials`；无 env 但 `document.cookie` 含 `trapmap_session` 时自动切 cookie 且 `getSessionToken` 回退解码；无 token 无 cookie 时 opportunistic `include`；验证 `isCookieTransportPreferred/resolveSessionTransportPreference/isGatewayCookieModePreferred`。
 - `apps/web-panel/src/vite-env.d.ts` 新增 `VITE_ADMIN_PANEL_SESSION_MODE` 类型，`docs/operations/ENVIRONMENT.md` 新增 conditional `Gateway session / cookie 偏好（P4B）` 小节说明 `SESSION_TRANSPORT` 与 `VITE_ADMIN_PANEL_SESSION_MODE` 需两端同时切 `cookie` 才形成 `httpOnly` 闭环；当前 `host-local` `auth-context.ts` + `host-distributed` `registerAuthHook` 仍仅 Bearer，故为条件偏好。
-- 当前取证：`pnpm --filter @trapmap/web-panel test --run` 31 files 102 tests、`pnpm --filter @trapmap/web-panel typecheck` 0、`pnpm --filter @trapmap/web-panel build` 3659 modules（首屏与 G6 保持 P4A 基线）；`pnpm typecheck` 0；`docs/plans/web-panel-feature-and-ui-optimization-paused.md` Phase1 `Prefer gateway session/cookie` 勾选为条件完成；commit `feat(web-panel): prefer gateway cookie session when available`。
+- 当前取证：`pnpm --filter @trapmap/web-panel test --run` 31 files 102 tests、`pnpm --filter @trapmap/web-panel typecheck` 0、`pnpm --filter @trapmap/web-panel build` 3659 modules（首屏与 G6 保持 P4A 基线）；`pnpm typecheck` 0；docs/plans/web-panel-feature-and-ui-optimization-paused.md Phase1 `Prefer gateway session/cookie` 勾选为条件完成；commit `feat(web-panel): prefer gateway cookie session when available`。
 - Phase 2 `/api/admin/*` RouteDef 已于 `89a8f24e`/`a77e062b` 完成；剩余仅截图证据与审计覆盖。
 
 ### 2026-08-31: server-side authorization tranche (P4A off mainline)
 
 - 新增 `services/admin-panel-server-authorization.test.ts` 6 个真实传输授权测试：`GET /api/admin/reviews` 401 → `isUnauthorizedError` 真且 `withAuthRedirect` 经 `queueMicrotask` 清理 `useSessionStore` 并经 `window.__trapmapNavigate` 重定向 `/login`（`RequireAuth` 的 `isUnauthorizedSession` 覆盖 `error` 与 `authenticated:false` 分支）；`POST /api/admin/reviews/:id/decision` 401 同路径；`read-only-operator` `POST` 403 → `isUnauthorizedError` 假、无重定向、`isUnauthorizedSession` 仍 `false` 对应 `noPermission` 禁用（服务端强制）；`administrator` `GET` 与 `reviewer` `POST` 200 成功且附 `Bearer` 头校验。
 - 复用 `services/admin-panel-rbac.test.ts` 的 mock 侧 403/401 已覆盖；新用例补足真实 `apiRequest` → `ApiError(401/403)` → `isUnauthorizedError` → `RequireAuth` 的 gateway 侧链路，证明授权不止于客户端守卫。
-- 当前取证：`pnpm --filter @trapmap/web-panel test --run` 30 files 98 tests、`pnpm --filter @trapmap/web-panel typecheck` 0、`pnpm --filter @trapmap/web-panel build` 3659 modules（首屏 `732.38 kB gzip 233.37` + `login 1.88 kB gzip 0.95` + G6 `1,411.27 kB gzip 408.72` async）、`pnpm typecheck` 0；`docs/plans/web-panel-feature-and-ui-optimization-paused.md` Phase1 `Add server-side authorization tests` 勾选并回写 `Current compromises` 移除该项；commit `test(web-panel): add server-side authorization tests`。
+- 当前取证：`pnpm --filter @trapmap/web-panel test --run` 30 files 98 tests、`pnpm --filter @trapmap/web-panel typecheck` 0、`pnpm --filter @trapmap/web-panel build` 3659 modules（首屏 `732.38 kB gzip 233.37` + `login 1.88 kB gzip 0.95` + G6 `1,411.27 kB gzip 408.72` async）、`pnpm typecheck` 0；docs/plans/web-panel-feature-and-ui-optimization-paused.md Phase1 `Add server-side authorization tests` 勾选并回写 `Current compromises` 移除该项；commit `test(web-panel): add server-side authorization tests`。
 - 仍保留：gateway session/cookie 偏好（`browserSessionProvider` 已支持 `trapmap_session` cookie 回退与 `credentials:include` 隔离，参见 `http-client.ts:10-24` P3A 修复）、`Phase 2` RouteDefs 与截图证据。
 
 ## Acceptance Gates

@@ -428,8 +428,12 @@ pnpm build
 
 | 依赖 | 用途 |
 |---|---|
-| `@langchain/core` | LangChain 核心类型（消息类型等） |
-| `@langchain/openai` | OpenAI 兼容的聊天和嵌入实现 |
+| `ai` | Vercel AI SDK 核心（`generateText` / `embed` / `embedMany`，唯一 LLM 调用入口） |
+| `@ai-sdk/openai` | OpenAI provider（`openai` 类型） |
+| `@ai-sdk/openai-compatible` | OpenAI 兼容 provider（`openai-compatible` / `ollama` 走 `/v1`） |
+| `@ai-sdk/google` | Google GenAI provider（`google-genai`，含 `textEmbeddingModel`） |
+| `@trapmap/lib` | 确定性 fallback 向量等共享工具 |
+| `zod` | 响应解析与配置校验 |
 
 ## 设计原则
 

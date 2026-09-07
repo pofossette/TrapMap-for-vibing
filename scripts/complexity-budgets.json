@@ -421,7 +421,8 @@
         "六服务归属边界",
         "Go 读服务",
         "HTTP 路由契约",
-        "DOCS_TRUTH_MATRIX.md"
+        "DOCS_TRUTH_MATRIX.md",
+        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
       ],
       "mustNotContain": ["Phase 1 server/backend-core boundary freeze", "store_snapshot"]
     },
@@ -449,8 +450,12 @@
     },
     {
       "file": "docs/architecture/components/PERSISTENCE.md",
-      "mustContain": ["DATABASE_SCHEMA.md", "PostgreSQL", "42 表"],
-      "mustNotContain": ["JsonStore", "store_snapshot", "packages/server", "48 张表"]
+      "mustContain": [
+        "docs/reference/DATABASE_SCHEMA.md",
+        "PostgreSQL 是主要且权威的生产存储后端",
+        "42 表"
+      ],
+      "mustNotContain": ["48 张表", "56 张表"]
     },
     {
       "file": "docs/architecture/components/ASYNC_MODEL.md",

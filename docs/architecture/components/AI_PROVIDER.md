@@ -4,7 +4,7 @@
 
 AI 提供商抽象层为 TrapMap 提供统一的 AI 接口，支持多种 AI 提供商（OpenAI、OpenAI 兼容接口、Ollama、Google GenAI）。这使得系统可以在不改变业务逻辑的情况下切换 AI 提供商。当无 API key 时自动降级到 `fallback` 模式（确定性哈希向量）。
 
-所有提供商实现均基于 `@langchain/openai` 的 `ChatOpenAI` 和 `OpenAIEmbeddings`，通过动态懒加载（`await import()`）避免非 fallback 模式下的包加载开销。详见 [依赖分析（已归档）](../../archived/architecture/components/DEPENDENCY_ANALYSIS.md)。
+仓库唯一的 AI SDK 接入面为 `packages/ai-providers/src/adapters/aisdk.ts`：Chat 经 `generateText({ model, system, prompt, temperature })`，Embedding 经 `embed({ model, value })` / `embedMany({ model, values })`。`packages/ai-providers/src/providers.ts` 的 `AiSdkChat` / `AiSdkEmbeddings` 为唯一实现，历史类名 `OpenAICompatible*` / `GoogleGenAI*` 仅保留为薄别名；`@langchain/*` 依赖已彻底移除。详见 [`packages/ai-providers/README.md`](../../../packages/ai-providers/README.md) 的 AI SDK 适配器章节。
 
 ## 支持的提供商
 
@@ -101,78 +101,30 @@ interface AiProviderConfig {
 
 ## OpenAI 提供商
 
-### 实现
+### 实现（AI SDK 统一入口，现状）
 
-OpenAI 和 OpenAI 兼容提供商共享同一套实现类，通过 `baseUrl` 区分：
+OpenAI 和 OpenAI 兼容提供商共享同一套 AI SDK 实现，经 `packages/ai-providers/src/adapters/aisdk.ts` 解析模型后调用 `generateText` / `embed`：
 
 ```typescript
-// ai/providers.ts
-export class OpenAICompatibleChat implements ChatProvider {
-  readonly provider: string;
-  readonly isConfigured: boolean;
-  private impl: import('@langchain/openai').ChatOpenAI | null = null;
-  private readonly chatConfig: AiProviderConfig;
-
-  constructor(config: AiProviderConfig) {
-    this.provider = config.provider;
-    this.isConfigured = config.isConfigured;
-    this.chatConfig = config;
-  }
-
-  private async ensureImpl(): Promise<import('@langchain/openai').ChatOpenAI> {
-    if (!this.impl) {
-      const { ChatOpenAI } = await import('@langchain/openai');
-      this.impl = new ChatOpenAI({
-        modelName: this.chatConfig.chatModel,
-        apiKey: this.chatConfig.apiKey,
-        timeout: 30_000,
-        configuration: { baseURL: this.chatConfig.baseUrl },
-      });
-    }
-    return this.impl;
-  }
-
+// packages/ai-providers/src/providers.ts（现状摘要）
+export class AiSdkChat implements ChatProvider {
   async invoke(systemPrompt: string, userMessage: string): Promise<string> {
-    const impl = await this.ensureImpl();
-    const { HumanMessage, SystemMessage } = await import('@langchain/core/messages');
-    const result = await impl.invoke([
-      new SystemMessage(systemPrompt),
-      new HumanMessage(userMessage),
-    ]);
-    return typeof result.content === 'string' ? result.content : String(result.content);
+    return generateChatText({ resolved: this.ensureResolved(), system: systemPrompt, prompt: userMessage });
   }
 }
 
-export class OpenAICompatibleEmbeddings implements EmbeddingsProvider {
-  readonly provider: string;
-  readonly isConfigured: boolean;
-  private impl: import('@langchain/openai').OpenAIEmbeddings | null = null;
-  private readonly embConfig: AiProviderConfig;
-
-  constructor(config: AiProviderConfig) {
-    this.provider = config.provider;
-    this.isConfigured = config.isConfigured;
-    this.embConfig = config;
-  }
-
-  private async ensureImpl(): Promise<import('@langchain/openai').OpenAIEmbeddings> {
-    if (!this.impl) {
-      const { OpenAIEmbeddings } = await import('@langchain/openai');
-      this.impl = new OpenAIEmbeddings({
-        modelName: this.embConfig.embeddingModel,
-        apiKey: this.embConfig.apiKey,
-        timeout: 30_000,
-        configuration: { baseURL: this.embConfig.baseUrl },
-      });
-    }
-    return this.impl;
-  }
-
+export class AiSdkEmbeddings implements EmbeddingsProvider {
   async embed(text: string): Promise<number[]> {
-    const impl = await this.ensureImpl();
-    return impl.embedQuery(text);
+    return embedSingle(this.ensureResolved(), text);
+  }
+  async embedMany(texts: string[]): Promise<number[][]> {
+    return embedBatch(this.ensureResolved(), texts);
   }
 }
+
+// 历史别名（薄封装，不新增行为）
+export class OpenAICompatibleEmbeddings extends AiSdkEmbeddings {}
+export class GoogleGenAIEmbeddings extends AiSdkEmbeddings {}
 ```
 
 ### 配置
@@ -189,7 +141,7 @@ AI_EMBEDDING_MODEL=text-embedding-3-small
 
 ## OpenAI 兼容提供商
 
-OpenAI 兼容提供商与 OpenAI 提供商共享 `OpenAICompatibleChat` 和 `OpenAICompatibleEmbeddings` 类（见上文）。区别在于 `config.baseUrl` 指向自定义端点。
+OpenAI 兼容提供商与 OpenAI 提供商共享 `AiSdkChat` 和 `AiSdkEmbeddings` 类（见上文）。区别在于 `config.baseUrl` 指向自定义端点，经 `resolveChatModel` / `resolveEmbeddingModel` 映射到 `@ai-sdk/openai-compatible`。
 
 ### 配置
 
@@ -215,7 +167,7 @@ AI_EMBEDDING_MODEL=custom-embedding-model
 
 ## Ollama 提供商
 
-Ollama 的 `/v1/*` 端点与 OpenAI 兼容，因此复用 `OpenAICompatibleChat` 和 `OpenAICompatibleEmbeddings`，无需独立实现。
+Ollama 的 `/v1/*` 端点与 OpenAI 兼容，因此复用 `AiSdkChat` 和 `AiSdkEmbeddings`（经 `@ai-sdk/openai-compatible` 解析），无需独立实现。
 
 ### 配置
 
@@ -400,6 +352,6 @@ MCP 状态返回 JSON 数组，当前为占位实现（pending MCP server manage
 
 `generateStructured()` 未配置 provider 时立即抛出 typed error；invoke、JSON parse 或 schema validation 失败会按 bounded retry 重试。最终错误只携带 attempts 与 lastFailureClass，不携带模型原始文本。
 
-### LangChain 内置重试
+### AI SDK 重试与超时
 
-`ChatOpenAI` 和 `OpenAIEmbeddings` 实例化时未显式配置 `maxRetries`，依赖 LangChain 默认重试策略。超时设置为 30 秒。
+`AiSdkChat` / `AiSdkEmbeddings` 经 `packages/ai-providers/src/adapters/aisdk.ts` 调用 `generateText` / `embed` / `embedMany`，失败走统一错误面由 `generateStructured` 做 bounded retry；超时与重试策略收敛在 adapter 层，不再依赖已移除的 LangChain 默认策略。

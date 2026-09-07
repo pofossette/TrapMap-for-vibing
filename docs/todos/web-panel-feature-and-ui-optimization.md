@@ -2,8 +2,8 @@
 
 ## Status
 
-- **Active mainline（2026-09-03 恢复）。**
-- 本细则是根 `plan.md` 当前唯一链接的 owner execution surface，承接原 `docs/plans/web-panel-feature-and-ui-optimization-paused.md` 的 paused successor 状态（2026-08-23 启动首批实现，2026-08-25 暂停）。
+- **Queued（2026-09-08 收口暂列排队，恢复执行需 owner 另行确认；见根 `plan.md` 已排队节）。**
+- 本细则原为根 `plan.md` 链接的 owner execution surface，承接原 `docs/plans/web-panel-feature-and-ui-optimization-paused.md` 的 paused successor 状态（2026-08-23 启动首批实现，2026-08-25 暂停）。
 - Experience Gene 主线已于 2026-09-03 完成 closeout 并归档（`docs/archived/archived-plans/experience-gene-program-mainline-archived.md`），本主线经 `git mv` 迁回 `docs/todos/` 恢复执行，后续执行顺序、owner、证据与问题池以本细则为准。
 
 ## Product Stance
@@ -56,8 +56,8 @@ Web Panel 是保留的战略性 human-in-the-loop 产品，用于治理审核、
 - [x] Add shared Zod schemas in `packages/contracts`. (`packages/contracts/src/domain/admin.ts` 393 行 + `enum-types/admin.ts` 覆盖 `adminReviewQueueQuerySchema`/`adminActivityQuerySchema`/`adminArtifactQuerySchema`/`adminGraphQuerySchema`/boundary search 等全部 Web Panel 查询契约，已于 `6c086bb8 feat(contracts): add admin shared Zod schemas for web-panel` 落地并经 `packages/contracts/src/index.ts` barrel 导出；`pnpm --filter @trapmap/contracts test` / `pnpm typecheck` 均绿)
 - [x] Add routes through `create<X>RouteDefs(deps)` factories in the owning service packages. (`89a8f24e feat(admin-routes): implement real admin RouteDefs in service owners` — `packages/service-governance-review/src/routes/queue.routes.ts` `GET /api/admin/reviews|/:id|/activity + POST /:id/decision`, `service-knowledge-read/src/routes.ts` `GET /api/admin/graph/traps|/skills|/graphs/*`, `service-knowledge-write/src/routes.ts` `GET /api/admin/artifacts|/:id`; all `create<X>RouteDefs(deps)` factory, reuse `packages/contracts/src/domain/admin.ts` Zod, `pnpm test:deployment-smoke` 443 tests + `service-*-test/routes.test.ts` admin suites 均绿)
 - [x] Consume those RouteDefs through both host-local Nest and host-distributed gateway surfaces. (`a77e062b feat(host): wire admin RouteDefs and close gateway parity gaps` — host-local `app.module.ts` injects `artifactReadProjection/knowledgeOwner/GraphIndex` + `KnowledgeWriteModule.forTesting` + `serviceRouteDefsForMonolith` for `/api/admin/artifacts`, host-distributed `gateway/route-defs.ts` + `internal-client.ts` forwards `adminReview|adminArtifacts|adminGraph|reviewQueue` via `x-trapmap-*` headers + `queryStringValues`; both hosts share same `create<X>RouteDefs` factory via `createNestAdapter`/`registerFastifyRoutes`, `GET /v1/knowledge/review-queue` parity + `POST /v3/retrieval/search` parity closed, `pnpm check:route-surface` + `check:docs` + `fallow audit --base HEAD --no-cache` 绿)
-- [ ] Cover runtime overview, review detail/activity, manual JSON edits, artifact list/detail, trap graph, and skill graph.
-- [ ] Add audit coverage for governance-relevant reads where required and mutations throughout.
+- [x] Cover runtime overview, review detail/activity, manual JSON edits, artifact list/detail, trap graph, and skill graph. (`service-governance-review/src/routes/runtime.routes.ts:GET /api/admin/runtime-overview` + `json-edit.routes.ts:POST /api/admin/reviews/:id/json-edits` + `queue.routes.ts:GET /api/admin/reviews|/:id|/activity + POST /:id/decision`，`service-knowledge-read/src/routes.ts:GET /api/admin/graph/traps|/skills|/graphs/*`，`service-knowledge-write` artifacts RouteDefs；双宿主经同一 `create<X>RouteDefs` 工厂消费，见 Phase2 已勾三项证据)
+- [ ] Add audit coverage for governance-relevant reads where required and mutations throughout.（2026-09-08 确认未系统落地：仅 `helpers.ts:governance-audit` 注释与 `json-edit.routes.ts:32` no-op 注释，无读侧审计断言；转 `open-debt` web-panel 条目跟踪，不阻塞本细则其余项）
 - [x] Propagate session tokens through `SessionProvider` (`services/admin-panel-service-context.ts:browserSessionProvider` now bearer-aware, verified by `admin-panel-service-context.test.ts:attaches bearer token`, `README.md` endpoint table updated).
 - [x] Keep mock mode for development/tests, with a visible and explicit mock label in the UI.
 

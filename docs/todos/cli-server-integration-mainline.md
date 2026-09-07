@@ -1,7 +1,7 @@
 # CLI 真实服务对接测试主线 — 三构建产物 × CLI 回归 × Docker 资源观测
 
-> **角色**：本细则是 `plan.md` 显式链接的唯一 active mainline，负责三种服务端构建产物的真实启动、CLI 全量对接回归与 Docker CPU/内存/磁盘量化观测。所有阶段以**真实进程 + 真实 PG + 真实 CLI 二进制**为准，mock/ dry-run 仅作开发预验。
-> **状态**：active（2026-09-02 立项，待 `plan.md` 链接后执行）
+> **角色**：本细则负责三种服务端构建产物的真实启动、CLI 全量对接回归与 Docker CPU/内存/磁盘量化观测。所有阶段以**真实进程 + 真实 PG + 真实 CLI 二进制**为准，mock/ dry-run 仅作开发预验。
+> **状态**：queued（2026-09-08 收口暂列排队；Phase 0-3 + Phase 4 报告 + Phase 5.1-5.2 已勾，仅剩 Phase 5.3 归档；见根 `plan.md` 已排队节，恢复执行/归档需 owner 确认）
 > **Owner**：`apps/cli` + `apps/light` + `apps/distributed` + `services/knowledge-read-go` + `services/go-accelerator` + `infra`
 > **关联**：`scripts/backend-target-registry.ts`（light/heavy 构建目标）、`docker-compose.yml`（profiles）、`docs/architecture/DEPLOYMENT.md`、`docs/operations/REGRESSION-COMMANDS.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`
 

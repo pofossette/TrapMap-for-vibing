@@ -12,18 +12,21 @@
 
 ## 当前主线
 
-- **依赖升级与 AI SDK 统一（single active mainline，2026-09-07 进展）：** TypeScript pin 6.0.3 + Biome 2 / Nest 12 依赖波、langchain 移除、Vercel AI SDK provider 统一（`@trapmap/ai-providers` 集中 LLM/embedding 调用），pre 已合入 main（`25a06fa3`）。本轮收尾：compat-status 走服务端退役对齐（CLI `status` 命令已退役，见 d90eb4fa 退役决议）、Wave 6 裸断言清零（`check:asserts` 绿）、CLI/http 单测隔离修复。外部阻塞进展：Docker daemon 已切 overlay2 并跑通 compose closeout 首次 EXIT 0（ recovery 6247ms；修 Dockerfile/db 引用/drizzle 残留/pool 预算/actor 头透传/vector 扩展顺序 5 类 bug）；语义质量门已取数：确定性 44/44，retrieval 5/26、summary 1/6、graph F1=0 持平基线，根因收敛为凭证是 Responses-API-only 代理而本仓只走 Chat Completions（缺 responses 传输，另起项）。细则与执行记录见 [ai-sdk-and-deps-upgrade-mainline.md](docs/todos/ai-sdk-and-deps-upgrade-mainline.md)。
+- **暂无 active mainline（2026-09-08 收口）：** 依赖升级与 AI SDK 统一已完成 closeout 并归档，见 [ai-sdk-and-deps-upgrade-mainline-archived.md](docs/archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md)。新工作须先建 active 细则并由本索引显式链接，不得直接复用归档文档。
 
 ## 已排队（按顺序，非 active）
 
-- **CLI 真实服务对接测试 Phase 4-5：** Phase 1-3 已完成，三产物 CLI 全量回归 + Docker 资源观测量化见 [cli-server-integration-mainline.md](docs/todos/cli-server-integration-mainline.md)；Phase 4 综合报告与 Phase 5 自动化 closeout 待当前主线外部阻塞解除后接续（其中 Docker 资源观测依赖 daemon）。
-- **Web Panel 功能补全与 UI 美化：** main 侧 2026-09-02 已归档 39/39（见归档），pre 侧 2026-09-03 又恢复为 active——两者冲突，本次收口暂列为排队项，恢复执行需 owner 另行确认；细则见 [web-panel-feature-and-ui-optimization.md](docs/todos/web-panel-feature-and-ui-optimization.md)。
+- **CLI 真实服务对接测试 Phase 5.3 归档：** Phase 0-4 + Phase 5.1-5.2 已勾，仅剩归档（`git mv` + 索引更新）；细则见 [cli-server-integration-mainline.md](docs/todos/cli-server-integration-mainline.md)。
+- **Web Panel 功能补全与 UI 美化：** Phase2 路由覆盖已闭环，仅剩 audit 断言（已转长期债务）；恢复执行需 owner 另行确认；细则见 [web-panel-feature-and-ui-optimization.md](docs/todos/web-panel-feature-and-ui-optimization.md)。
+- **Gene 检索评测扩展（spec）：** [gene-retrieval-eval.md](docs/todos/gene-retrieval-eval.md) 为 T0-T6 任务规格，代码实现尚未 dispatch；进入执行需按 subagent-driven 顺序并由本索引显式链接。
 
 ## 下一候选
 
 - `open-debt-and-compromises.md` 6 项（`security advisory` / `gateway parity` 等）待主线 closeout 后按阈值漂移评估选取；`go-accelerator` 深化已由 CLI 主线 C 产物覆盖。
 
 ## 历史主线与入口
+
+- **依赖升级与 AI SDK 统一已完成并归档（2026-09-08）：** TS pin 6.0.3 + Biome 2 / Nest 12 + langchain 移除 + AI SDK 统一（`packages/ai-providers/src/adapters/aisdk.ts` 唯一接入面），`outdated` 57→仅 TS 一项（有意 pin），compose closeout EXIT 0（6247ms），`check:asserts` 0；残留 Responses-API 传输与 light 镜像验证已转长期债务。见 [ai-sdk-and-deps-upgrade-mainline-archived.md](docs/archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md)。
 
 - **Web Panel 功能补全与 UI 美化优化 main 侧曾于 2026-09-02 归档：** Phase 0-4 39/39（7-route baseline 18 images + Phase2 runtime-overview + json-edits 双宿主），`check:docs/structure/complexity` green，见 [web-panel-feature-and-ui-optimization-archived.md](docs/archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md)。注：pre 侧 2026-09-03 曾恢复为 active，2026-09-06 已收口为排队项（见上）。
 - **Go 计算中枢深化已完成并归档（2026-09-02）：** P0 `generate:contracts:check` 22 schemas + `go vet/test` ok，见 [go-compute-hub-mainline-archived.md](docs/archived/archived-plans/go-compute-hub-mainline-archived.md)。
