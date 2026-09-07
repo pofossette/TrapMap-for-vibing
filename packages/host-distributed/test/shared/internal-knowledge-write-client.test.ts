@@ -46,9 +46,46 @@ describe('createRemoteKnowledgeWriteClient', () => {
         result: { decision: 'publish' },
       },
       {
-        headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' },
+        headers: {
+          'x-request-id': 'req-1',
+          'x-trace-id': 'trace-1',
+          'x-trapmap-actor-id': 'user-1',
+        },
         timeoutMs: 4321,
       },
+    );
+  });
+
+  it('projects input actorId into the trusted actor header for owner-hop mutations', async () => {
+    const approveReviewDecision = vi.fn(async () => ({
+      status: 200,
+      body: { entryId: 'entry-1', lifecycleState: 'approved' },
+    }));
+
+    const client = createRemoteKnowledgeWriteClient({
+      knowledgeWrite: {
+        submit: vi.fn(),
+        updateEntry: vi.fn(),
+        resubmit: vi.fn(),
+        supersede: vi.fn(),
+        createTrap: vi.fn(),
+        approveReviewDecision,
+        rejectReviewDecision: vi.fn(),
+        applyMaintenanceDecision: vi.fn(),
+        applyDecayDecision: vi.fn(),
+        publishCandidateResult: vi.fn(),
+        listTraps: vi.fn(),
+        getTrap: vi.fn(),
+      },
+    });
+
+    await expect(
+      client.approveReviewDecision({ entryId: 'entry-1', actorId: 'user-1' }),
+    ).resolves.toEqual({ entryId: 'entry-1', lifecycleState: 'approved' });
+
+    expect(approveReviewDecision).toHaveBeenCalledWith(
+      { entryId: 'entry-1', actorId: 'user-1' },
+      { headers: { 'x-trapmap-actor-id': 'user-1' } },
     );
   });
 
@@ -124,7 +161,7 @@ describe('createRemoteKnowledgeWriteClient', () => {
         input: { entryId: 'entry-1', actorId: 'user-1' },
       },
       {
-        headers: { 'x-request-id': 'req-rpc' },
+        headers: { 'x-request-id': 'req-rpc', 'x-trapmap-actor-id': 'user-1' },
       },
     );
   });

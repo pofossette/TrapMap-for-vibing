@@ -12,7 +12,7 @@
 
 ## 当前主线
 
-- **依赖升级与 AI SDK 统一（single active mainline，2026-09-06 收口）：** TypeScript pin 6.0.3 + Biome 2 / Nest 12 依赖波、langchain 移除、Vercel AI SDK provider 统一（`@trapmap/ai-providers` 集中 LLM/embedding 调用），pre 已合入 main（`25a06fa3`）。本轮收尾：compat-status 走服务端退役对齐（CLI `status` 命令已退役，见 d90eb4fa 退役决议）、Wave 6 裸断言清零（`check:asserts` 绿）、CLI/http 单测隔离修复。剩余外部阻塞：Docker daemon（rootless 地基就绪，仅缺 bridge 内核模块一次 root 装载）、有效 LLM key（语义质量门）。细则与执行记录见 [ai-sdk-and-deps-upgrade-mainline.md](docs/todos/ai-sdk-and-deps-upgrade-mainline.md)。
+- **依赖升级与 AI SDK 统一（single active mainline，2026-09-07 进展）：** TypeScript pin 6.0.3 + Biome 2 / Nest 12 依赖波、langchain 移除、Vercel AI SDK provider 统一（`@trapmap/ai-providers` 集中 LLM/embedding 调用），pre 已合入 main（`25a06fa3`）。本轮收尾：compat-status 走服务端退役对齐（CLI `status` 命令已退役，见 d90eb4fa 退役决议）、Wave 6 裸断言清零（`check:asserts` 绿）、CLI/http 单测隔离修复。外部阻塞进展：Docker daemon 已切 overlay2 并跑通 compose closeout 首次 EXIT 0（ recovery 6247ms；修 Dockerfile/db 引用/drizzle 残留/pool 预算/actor 头透传/vector 扩展顺序 5 类 bug）；语义质量门已取数：确定性 44/44，retrieval 5/26、summary 1/6、graph F1=0 持平基线，根因收敛为凭证是 Responses-API-only 代理而本仓只走 Chat Completions（缺 responses 传输，另起项）。细则与执行记录见 [ai-sdk-and-deps-upgrade-mainline.md](docs/todos/ai-sdk-and-deps-upgrade-mainline.md)。
 
 ## 已排队（按顺序，非 active）
 

@@ -493,7 +493,7 @@ TRAPMAP_SYSTEM_ADMIN_KEY=<your-admin-key> pnpm test:runtime-closeout
 pnpm test:runtime-closeout:compose
 ```
 
-该命令为单次运行分配空闲 loopback gateway 端口和 `TRAPMAP_SYSTEM_ADMIN_KEY`，只启动 PostgreSQL、gateway 和六个内部服务；重启单个 `knowledge-write` 时持续验证 gateway 健康与 job-runtime operator status，并要求 gateway → governance-review → knowledge-write 委托在 60 秒内恢复。无论结果如何都会移除该 Compose project 的容器、volumes 和孤儿容器。60 秒仅是本地可重复隔离验收阈值，不是生产 SLO，也不表示已经具备独立扩缩容或 Level 3 成熟度。
+该命令为单次运行分配空闲 loopback gateway 端口和 `TRAPMAP_SYSTEM_ADMIN_KEY`，只启动 PostgreSQL、gateway 和六个内部服务；重启单个 `knowledge-write` 时持续验证 gateway 健康与 job-runtime operator status，并要求 gateway → governance-review → knowledge-write 委托在 60 秒内恢复。无论结果如何都会移除该 Compose project 的容器、volumes 和孤儿容器。60 秒仅是本地可重复隔离验收阈值，不是生产 SLO，也不表示已经具备独立扩缩容或 Level 3 成熟度。compose 文件为各 distributed 服务固定 `TRAPMAP_SERVICE_POOL_SIZE=4`（7×4=28 ≤ 30 连接预算；不设则默认 7×5=35 会触发 `assertDistributedConnectionBudget` 启动失败）。
 
 可选 RabbitMQ task transport：
 

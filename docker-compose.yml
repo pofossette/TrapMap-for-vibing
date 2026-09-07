@@ -86,6 +86,7 @@ services:
     - HOST=0.0.0.0
     - PORT=4000
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
     - TRAPMAP_DEPLOYMENT_PRESET=api
     - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
@@ -171,6 +172,7 @@ services:
     - TRAPMAP_SERVICE_PORT=4001
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_DEPLOYMENT_PRESET=identity-access
     - TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}
     - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
@@ -218,6 +220,7 @@ services:
     - TRAPMAP_SERVICE_PORT=4002
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_DEPLOYMENT_PRESET=knowledge-read
     - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     - AI_PROVIDER=${AI_PROVIDER:-}
@@ -266,6 +269,7 @@ services:
     - TRAPMAP_SERVICE_PORT=4003
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_DEPLOYMENT_PRESET=knowledge-write
     - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     - AI_PROVIDER=${AI_PROVIDER:-}
@@ -314,6 +318,7 @@ services:
     - TRAPMAP_SERVICE_PORT=4004
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_DEPLOYMENT_PRESET=candidate-worker
     - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
     - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
@@ -378,6 +383,7 @@ services:
     - TRAPMAP_SERVICE_PORT=4005
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_DEPLOYMENT_PRESET=governance-worker
     - TRAPMAP_TASK_TRANSPORT=${TRAPMAP_TASK_TRANSPORT:-postgres}
     - TRAPMAP_RABBITMQ_URL=${TRAPMAP_RABBITMQ_URL:-amqp://guest:guest@rabbitmq:5672}
@@ -442,6 +448,7 @@ services:
     - TRAPMAP_SERVICE_PORT=4006
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_DEPLOYMENT_PRESET=outbox-worker
     - TRAPMAP_TASK_TRANSPORT=postgres
     - OPENAI_API_KEY=${OPENAI_API_KEY:-}
@@ -499,6 +506,7 @@ services:
     - TRAPMAP_SERVICE_PORT=4007
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     - TRAPMAP_DEPLOYMENT_PRESET=cron-scheduler
     - TRAPMAP_TASK_TRANSPORT=postgres
     - CONSUL_ENABLED=${CONSUL_ENABLED:-true}
@@ -559,11 +567,12 @@ services:
       dockerfile: apps/migration/Dockerfile
     command:
     - node
-    - dist/migrate.js
+    - dist/index.js
     working_dir: /app/apps/migration
     environment:
     - TRAPMAP_DATABASE_URL=postgres://trapmap:${POSTGRES_PASSWORD:-trapmap}@postgres:5432/trapmap
     - TRAPMAP_DEPLOYMENT_PROFILE=distributed
+    - TRAPMAP_SERVICE_POOL_SIZE=4
     depends_on:
       postgres:
         condition: service_healthy

@@ -23,6 +23,18 @@ COPY packages/ai-providers/package.json ./packages/ai-providers/
 COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/
 COPY packages/ai-providers/src ./packages/ai-providers/src
 
+COPY packages/lib/package.json ./packages/lib/
+COPY packages/lib/tsconfig.json ./packages/lib/
+COPY packages/lib/src ./packages/lib/src
+
+COPY packages/infra/package.json ./packages/infra/
+COPY packages/infra/tsconfig.json ./packages/infra/
+COPY packages/infra/src ./packages/infra/src
+
+COPY packages/assembly/package.json ./packages/assembly/
+COPY packages/assembly/tsconfig.json ./packages/assembly/
+COPY packages/assembly/src ./packages/assembly/src
+
 COPY packages/service-identity-access/package.json ./packages/service-identity-access/
 COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/
 COPY packages/service-identity-access/src ./packages/service-identity-access/src
@@ -99,11 +111,28 @@ COPY --from=build /app/packages/backend-core/dist ./packages/backend-core/dist
 
 COPY packages/db/package.json ./packages/db/
 COPY packages/db/tsconfig.json ./packages/db/
+COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
 COPY --from=build /app/packages/db/dist ./packages/db/dist
 
 COPY packages/ai-providers/package.json ./packages/ai-providers/
 COPY packages/ai-providers/tsconfig.json ./packages/ai-providers/
+COPY --from=deps /app/packages/ai-providers/node_modules ./packages/ai-providers/node_modules
 COPY --from=build /app/packages/ai-providers/dist ./packages/ai-providers/dist
+
+COPY packages/lib/package.json ./packages/lib/
+COPY packages/lib/tsconfig.json ./packages/lib/
+COPY --from=deps /app/packages/lib/node_modules ./packages/lib/node_modules
+COPY --from=build /app/packages/lib/dist ./packages/lib/dist
+
+COPY packages/infra/package.json ./packages/infra/
+COPY packages/infra/tsconfig.json ./packages/infra/
+COPY --from=deps /app/packages/infra/node_modules ./packages/infra/node_modules
+COPY --from=build /app/packages/infra/dist ./packages/infra/dist
+
+COPY packages/assembly/package.json ./packages/assembly/
+COPY packages/assembly/tsconfig.json ./packages/assembly/
+COPY --from=deps /app/packages/assembly/node_modules ./packages/assembly/node_modules
+COPY --from=build /app/packages/assembly/dist ./packages/assembly/dist
 
 COPY packages/service-identity-access/package.json ./packages/service-identity-access/
 COPY packages/service-identity-access/tsconfig.json ./packages/service-identity-access/
@@ -147,6 +176,7 @@ COPY --from=build /app/packages/host-distributed/dist ./packages/host-distribute
 
 COPY apps/distributed/package.json ./apps/distributed/
 COPY apps/distributed/tsconfig.json ./apps/distributed/
+COPY --from=deps /app/apps/distributed/node_modules ./apps/distributed/node_modules
 COPY --from=build /app/apps/distributed/dist ./apps/distributed/dist
 
 ENV NODE_ENV=production

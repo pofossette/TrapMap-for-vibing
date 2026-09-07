@@ -136,6 +136,7 @@ COPY --from=build /app/packages/host-local/dist ./packages/host-local/dist
 
 COPY apps/light/package.json ./apps/light/
 COPY apps/light/tsconfig.json ./apps/light/
+COPY --from=deps /app/apps/light/node_modules ./apps/light/node_modules
 COPY --from=build /app/apps/light/dist ./apps/light/dist
 
 ENV NODE_ENV=production

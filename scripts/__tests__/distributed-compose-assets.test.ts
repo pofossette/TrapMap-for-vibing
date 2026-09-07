@@ -21,7 +21,7 @@ describe('distributed compose assets', () => {
     expect(compose).toContain('governance-worker:');
     expect(compose).toContain('outbox-worker:');
     expect(compose).toContain('migration:');
-    expect(compose).toContain('command: ["node", "dist/migrate.js"]');
+    expect(compose).toContain('- dist/index.js');
     // biome-ignore lint/suspicious/noTemplateCurlyInString: compose-file shell expansion syntax under test, not a JS template
     expect(compose).toContain('TRAPMAP_SYSTEM_ADMIN_KEY=${TRAPMAP_SYSTEM_ADMIN_KEY:-}');
 

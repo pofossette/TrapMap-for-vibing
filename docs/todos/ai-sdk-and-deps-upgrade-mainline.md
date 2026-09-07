@@ -405,3 +405,72 @@
   invalid），语义质量门继续等待外部凭证。
 - 收口：根 `plan.md` + `todos/README.md` 已收敛为 single active mainline
   （本主线），cli-integration Phase 4-5 与 Web Panel 列为排队项。
+
+## 第十七轮进展（本 turn：Docker 部署验证 + 语义质量门，compose closeout 首次 EXIT 0）
+
+- 结论：`pnpm test:runtime-closeout:compose` **EXIT 0**（runtime-closeout
+  JSON `failed: 0`，knowledge-write 重启恢复 6247ms，gateway/job-runtime
+  全程可用，远低于 60s 阈值）；`eval:smoke` 总分 55/81（EXIT 1），确定性
+  44/44 保持，retrieval 5/26、summary 1/6、graph F1=0 与基线持平——语义项
+  仍顶天花板，根因已从“坏 key”收敛为“线制不匹配”（见下）。
+- 待办 1 端口发布实证 PASS：字面命令 `-p 127.0.0.1::8080` 回显为空的根因是
+  双重的——(a) `hashicorp/http-echo` 监听的是容器内 5678 而非 8080，映射错
+  端口必然空回显；(b) 本机 shell 有 `http_proxy=127.0.0.1:7890`，
+  `no_proxy` 的 `127.*` 写法不被 curl 识别，loopback 请求会被送进代理得
+  502。`5678` 映射 + `curl --noproxy '*'` 后稳定返回 `hi`（overlay2 新
+  daemon 上复检同样通过）。
+- 待办 2 compose closeout：共修 5 类仓库 bug（另有 1 处纯本机 workaround，
+  已回退、不在提交内）——
+  1. `apps/migration/Dockerfile` 仍引已删除的 `packages/persistence-schema`
+    （90252a14 改名为 `@trapmap/db` 时遗漏，distributed/light 早已改），
+     改 `packages/db` 并补 `tsc -b` 的 `db` 项；
+  2. 同文件 7 处 `COPY packages/service-*/drizzle`（drizzle 目录已随版本化
+     历史删除），删除；production 补 `packages/db/migrations/schema.sql`
+    （`runMigrations` 运行时相对 dist 读它）与 db/ai-providers 的
+     `node_modules`；
+  3. migration/distributed/light 三镜像缺 `packages/lib|infra|assembly`
+     的 deps+production 拷贝（`tsc -b` 报 `TS6053/TS5083`），按引用闭包补齐；
+     三镜像 production 补各自 app 的 `node_modules`（pnpm isolated 布局下
+     workspace 链接只存在于此，否则 `ERR_MODULE_NOT_FOUND`）；
+  4. `docker-compose.yml` migration `command: dist/migrate.js` 实为不存在的
+     入口（src 只有 `index.ts`），改 `dist/index.js`；连带修
+     `scripts/__tests__/distributed-compose-assets.test.ts` 中已在 main 上变红
+     的 stale 断言（`command: ["node", "dist/migrate.js"]` 字面不存在）。
+  5. 真业务 bug（验证中新发现）：governance→knowledge-write owner-hop 经
+     HTTP 时从不带 `x-trapmap-actor-id`，knowledge-write `trustedActor`
+     直接 401，closeout 的“重启恢复委托”60s 耗尽。修于
+     `createRemoteKnowledgeWriteClient`：从 port input 的 `actorId` 派生该头
+    （与 body 同值，`trustedActor` 的头体一致校验依然有效；信任链
+     session→gateway→governance 不变）；另补 `401→unauthorized` 错误映射
+     （之前吞成 generic internal）。单测 8/8（新增头透传用例），
+     `typecheck`/Biome/`check:asserts`(0) 绿。
+  6. 新鲜空库必现：`schema.sql` 的 `CREATE EXTENSION vector` 在第 878/958 行，
+     而 `vector(384)` 列在 274 行就已使用——此前本地库因扩展早已存在而掩盖。
+     修于文件头顶前置 `CREATE EXTENSION IF NOT EXISTS vector`（零代码改动，
+     migrate 单测无需改）。
+  7. compose 默认 7×5=35 超 30 连接预算，`assertDistributedConnectionBudget`
+     让所有服务启动即死。`docker-compose.yml` 9 处统一 pin
+     `TRAPMAP_SERVICE_POOL_SIZE=4`（7×4=28，与本地栈已验证做法一致；
+     `DEPLOYMENT.md` closeout 段已同步该默认值说明）。
+- 环境侧（不进仓库）：rootless daemon 原 `--storage-driver=vfs` 下，
+  Dockerfile 的 45+70 层使每层全量复制，单镜像构建即吃光 130G+ 磁盘——vfs
+  在此仓库不可用。已切 `overlay2`（内核 7.2.3 原生支持 userns mount，
+  wrapper `~/.local/bin/dockerd-rootless-wrap.sh` 已改，data-root 迁至
+  `~/.local/share/docker2`；旧 vfs 数据保留在原目录待日后回收）。
+  另：构建容器经 slirp 无外部 DNS，构建期曾临时加 `build.network: host`
+  取证，通过后已回退；本沙箱日后重跑 closeout 若构建下载失败，需重加该
+  临时项（纯环境限制，与镜像运行时语义无关）。
+- 待办 3 语义质量门（`OPENAI_API_KEY` 取自 `~/.codex/auth.json`，仅 export，
+  未落盘；`AI_BASE_URL=http://127.0.0.1:15721/v1`，
+  `AI_CHAT_MODEL=muse-spark-1.3-contributor`）：探针实证该凭证是
+  Responses-API-only 代理——`/v1/responses` 200（completed），而本仓 adapter
+  走的 `/v1/chat/completions` 上游 500、`/v1/embeddings` 404。
+  `eval:smoke` 结果：ingestion 1/1、planning 33/33、alignment 10/10（确定性
+  44/44 不动）；retrieval 5/26、summary 1/6、graph Node/Edge F1=0.000（与坏
+  key 基线完全持平，属 fallback 行为）。结论：语义项天花板还在，但阻塞已
+  从“无有效 key”变为“缺 Responses-API 传输”——`@trapmap/ai-providers` 若要
+  用该凭证，需新增 `openai.responses()` 通路（设计+测试另起项，不在本轮）。
+- 遗留：`apps/light/Dockerfile` 同类 stale（lib/infra/assembly 缺失）一并
+  修了 deps/production 拷贝与 app `node_modules`，但 light 镜像本次未构建
+  验证；旧 `~/.local/share/docker`（vfs，~19G）待回收；`GET
+  /v1/operations/status` 缺口已在第十六轮以 CLI 退役关闭，不再列阻塞。
