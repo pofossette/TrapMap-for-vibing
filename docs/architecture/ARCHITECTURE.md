@@ -53,3 +53,35 @@ TrapMap 的两大演进方向直接以以下两篇论文为出发点，架构决
 | **v3 图编排 / ExecutionPlan** | *GraSP: Agent Skill Graph 编排（腾讯）* + *SkillGraph (2605.12039)* | PDF: https://arxiv.org/pdf/2604.17870 · Plan: `docs/superpowers/plans/2026-05-25-topological-execution-plan.md` | 借鉴 GraSP 的 DAG 编译（`state / data / order` 边）与 SkillGraph 的 `R_ret = TopoSort(R_seed ∪ R_BFS ∪ R_beam)` 拓扑排序，在 `TrapFirstPlan` 中新增 `executionPlan: ExecutionStep[]`。`buildExecutionPlan()` 在 `plan-compiler` 侧对 `mitigates / requires / order` 边执行 Kahn 拓扑排序，输出 `{ rank, nodeId, label, kind:trap-mitigation|skill, blockedBy }`，客户端无需自算顺序；`recommendedSkills` 保持 score 序不变。契约已在 `packages/contracts/src/domain/plans.ts` 落地（`executionStepSchema`） |
 
 > 两篇论文为“灵感出发点”而非照搬：TrapMap 保留 PG-first、RouteDef 双宿主、`approved && !suppressedFromRetrieval` 治理门控与 `off|shadow|serve` 受控 rollout，GEP 的自动 mutation loop 与多 Gene 自由组合不在本轮主线内。
+
+## 常见用法
+
+### 你以 `local-agent` 形态起服务
+
+前置条件：`postgres` 可达；依赖已装。
+
+```bash
+pnpm run dev -- local-agent
+```
+
+profile 装配逻辑在 `packages/host-local/src/nest/main.ts:30-38`；非法值回落 `local-agent`。对外路径对照见 [TrapMap API 契约表面](../reference/api-surface.md)。
+
+### 你校验表镜像
+
+前置条件：依赖已装；活库比对需 PG 可达。
+
+```bash
+pnpm check:table-schema
+```
+
+逐表清单只在 [数据库表结构](../reference/DATABASE_SCHEMA.md) 维护，本页不复述。
+
+### 你查看网关路由落点
+
+前置条件：离线可跑。
+
+```bash
+ls packages/host-distributed/src/gateway/route-defs/
+```
+
+`RouteDef` 定义在 `packages/backend-core/src/http/route-contract.ts:50-58`。

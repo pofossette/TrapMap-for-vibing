@@ -38,3 +38,33 @@ pnpm --filter @trapmap/evals eval:retrieval:smoke
 ## 性能阈值
 
 `docs/architecture/performance/` 下三文件已完成并归档（2026-09-08）；毫秒阈值与实测耗时属易变数字，本页不收录。你看现网值时以 CI 压测输出（`benchmarks/results/`）为准。
+
+## 常见用法
+
+### 你跑 smoke 门禁
+
+前置条件：Docker 可用；脚本自带 PG 编排。
+
+```bash
+pnpm --filter @trapmap/evals eval:smoke
+```
+
+CI 门禁是 `eval:smoke`，见本页「概述」节。
+
+### 你列全量评估选项
+
+前置条件：离线可跑。
+
+```bash
+pnpm --filter @trapmap/evals eval -- --help
+```
+
+统一入口由 `scripts/run-eval.ts` 提供。
+
+### 你跑检索冒烟
+
+前置条件：目标服务器运行中。
+
+```bash
+pnpm --filter @trapmap/evals eval:retrieval:smoke
+```

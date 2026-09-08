@@ -72,3 +72,35 @@ flowchart TB
 ## 契约
 
 请求 / 响应 Zod 在 `packages/contracts/src/domain/retrieval.ts`（`retrievalQueryModeSchema`、`retrievalStrategySchema` 等）。空结果契约与阈值调优见 rerank 与 orchestrator 的 `threshold-gate` trace。
+
+## 常见用法
+
+### 你跑检索冒烟（dry-run）
+
+前置条件：依赖已装；不打活服务。
+
+```bash
+pnpm --filter @trapmap/evals eval:retrieval:dry-run
+```
+
+脚本定义在 `evals/package.json:34`。
+
+### 你跑检索冒烟（活服务）
+
+前置条件：目标服务运行中，PG 可达。
+
+```bash
+pnpm --filter @trapmap/evals eval:retrieval:smoke
+```
+
+用例结构与跑法前置见 [评估框架](EVALUATION.md)「评估类型」「跑法」两节。
+
+### 你用 CLI 发起检索
+
+前置条件：gateway 运行中。
+
+```bash
+trapmap retrieval --help
+```
+
+实现落点见本页「路由对照」节；逐条路径见 [TrapMap API 契约表面](../../reference/api-surface.md)。

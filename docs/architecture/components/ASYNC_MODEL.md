@@ -66,3 +66,33 @@ flowchart TB
 ## 可观测性
 
 命名与失败分类以 `packages/contracts/src/domain/observability.ts` 为准。`workflowRunId` 表 async / durable 语义，不等同于对客 `asyncJobId`。
+
+## 常见用法
+
+### 你查异步现场状态
+
+前置条件：gateway 运行中。
+
+```bash
+curl -s <gateway>/v1/operations/status/async
+```
+
+路由定义在 `packages/host-distributed/src/gateway/route-defs/job.ts:53`；`<gateway>` 换成你的网关地址。
+
+### 你列 typed handler
+
+前置条件：离线可跑。
+
+```bash
+ls packages/service-job-runtime/src/handlers/
+```
+
+### 你列出 payload schema
+
+前置条件：离线可跑。
+
+```bash
+grep -n "PayloadSchema" packages/contracts/src/domain/async.ts
+```
+
+逐任务契约见 [Shared Async Job Contracts](ASYNC_SHARED_JOB_CONTRACTS.md)。

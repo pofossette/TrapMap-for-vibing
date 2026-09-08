@@ -50,3 +50,34 @@ flowchart TB
 ## 契约
 
 Zod：`skillArtifactSchema` / `SkillArtifact` 在 `packages/contracts/src/domain/artifacts.ts`。42 表中的 11 张工件表见 [数据库表清单](../../reference/DATABASE_SCHEMA.md)。
+
+## 常见用法
+
+### 你跑导入导出测试
+
+前置条件：活 PG 可达（`TRAPMAP_DATABASE_URL` 指向可写库，见 `scripts/test-skill-import-export.ts:1-22`）；另需已存在的用户 id 作 `--actor-id`。
+
+```bash
+pnpm test:import-export
+```
+
+脚本跑 `scripts/test-skill-import-export.ts`。
+
+### 你用 CLI 导入导出
+
+前置条件：`--help` 离线可跑；实际导入导出需 gateway 运行中。
+
+```bash
+trapmap operations import --help
+trapmap operations export --help
+```
+
+实现文件在 `apps/cli/src/commands/operations/`。
+
+### 你校验契约产物同步
+
+前置条件：依赖已装；离线可跑。
+
+```bash
+pnpm generate:contracts:check
+```

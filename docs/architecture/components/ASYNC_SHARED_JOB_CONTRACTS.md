@@ -53,3 +53,33 @@ payload 的 Zod 真源在 `packages/contracts/src/domain/async.ts`：`candidateP
 - Payload：`entryId`、`sourceEventId`；幂等键 `governance.conflict-detection:<entryId>:<sourceEventId>`（同一 approved entry 与 source event 只保留一个 work item）
 - Max attempts：`5`；`workflowType = governance-conflict-detection`，`runId` 绑 `entryId`；ordering `per-transition`
 - Dead-letter：重试耗尽，conflict projection 可能陈旧；你查 governance workflow 与 dead letter，修复依赖后 replay task
+
+## 常见用法
+
+### 你列出 payload schema
+
+前置条件：离线可跑。
+
+```bash
+grep -n "PayloadSchema" packages/contracts/src/domain/async.ts
+```
+
+真源行见本页「统一规则」节。
+
+### 你核对 handler 接入
+
+前置条件：离线可跑。
+
+```bash
+ls packages/service-job-runtime/src/handlers/
+```
+
+新增 shared job 时先声明契约再接入 worker，步骤见本页「统一规则」节。
+
+### 你校验契约产物同步
+
+前置条件：依赖已装；离线可跑。
+
+```bash
+pnpm generate:contracts:check
+```

@@ -45,3 +45,35 @@ trapmap skill remove tdd
 ## 版本语义
 
 每个 Skill 带 `version`（semver）+ `revision`（int）+ `sourceHash`（规范文件 sha256）。`diffSnapshots(base, next)` 输出文件级增删改；`threeWayMerge` 策略取 `ours/theirs/union/manual`，双边分叉即冲突。服务端注册（`POST /v1/skills/import`）未在 gateway route-defs 中出现，标未知/待确认（2026-09-08）。
+
+## 常见用法
+
+### 你搜包
+
+前置条件：registry 源可达。
+
+```bash
+trapmap skill registry search tdd --limit 5
+```
+
+源解析扇出由 `packages/skill-registry/src/` 下的 `services/` 层承担。
+
+### 你看本地状态
+
+前置条件：离线可跑；只读本地 lockfile。
+
+```bash
+trapmap skill registry status
+trapmap skill registry list --json
+```
+
+lockfile 落点见本页「命令面」节。
+
+### 你升级
+
+前置条件：registry 源可达。
+
+```bash
+trapmap skill registry outdated
+trapmap skill registry update --yes
+```

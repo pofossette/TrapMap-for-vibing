@@ -31,3 +31,33 @@
 ## Repository 形态
 
 各上下文经 Port + Repository 访问 PG：写侧各 owner 实现各自表的 PG repository；读侧 `service-knowledge-read` 只组装读模型，不回写覆盖写侧投影；`InMemory*Repository` 只用于单元与集成测试，不做生产回退。
+
+## 常见用法
+
+### 你校验表镜像
+
+前置条件：依赖已装；活库比对需 PG 可达。
+
+```bash
+pnpm check:table-schema
+```
+
+真源是 `packages/db/src/schema/`，聚合入口在 `packages/db/src/schema/index.ts`。
+
+### 你本地起 PG
+
+前置条件：Docker 可用。
+
+```bash
+docker compose up -d postgres
+```
+
+### 你查队列出队谓词
+
+前置条件：离线可跑。
+
+```bash
+grep -n "SKIP LOCKED" packages/db/src/schema/queue.ts
+```
+
+出队语义见本页「索引策略」节。

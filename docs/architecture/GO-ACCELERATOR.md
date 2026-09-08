@@ -71,3 +71,33 @@ golangci-lint run ./...
 pnpm check:complexity
 pnpm exec fallow audit --base main
 ```
+
+## 常见用法
+
+### 你在 Go 目录跑单测
+
+前置条件：容器外装 Go 1.23 工具链；在 `services/knowledge-read-go` 下执行。
+
+```bash
+go test ./... -count=1
+```
+
+行数门禁见本页附录；退役状态以 `services/go-accelerator/DEPRECATED.md` 为准。
+
+### 你跑 Go 契约对齐
+
+前置条件：依赖已装；离线可跑。
+
+```bash
+pnpm check:go-contract
+```
+
+SSOT 是 `packages/contracts/src/domain/go-accelerator.ts`。
+
+### 你校验契约产物同步
+
+前置条件：依赖已装；离线可跑。
+
+```bash
+pnpm generate:contracts:check
+```

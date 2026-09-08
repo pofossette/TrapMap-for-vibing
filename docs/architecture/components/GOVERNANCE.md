@@ -35,3 +35,35 @@ flowchart TB
 ## 冲突工作流
 
 `conflict-workflow.ts` 编排冲突检测与消解，`llm-conflict.ts` 做 LLM 侧判断，`conflict-trigger` 判断节点契约见 `packages/assembly/src/contracts/judgment-contracts.ts:60-66`。检测任务经 shared job `governance.conflict-detection` 入队（见 [Shared Async Job Contracts](ASYNC_SHARED_JOB_CONTRACTS.md)）。
+
+## 常见用法
+
+### 你看审核队列帮助
+
+前置条件：离线可跑。
+
+```bash
+trapmap review --help
+```
+
+内部与对外路径对照见 [TrapMap API 契约表面](../../reference/api-surface.md)。
+
+### 你跑冲突评估（dry-run）
+
+前置条件：依赖已装；不打活服务。
+
+```bash
+pnpm --filter @trapmap/evals eval:conflict:dry-run
+```
+
+脚本定义在 `evals/package.json:17`。
+
+### 你查冲突检测 handler
+
+前置条件：离线可跑。
+
+```bash
+ls packages/service-job-runtime/src/handlers/
+```
+
+`governance-conflict.ts` 承担检测任务执行；契约见 [Shared Async Job Contracts](ASYNC_SHARED_JOB_CONTRACTS.md)。

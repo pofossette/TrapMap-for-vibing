@@ -52,3 +52,35 @@ docker compose up -d postgres rabbitmq
 docker compose --profile distributed up -d
 docker compose ps
 ```
+
+## 常见用法
+
+### 你本地直起 `team-monolith`
+
+前置条件：`postgres` 与 `rabbitmq` 已启动，见本页「启动」节。
+
+```bash
+pnpm run dev -- team-monolith
+```
+
+profile 与 preset 的区别见本页「形态」节。
+
+### 你跟踪网关日志
+
+前置条件：distributed 服务组运行中。
+
+```bash
+docker compose logs -f gateway
+```
+
+服务名以 `docker-compose.yml:70-528` 的 distributed 服务组为准。
+
+### 你核对部署变量
+
+前置条件：离线可跑。
+
+```bash
+grep -n "TRAPMAP_DEPLOYMENT_PROFILE" docker-compose.yml
+```
+
+变量含义见本页「环境变量」节。

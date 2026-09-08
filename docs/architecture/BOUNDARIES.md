@@ -35,3 +35,29 @@ pnpm exec fallow audit --base main
 你在 `.fallowrc.json` 的 `boundaries.zones` 加条目，在 `boundaries.rules` 加 `from → allow`，再 Mirror 到上表。若新包需被宿主消费，你把 zone 名加入 `host-local` 与 `host-distributed` 的 allow 列表。
 
 > 核对：上列 18 zone 名与 `.fallowrc.json` 一致（2026-09-08）。旧文案中的 14 zone 计数已作废。
+
+## 常见用法
+
+### 你跑边界审计
+
+前置条件：依赖已装；`--base main` 需本地含 `main` 基准。
+
+```bash
+pnpm exec fallow audit --base main
+```
+
+唯一生效源是仓库根 `.fallowrc.json`。CI 口径用另一条命令：
+
+```bash
+pnpm check:fallow
+```
+
+### 你核对判断契约注册表
+
+前置条件：离线可跑。
+
+```bash
+grep -n "id:" packages/assembly/src/contracts/judgment-contracts.ts
+```
+
+注册位置见本页「契约落点」节；descriptor 清单见 [TrapMap 架构](ARCHITECTURE.md)「有界上下文」节。

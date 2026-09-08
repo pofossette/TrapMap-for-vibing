@@ -26,3 +26,35 @@
 ## 可观测边界
 
 `packages/ai-providers/src/observability.ts` 只接收注入的 `LlmObservationSink`，不依赖 `langfuse` SDK；SDK 导入只发生在 `packages/host-local/src/nest/observability/langfuse-sink.ts`。你在领域包里不要直接打 LLM 观测。
+
+## 常见用法
+
+### 你无 key 启动验证回退
+
+前置条件：不设 `AI_PROVIDER`、`OPENAI_API_KEY`、`GEMINI_API_KEY`；离线可跑。
+
+```bash
+pnpm run dev -- local-agent
+```
+
+选型落 `fallback`（`packages/ai-providers/src/provider-config.ts:66-84`）；回退语义见本页「提供商分支」节。
+
+### 你读模型解析分支
+
+前置条件：离线可跑。
+
+```bash
+sed -n '53,134p' packages/ai-providers/src/adapters/aisdk.ts
+```
+
+helper 行号见本页「单一导入点」节。
+
+### 你切 Ollama 验证兼容路径
+
+前置条件：本地 Ollama 可达并配好 baseURL。
+
+```bash
+AI_PROVIDER=ollama pnpm run dev -- local-agent
+```
+
+`ollama` 分支走 `createOpenAICompatible`，映射表见本页「提供商分支」节。

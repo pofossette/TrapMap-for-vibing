@@ -26,3 +26,33 @@ TrapMap 健康状态映射到 Consul 语义（ Concept 保留，实现以 `healt
 | `SERVICE_NAME` | `trapmap` | host-local Consul 注册服务名 |
 
 `docker-compose.yml` 中 Consul 相关服务使用 `distributed` profile；`host-local` 零 Go 依赖，Consul 可选注册与其他服务一致。
+
+## 常见用法
+
+### 你跑发现收口测试
+
+前置条件：依赖已装；离线可跑。
+
+```bash
+pnpm test:discovery-closeout
+```
+
+覆盖网关发现解析与 Consul 适配器单测，消费侧入口在 `packages/host-distributed/src/gateway/discovery-resolver.ts`。
+
+### 你本地启用 Consul 注册
+
+前置条件：Consul agent 在 `CONSUL_HOST:CONSUL_PORT` 可达。
+
+```bash
+CONSUL_ENABLED=true pnpm run dev -- local-agent
+```
+
+注册逻辑在 `packages/host-local/src/nest/service-discovery/consul.service.ts`；变量缺省见本页「环境变量」节。
+
+### 你确认 Consul profile 服务
+
+前置条件：Docker Compose 已安装；离线可跑。
+
+```bash
+docker compose --profile distributed config --services
+```

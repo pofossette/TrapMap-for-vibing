@@ -36,3 +36,35 @@ trapmap knowledge --help
 trapmap retrieval --help
 trapmap skill registry search tdd --limit 5
 ```
+
+## 常见用法
+
+### 你确认 CLI 连通性
+
+前置条件：`about` 离线可跑；其余需 gateway 运行中。
+
+```bash
+trapmap about
+trapmap api:list
+```
+
+注册与裁剪逻辑在 `apps/cli/src/index.ts:138-193`。
+
+### 你查单命令用法
+
+前置条件：离线可跑。
+
+```bash
+trapmap knowledge --help
+trapmap retrieval --help
+```
+
+### 你搜 Skill
+
+前置条件：gateway 运行中；registry 源可达。
+
+```bash
+trapmap skill registry search tdd --limit 5
+```
+
+lockfile 落点与版本语义见 [Skill Registry 与版本管理](SKILL-REGISTRY.md)。

@@ -32,3 +32,34 @@ flowchart TB
 
 - `apps/web-panel` 只依赖 `client-core` 与 `contracts`，渲染管理面（审核队列、activity、graph）。
 - `apps/mcp` 为 agent 协议做外层封装；TrapMap 服务本体不实现 MCP 协议。
+
+## 常见用法
+
+### 你确认本机 CLI 可用
+
+前置条件：离线可跑。
+
+```bash
+trapmap about
+trapmap knowledge --help
+```
+
+完整命令表见 [TrapMap CLI 参考](../CLI.md)。
+
+### 你起 web 面板
+
+前置条件：gateway 运行中。
+
+```bash
+pnpm dev:web
+```
+
+`apps/web-panel` 只依赖 `client-core` 与 `contracts`，见本页「web-panel 与 mcp」节。
+
+### 你跑 CLI 集成（dry）
+
+前置条件：依赖已装；参数见 `scripts/cli-integration-run.sh`。
+
+```bash
+pnpm test:cli-integration:dry
+```

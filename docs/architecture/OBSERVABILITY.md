@@ -19,3 +19,35 @@ Langfuse 只做 LLM / embedding 生成运行时观测。初始化在 `packages/h
 ## 打点接缝
 
 HTTP / DB / queue / internal-hop 四条 seam 在 `host-local` 与 `host-distributed` 中统一打点。命名与失败分类以 `packages/contracts/src/domain/observability.ts` 为准。`workflowRunId` 表 async / durable 语义，不等同于对客 `asyncJobId`。
+
+## 常见用法
+
+### 你读 Go 读服务指标
+
+前置条件：`knowledge-read-go` 运行中。
+
+```bash
+curl -s http://localhost:4101/metrics
+```
+
+端口见 `docker-compose.yml:582-647` 的 Go 平面范围；网关聚合见 [服务发现架构](SERVICE-DISCOVERY.md)。
+
+### 你跑可观测收口测试
+
+前置条件：依赖已装；离线可跑。
+
+```bash
+pnpm test:observability-closeout
+```
+
+脚本定义在根 `package.json`。
+
+### 你验证 Sentry 缺省 no-op
+
+前置条件：`SENTRY_DSN` 置空。
+
+```bash
+SENTRY_DSN= pnpm run dev -- local-agent
+```
+
+初始化在 `packages/host-local/src/nest/observability/sentry.service.ts`。
