@@ -8,6 +8,11 @@
 import { createHash } from 'node:crypto';
 
 import { trackCacheHit, trackCacheMiss } from './metrics.js';
+import {
+  DEFAULT_SECTION_CACHE_MAX,
+  DEFAULT_SECTION_CACHE_TTL_MS,
+  resolveSectionCacheOptions,
+} from '../provider-config.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -30,8 +35,9 @@ interface SectionCacheOptions {
 // LRU implementation
 // ---------------------------------------------------------------------------
 
-const DEFAULT_MAX = 1000;
-const DEFAULT_TTL_MS = 1000 * 60 * 60; // 1 hour
+// Centralized defaults live in ../provider-config.js (env-overridable).
+// Re-exported here so existing import sites keep working.
+export { DEFAULT_SECTION_CACHE_MAX, DEFAULT_SECTION_CACHE_TTL_MS };
 
 class SectionLRUCache {
   private readonly store = new Map<string, SectionCacheEntry>();
@@ -39,8 +45,8 @@ class SectionLRUCache {
   private readonly ttlMs: number;
 
   constructor(options?: SectionCacheOptions) {
-    this.max = options?.max ?? DEFAULT_MAX;
-    this.ttlMs = options?.ttlMs ?? DEFAULT_TTL_MS;
+    this.max = options?.max ?? DEFAULT_SECTION_CACHE_MAX;
+    this.ttlMs = options?.ttlMs ?? DEFAULT_SECTION_CACHE_TTL_MS;
   }
 
   get(key: string): SectionCacheEntry | undefined {
@@ -94,7 +100,7 @@ class SectionLRUCache {
 // Singleton cache instance
 // ---------------------------------------------------------------------------
 
-const cacheInstance = new SectionLRUCache();
+const cacheInstance = new SectionLRUCache(resolveSectionCacheOptions());
 
 // ---------------------------------------------------------------------------
 // Public API

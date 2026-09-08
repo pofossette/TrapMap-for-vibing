@@ -1,6 +1,15 @@
 /** State machine for an assembly shutdown sequence. */
 export type ShutdownState = 'idle' | 'shutting-down' | 'done';
 
+/**
+ * Default dispose grace period in ms.
+ *
+ * Centralized name for the legacy inline `5000` fallback. Callers inject via
+ * `ShutdownControllerOptions.timeoutMs`; this default is intentionally NOT
+ * env-driven, so shutdown timing stays explicit at the call site.
+ */
+export const DEFAULT_SHUTDOWN_TIMEOUT_MS = 5000;
+
 export interface ShutdownControllerOptions {
   /** How long to wait for `dispose` before proceeding regardless (default 5000ms). */
   timeoutMs?: number;
@@ -36,7 +45,7 @@ export function createShutdownController(
   dispose: () => unknown,
   options: ShutdownControllerOptions = {},
 ): ShutdownController {
-  const timeoutMs = options.timeoutMs ?? 5000;
+  const timeoutMs = options.timeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
   const onError = options.onError;
 
   let state: ShutdownState = 'idle';

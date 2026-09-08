@@ -1,5 +1,7 @@
 import type { ZodType } from 'zod';
 
+import { resolveParseMaxRetries, resolveParseRetryBaseMs } from './provider-config.js';
+
 /**
  * Shared LLM response parsing helpers.
  *
@@ -39,8 +41,11 @@ export async function invokeWithParseRetry<T>(options: {
   maxRetries?: number;
   backoffMs?: number | ((attempt: number) => number);
 }): Promise<T | null> {
-  const maxRetries = options.maxRetries ?? 2;
-  const backoffMs = options.backoffMs ?? ((attempt: number) => 100 * 2 ** (attempt * 2));
+  // Defaults are centralized in ./provider-config.js (env-overridable);
+  // the exponential shape below stays hardcoded.
+  const maxRetries = options.maxRetries ?? resolveParseMaxRetries();
+  const retryBaseMs = resolveParseRetryBaseMs();
+  const backoffMs = options.backoffMs ?? ((attempt: number) => retryBaseMs * 2 ** (attempt * 2));
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
