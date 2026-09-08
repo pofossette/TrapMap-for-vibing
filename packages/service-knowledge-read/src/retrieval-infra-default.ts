@@ -237,6 +237,7 @@ export function createDefaultKnowledgeReadRetrievalInfra(
         }),
     },
     pgRecall: {
+      // DEPRECATED: USE_DB_SEARCH will be removed after 2026-12-08; use TRAPMAP_RETRIEVAL_USE_DB_SEARCH.
       isEnabled: () =>
         (process.env.TRAPMAP_RETRIEVAL_USE_DB_SEARCH ?? process.env.USE_DB_SEARCH) === 'true',
       getPool: (store) => store.getPool?.() ?? null,

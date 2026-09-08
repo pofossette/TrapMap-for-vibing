@@ -54,6 +54,8 @@ distributed profile 下内部地址默认走 compose Docker DNS；本地进程�
 | `TRAPMAP_CONSUL_CHECK_INTERVAL` | `packages/host-local/src/nest/service-discovery/consul.service.ts:235` | Consul 健康检查间隔 | `10s` |
 | `TRAPMAP_CONSUL_CHECK_TIMEOUT` | `packages/host-local/src/nest/service-discovery/consul.service.ts:240` | Consul 健康检查超时 | `5s` |
 
+> 注意：host-local 池默认（`max 10`、`idle 10s`、其余超时不设）与 distributed 默认（`max 5`、`idle`/`idleInTransaction`/`statement`/`query` 均为 `30s`、`connectionTimeout 5s`）有意不同，各自保留旧有效行为。切形态迁移前先对齐两边，见 `packages/host-local/src/nest/config/config.ts` 与 `packages/host-distributed/src/config/service-config.ts`（后者以 `resolveTimeout` 回退值 `service-config.ts:353-372` 为准）。
+
 ## 部署形态与任务传输
 
 | 变量 | 来源 | 说明 | 默认值 |
@@ -73,14 +75,14 @@ distributed profile 下内部地址默认走 compose Docker DNS；本地进程�
 
 | 变量 | 来源 | 说明 | 默认值 |
 |---|---|---|---|
-| `TRAPMAP_EXPERIENCE_GENE_MODE` | `packages/host-local/src/nest/config/config.ts:160`，`packages/host-distributed/src/config/service-config.ts:306` | Gene task 侧 rollout 门控 | 未知/待确认（2026-09-08） |
-| `TRAPMAP_EXPERIENCE_GENES_MODE` | `packages/host-local/src/nest/config/config.ts:163`，`packages/host-distributed/src/config/service-config.ts:301` | Gene 检索 rollout 门控（`off`、`shadow`、`serve`） | 未知/待确认（2026-09-08） |
+| `TRAPMAP_EXPERIENCE_GENE_MODE` | `packages/host-local/src/nest/config/config.ts:160`，`packages/host-distributed/src/config/service-config.ts:306` | Gene task 侧 rollout 门控 | `off` |
+| `TRAPMAP_EXPERIENCE_GENES_MODE` | `packages/host-local/src/nest/config/config.ts:163`，`packages/host-distributed/src/config/service-config.ts:301` | Gene 检索 rollout 门控（`off`、`shadow`、`serve`） | `off` |
 
 ## Go 读路径
 
 | 变量 | 来源 | 说明 | 默认值 |
 |---|---|---|---|
-| `TRAPMAP_READ_IMPL` | `packages/host-distributed/src/config/service-config.ts:474` | 分布式读路径绞杀器（`off`、`shadow`、`dual`、`go`），仅 distributed 生效 | 未知/待确认（2026-09-08） |
+| `TRAPMAP_READ_IMPL` | `packages/host-distributed/src/config/service-config.ts:474` | 分布式读路径绞杀器（`off`、`shadow`、`dual`、`go`），仅 distributed 生效 | `off` |
 | `TRAPMAP_READ_SHADOW_PERCENT` | `packages/host-distributed/src/config/service-config.ts:482` | 影子比对流量百分比 | `5` |
 | `TRAPMAP_KNOWLEDGE_READ_GO_ENABLED` | `packages/host-distributed/src/config/service-config.ts:479` | 是否启用 Go 读服务 | `TRAPMAP_READ_IMPL` 非 `off` 即启用 |
 | `TRAPMAP_KNOWLEDGE_READ_GO_URL` | `packages/host-distributed/src/config/service-config.ts:480` | Go 读服务地址 | `http://localhost:4101` |
@@ -98,11 +100,11 @@ distributed profile 下内部地址默认走 compose Docker DNS；本地进程�
 | `SESSION_TRANSPORT` | `packages/host-local/src/nest/config/config.ts:203` | 会话传输：`bearer-header` 或 `cookie` | `bearer-header` |
 | `TRAPMAP_REQUEST_ID_HEADER` | `packages/host-local/src/nest/config/config.ts:206` | request ID 头名 | `x-request-id` |
 | `TRAPMAP_TRACE_HEADER_NAME` | `packages/host-local/src/nest/config/config.ts:209` | trace 头名 | `traceparent` |
-| `TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS` | `packages/host-distributed/src/config/service-config.ts:439` | 内部调用重试上限 | 未知/待确认（2026-09-08） |
-| `TRAPMAP_INTERNAL_BREAKER_THRESHOLD` | `packages/host-distributed/src/config/service-config.ts:440` | 熔断阈值 | 未知/待确认（2026-09-08） |
-| `TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS` | `packages/host-distributed/src/config/service-config.ts:442` | 熔断冷却毫秒数 | 未知/待确认（2026-09-08） |
-| `TRAPMAP_GATEWAY_RATE_LIMIT_RPS` | `packages/host-distributed/src/config/service-config.ts:452` | 网关限流 RPS | 未知/待确认（2026-09-08） |
-| `TRAPMAP_GATEWAY_RATE_LIMIT_BURST` | `packages/host-distributed/src/config/service-config.ts:461` | 网关限流 burst | 未知/待确认（2026-09-08） |
+| `TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS` | `packages/host-distributed/src/config/service-config.ts:439` | 内部调用重试上限 | `1` |
+| `TRAPMAP_INTERNAL_BREAKER_THRESHOLD` | `packages/host-distributed/src/config/service-config.ts:440` | 熔断阈值 | `5` |
+| `TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS` | `packages/host-distributed/src/config/service-config.ts:442` | 熔断冷却毫秒数 | `30000` |
+| `TRAPMAP_GATEWAY_RATE_LIMIT_RPS` | `packages/host-distributed/src/config/service-config.ts:452` | 网关限流 RPS | `50` |
+| `TRAPMAP_GATEWAY_RATE_LIMIT_BURST` | `packages/host-distributed/src/config/service-config.ts:461` | 网关限流 burst | `100` |
 | `TRAPMAP_GATEWAY_DEFAULT_TIMEOUT_MS` | `packages/host-distributed/src/gateway/config.ts:27` | 内部调用默认超时毫秒数（按服务覆盖无值时回退） | `10000` |
 | `TRAPMAP_INTERNAL_RETRY_BASE_DELAY_MS` | `packages/host-distributed/src/config/service-config.ts:416` | 内部重试基延迟毫秒数 | `100` |
 | `TRAPMAP_INTERNAL_RETRY_MAX_DELAY_MS` | `packages/host-distributed/src/config/service-config.ts:423` | 内部重试最大延迟毫秒数 | `2000` |
@@ -236,7 +238,7 @@ PostgreSQL `graph_index_documents` 仍是图索引权威真相源；可选 graph
 | `TRAPMAP_JOB_RABBITMQ_PREFETCH` | `packages/service-job-runtime/src/rabbitmq-task-transport.ts:70` | RabbitMQ prefetch | `1` |
 | `TRAPMAP_GRAPH_EXTRACT_TIMEOUT_MS` | `packages/service-knowledge-read/src/graph-llm-extract/resilience.ts:28` | 图抽取超时毫秒数 | `30000` |
 | `TRAPMAP_GRAPH_EXTRACT_MAX_ATTEMPTS` | `packages/service-knowledge-read/src/graph-llm-extract/resilience.ts:29` | 图抽取最大尝试 | `2` |
-| `TRAPMAP_RETRIEVAL_USE_DB_SEARCH` | `packages/service-knowledge-read/src/retrieval-infra-default.ts:241` | DB 检索开关（兼容旧名 `USE_DB_SEARCH`） | `false` |
+| `TRAPMAP_RETRIEVAL_USE_DB_SEARCH` | `packages/service-knowledge-read/src/retrieval-infra-default.ts:241` | DB 检索开关（旧名 `USE_DB_SEARCH` 兼容至 2026-12-08） | `false` |
 | `TRAPMAP_RETRIEVAL_OVERFETCH_MULT` | `packages/service-knowledge-read/src/retrieval-types.ts:9` | 关键词 overfetch 倍数 | `2` |
 | `TRAPMAP_RETRIEVAL_DEFAULT_LIMIT` | `packages/service-knowledge-read/src/search-knowledge.ts:37` | 检索默认分页 | `10` |
 | `TRAPMAP_RETRIEVAL_SKILL_LOOKUP_LIMIT` | `packages/service-knowledge-read/src/server-retrieval-seam.ts:46` | skill lookup 上限 | `50` |
