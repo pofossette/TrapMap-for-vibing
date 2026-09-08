@@ -1,10 +1,11 @@
 # Gene 检索评测扩展 — 任务规格
 
-> **状态**：Active detail（由 4 路并行校对后合成，待进入 subagent-driven execution）
+> **角色**：Gene 检索评测扩展的任务规格（T0-T6），只定任务分解与验收，不承载实现。
+> **状态**：Queued spec（2026-09-06 落规格；T0-T6 尚未 dispatch，代码实现未开始；进入执行需根 `plan.md` 显式链接）
+> **Owner**：evals + knowledge-read 边界 Owner（后续按子任务认领）
 > **创建时间**：2026-09-06
-> **Owner 建议**：evals + knowledge-read 边界 Owner（后续按子任务认领）
-> **依赖主线**：Experience Gene 已于 2026-09-03 closeout 并归档（docs/archived/archived-plans/experience-gene-program-mainline-archived.md）；当前唯一链接的 mainline 仍为 docs/todos/web-panel-feature-and-ui-optimization.md。本文档是**并行 active detail**，不抢占根 plan.md 的 mainline 槽位；进入执行时按 docs/todos/README.md 的活跃登记规则增行。
-> **校对方式**：本规格由 4 路“子智能体”分头读真实代码后合成（A: 四路检索模板 / B: Gene 检索实现 / C: 评测基座与 promptfoo / D: 健康度与治理）；所有结论均以本仓库最新源码为权威，行号/路径可在附录复核。
+> **依赖主线**：Experience Gene 已于 2026-09-03 closeout 并归档（docs/archived/archived-plans/experience-gene-program-mainline-archived.md）。本文档是**排队中的 spec**，不占根 plan.md 的 mainline 槽位；进入执行时按 docs/todos/README.md 的活跃登记规则增行。
+> **校对方式**：本规格由 4 路“子智能体”分头读代码后合成（A: 四路检索模板 / B: Gene 检索实现 / C: 评测基座与 promptfoo / D: 健康度与治理）；所有结论均以 2026-09-06 落规格时的仓库源码为权威，行号/路径可在附录复核。
 
 ---
 

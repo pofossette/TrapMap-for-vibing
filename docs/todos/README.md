@@ -1,62 +1,37 @@
-# 待办文档
+# 待办索引
 
-本目录只保留明确承担当前执行责任、长期登记职责或受守卫追踪的文件。这里的“活跃”不等于“仍有参考价值”，而是指当前 owner 正在回写、推进、验收的执行面。
+> 角色：`docs/todos/` 的薄索引，只做导航，不复述事实细节。
+> 状态：Active（2026-09-08）。
+> Owner：根 [`plan.md`](../../plan.md)；各细则的 owner 见下表。
 
 ## 活跃索引
 
-当前 active mainline 行如下；长期登记与受控文件一并列出：
+下表与根 `plan.md` 的当前主线一一对应。根索引暂无 active mainline（2026-09-08 收口），所以本表 active 行为空，其余全部标 Queued 或登记册身份。
 
 | 文件 | 角色 | 状态 |
 |---|---|---|
-| [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Queued（2026-09-08 收口暂列排队；Phase2 路由覆盖已闭环，仅剩 audit 断言已转债务；恢复执行需 owner 确认） |
-| [gene-retrieval-eval.md](gene-retrieval-eval.md) | Gene 检索评测扩展（T0-T6 任务规格） | Queued spec（2026-09-06 落规格，代码实现尚未 dispatch；进入执行需根 `plan.md` 显式链接） |
-| [ai-sdk-and-deps-upgrade-mainline-archived.md](../archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md) | 依赖升级与 AI SDK 统一 | 已完成并归档（2026-09-08；`outdated` 仅 TS 有意 pin，compose closeout EXIT 0，`check:asserts` 0；残留 Responses-API/light 镜像已转债务） |
-| [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；受根索引管理，非第二条 active mainline |
+| [cli-server-integration-mainline.md](cli-server-integration-mainline.md) | CLI 真实服务对接测试（Three-Artifact Live + Docker 资源观测） | Queued（2026-09-08；Phase 0-4 + Phase 5.1-5.2 已勾，仅剩 Phase 5.3 归档） |
+| [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Queued（2026-09-08；Phase2 路由覆盖已闭环，仅剩 audit 断言，已转债务） |
+| [gene-retrieval-eval.md](gene-retrieval-eval.md) | Gene 检索评测扩展（spec，T0-T6 未 dispatch） | Queued spec（2026-09-06 落规格，代码实现尚未 dispatch；进入执行需根 `plan.md` 显式链接） |
+| [open-debt-and-compromises.md](open-debt-and-compromises.md) | 长期工程债务与平台成熟度登记 | 长期登记册；非 active mainline |
 | [assert-exemptions.md](assert-exemptions.md) | 裸类型断言豁免清单 | 由 `pnpm check:asserts` 门禁追踪；非 active mainline |
-| [experience-gene-program-mainline-archived.md](../archived/archived-plans/experience-gene-program-mainline-archived.md) | Experience Gene Infrastructure and Pipeline | 已完成并归档（2026-09-02，offline precision 1.0 + promotion eligible true，live CI deferred）；6 文件 mainline+5 phases |
-| [cli-server-integration-mainline.md](cli-server-integration-mainline.md) | **CLI 真实服务对接测试**（Three-Artifact Live + Docker 资源观测） | **Queued**（Phase 0-4 + Phase 5.1-5.2 已勾，仅剩 Phase 5.3 归档；见 `plan.md` 已排队节） |
-| [go-accelerator-mainline.md](go-accelerator-mainline.md) | Go 加速服务 scaffold（已合入 `pre`） | 已合入 `pre@a9b413b5`；见 `go-compute-hub-mainline.md` 深化 |
-| [performance-infra-mainline-archived.md](../archived/archived-plans/performance-infra-mainline-archived.md) | **性能与压测基建**：bench harness + stress + 可观测 | 已完成并归档（2026-09-02，设施 5 链路 bench + 4 场景 stress + Go metrics/pprof，`pnpm bench:compute`/`go test -bench`） |
-| [skill-registry-mainline.md](skill-registry-mainline.md) | Skill Registry 版本管理器抽离（已合入 `pre`） | 已合入 `pre@a9b413b5`；`@trapmap/skill-registry` 子包 |
-| [architecture-remediation-mainline-archived.md](../archived/archived-plans/architecture-remediation-mainline-archived.md) | **架构收敛与渐进 Go 化一次性根治** (2026-09-02, PR #8) | 已完成并归档；38项探针→7阶段，69+165+123 tests, 42表, budgets 37, typecheck/mermaid/docs green |
-| [architecture-remediation-mainline-b-true-convergence-archived.md](../archived/archived-plans/architecture-remediation-mainline-b-true-convergence-archived.md) | **架构收敛 B 真收敛** (2026-09-02, 58 budgets, 955 tests, 42 tables) | 已完成并归档 (PR #10 0d754b73, B2/B5/B7 真拆, B3 deferred) |
-| [go-service-gradual-migration-archived.md](../archived/archived-plans/go-service-gradual-migration-archived.md) | **服务渐进 Go 化**：读路径整段绞杀 + 模块化（query/recall/ranking/assembly/cache）+ 其余服务按 RICE 排期 | 已完成并归档（2026-09-01，`main@d5f18c43`，`PR #3/#4`）；原 `docs/todos/go-service-gradual-migration-mainline.md` 已归档 |
-| [web-panel-feature-and-ui-optimization-archived.md](../archived/archived-plans/web-panel-feature-and-ui-optimization-archived.md) | Web Panel 功能补全与 UI 美化优化 | 已完成并归档（2026-09-02，39/39 Phase0-4，7-route baseline 18 images + Phase2 runtime/json-edit 2 routes，`check:docs/structure/complexity` green） |
-| [go-compute-hub-mainline-archived.md](../archived/archived-plans/go-compute-hub-mainline-archived.md) | Go 计算中枢深化 | 已完成并归档（2026-09-02，P0 BatchCosine/Hash fallback + P1 ranking/keyword + P2 dedup/batch，`go vet/test` ok） |
-| [type-alignment-mainline-archived.md](../archived/archived-plans/type-alignment-mainline-archived.md) | 跨语言类型对齐 | 已完成并归档（2026-09-02，P0 `generate:contracts:check` 22 schemas sync，`typecheck` green） |
 
+## Closeout 四件套
 
-## 归档主线索引
+只剩收尾动作的排队项在这里登记目标达成、证据、残留落点、验证命令。Gene spec 尚未开工，开工后再补。
 
-以下文件只提供已完成或历史主题的证据入口，不是 active execution files。
-
-| 文件 | 主题 | 状态 |
-|---|---|---|
-| [experience-gene-program-mainline-archived.md](../archived/archived-plans/experience-gene-program-mainline-archived.md) | Experience Gene Infrastructure and Pipeline（5 阶段：infra → contracts/storage → derivation → retrieval/activation → governance/evaluation/rollout） | 已完成并归档（2026-09-03，deterministic offline precision 1.0 / promotionEligible true，20-Gene 抽样 + rollback 均绿，架构已标注 2604.15097v2 + 2604.17870 灵感） |
-| [skill-lookup-surface-mainline-archived.md](../archived/archived-plans/skill-lookup-surface-mainline-archived.md) | Skill Lookup 契约漂移修复 | 已完成（2026-08-22），已归档 |
-| [debt-mcp-platformization-mainline-archived.md](../archived/archived-plans/debt-mcp-platformization-mainline-archived.md) | 债务全量派发 + Agent MCP 接入 + 微服务平台化 | 已完成（2026-08-22），已归档 |
-| [judgment-node-contracts-d8-archived.md](../archived/archived-plans/judgment-node-contracts-d8-archived.md) | 判断类节点契约（D8）收编 | 已完成（2026-08-16），已归档 |
-| [unified-assembly-center-phase4-archived.md](../archived/archived-plans/unified-assembly-center-phase4-archived.md) | 统一优雅组装中心（assembly）Phase 4 收尾 | 已完成（2026-08-16），已归档 |
-| [unified-assembly-center-phase3-archived.md](../archived/archived-plans/unified-assembly-center-phase3-archived.md) | 统一优雅组装中心（assembly）Phase 3 收敛 | 已完成（2026-08-16），已归档 |
-| [unified-assembly-center-phase2-pilot-archived.md](../archived/archived-plans/unified-assembly-center-phase2-pilot-archived.md) | 统一优雅组装中心（assembly）Phase 2 试点 | 已完成（2026-08-16），已归档 |
-| [unified-assembly-center-phase1-archived.md](../archived/archived-plans/unified-assembly-center-phase1-archived.md) | 统一优雅组装中心（assembly）Phase 1 地基 | 已完成（2026-08-16），已归档 |
-| [dead-code-and-architecture-order-cleanup-archived.md](../archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md) | Dead Code and Architecture Order Cleanup：死代码清理与架构秩序守卫 | 已完成（2026-08-16 实现，2026-08-30 归档，原 docs/todos/dead-code-and-architecture-order-cleanup.md） |
-| [go-service-gradual-migration-archived.md](../archived/archived-plans/go-service-gradual-migration-archived.md) | 服务渐进 Go 化（读路径模块化绞杀 + 函数级及时退出） | 已完成并归档（2026-09-01，`main@d5f18c43`，`PR #3/#4`，模块化 6 模块 1348 行，`ranking 394→拆三`，`go-accelerator 410 Gone`） |
+- CLI（仅剩归档动作）：目标达成见细则 Phase 勾选；证据在 `benchmarks/results/cli-integration/` 与 [evidence/cli-integration-2026-09-02/](evidence/cli-integration-2026-09-02/SUMMARY.md)；残留落点为 `git mv` 归档细则并更新本索引与根 `plan.md`；验证命令 `pnpm typecheck` + `pnpm check:docs` + `pnpm check:structure` + `pnpm check:complexity`。
+- Web Panel（仅剩 audit 断言）：目标达成见细则 Phase 勾选；证据在 [evidence/web-panel-baseline-2026-09-02/](evidence/web-panel-baseline-2026-09-02/)；残留 audit 缺口已转 [open-debt-and-compromises.md](open-debt-and-compromises.md) 跟踪，恢复执行需 owner 另行确认；验证命令见细则 Acceptance Gates。
 
 ## 目录规则
 
-- 未被当前根 `plan.md` 明确链接、且不承担当前 owner 执行职责的文档，不属于 active surface。
-- 已完成主线、空白清单、历史 closeout 证据和背景输入统一转入 `docs/archived/` 或 `docs/archived/archived-plans/`。
-- 需要重启某个归档主题时，新建新的 active 细则，不直接把归档文档重新当 checklist 使用。
-- 如果某份 todo 文档只剩“仍可参考”而不再承担执行责任，应优先归档，而不是继续留在本目录。
-- 若未来新增辅助清单，只有在根 `plan.md` 或当前主细则显式赋予执行责任时才能留在本目录；否则应直接进入归档或背景目录。
+- 未被根 `plan.md` 明确链接、且不承担当前 owner 执行职责的文档，不属于 active surface。
+- 已完成主线、空白清单、历史 closeout 证据统一转入 `docs/archived/` 或 `docs/archived/archived-plans/`。
+- 需要重启某个归档主题时，新建新的 active 细则，不把归档文档重新当 checklist 使用。
+- `go-accelerator-mainline.md` 与 `skill-registry-mainline.md` 两份 scaffold 均已合入 `pre@a9b413b5`，在切换提交中删除，本轮不动。
 
 ## 当前状态说明
 
-**当前无 active mainline（2026-09-08 收口）：依赖升级与 AI SDK 统一已归档（[ai-sdk-and-deps-upgrade-mainline-archived.md](../archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md)）。** CLI（仅剩 Phase 5.3 归档）与 Web Panel（仅剩 audit 断言，已转债务）均为排队项，见根 `plan.md` 已排队节。Gene 检索评测为排队 spec（T0-T6 待 dispatch）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册（含本轮新增 Responses-API/light 镜像 2 项）；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪（已清零，`check:asserts` 绿）。并行双轨（已合入 `pre` 待深化）：
-- **Go 计算中枢**：`go-accelerator-mainline.md` scaffold 已合入 `pre@a9b413b5`，深化见 [`go-compute-hub-mainline.md`](go-compute-hub-mainline.md)（P0 批余弦/回退向量/hash 接线 → P1 ranking/keyword 批处理 → P2 dedup/派生管线 → P3 缓存/proto 可选）。
-- **Skill Registry**：`skill-registry-mainline.md` 已合入 `pre@a9b413b5`，子包 `@trapmap/skill-registry` 抽离完成。
-- **类型对齐**：[`type-alignment-mainline.md`](type-alignment-mainline.md) 以 `Zod(contracts) -> JSON Schema -> Go` 为 P0，`OpenAPI contract-first` 为 P1，`proto+buf` 为 P2（benchmark gated），为计算中枢提供类型门禁（`pnpm generate:contracts --check` + `git diff --exit-code`）。
-- **服务渐进 Go 化**：[`go-service-gradual-migration-archived.md`](../archived/archived-plans/go-service-gradual-migration-archived.md)（已完成并归档 2026-09-01，`main@d5f18c43`）—— 从“函数加速”升级为“服务接管”，读路径 `query→recall→ranking→assembly→cache` 模块化绞杀（单仓多模块单二进制起步，三二进制触发式），写侧仅收敛 `dedup/derive` 纯计算；模块化 6 模块 1348 行，`ranking 394→拆三`，`go-accelerator 410 Gone`。
+当前无 active mainline（2026-09-08 收口）。CLI 与 Web Panel 为排队项，Gene 为排队 spec（T0-T6 待 dispatch）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。Dead Code and Architecture Order Cleanup 已完成并归档，细则见 [dead-code-and-architecture-order-cleanup-archived.md](../archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md)（原 `docs/todos/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`），残余 Task 11-13 回写见长期登记册。
 
 完整归档表见 [`../archived/README.md`](../archived/README.md)。
