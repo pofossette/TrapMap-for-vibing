@@ -248,3 +248,11 @@ export function resolveStructuredMaxRetries(): number {
 export function resolveStructuredRetryBaseMs(): number {
   return resolveRetryBaseMs('AI_STRUCTURED_RETRY_BASE_MS', DEFAULT_STRUCTURED_RETRY_BASE_MS);
 }
+
+/** AI request timeout in ms. Env: AI_REQUEST_TIMEOUT_MS. Unset/invalid = no timeout (legacy). */
+export function resolveAiRequestTimeoutMs(
+  env: Record<string, string | undefined> = process.env,
+): number | undefined {
+  const parsed = Number.parseInt(env.AI_REQUEST_TIMEOUT_MS ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}

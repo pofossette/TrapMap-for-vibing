@@ -28,6 +28,7 @@ export {
   DEFAULT_STRUCTURED_MAX_RETRIES,
   DEFAULT_STRUCTURED_RETRY_BASE_MS,
   loadAiProviderConfig,
+  resolveAiRequestTimeoutMs,
   resolveParseMaxRetries,
   resolveParseRetryBaseMs,
   resolveSectionCacheMax,

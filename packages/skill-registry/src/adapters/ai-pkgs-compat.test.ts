@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { GithubAdapter, resolveGithubTimeoutMs } from './github.js';
+import { resolveAiPkgsTimeoutMs } from './ai-pkgs-compat.js';
 
-const ENV_KEYS = ['SKILL_REGISTRY_GITHUB_TIMEOUT_MS', 'GITHUB_TOKEN', 'GH_TOKEN'] as const;
+const ENV_KEYS = ['SKILL_REGISTRY_AI_PKGS_TIMEOUT_MS'] as const;
 
 function saveEnv(): Record<string, string | undefined> {
   const saved: Record<string, string | undefined> = {};
@@ -23,25 +23,7 @@ function restoreEnv(saved: Record<string, string | undefined>): void {
   }
 }
 
-describe('GithubAdapter', () => {
-  let saved: Record<string, string | undefined>;
-
-  beforeEach(() => {
-    saved = saveEnv();
-  });
-
-  afterEach(() => {
-    restoreEnv(saved);
-  });
-
-  it('search without token returns empty', async () => {
-    const a = new GithubAdapter();
-    const res = await a.search({ query: 'skill', limit: 1 });
-    expect(res).toEqual([]);
-  });
-});
-
-describe('resolveGithubTimeoutMs', () => {
+describe('resolveAiPkgsTimeoutMs', () => {
   let saved: Record<string, string | undefined>;
 
   beforeEach(() => {
@@ -53,19 +35,19 @@ describe('resolveGithubTimeoutMs', () => {
   });
 
   it('returns undefined when env var is unset', () => {
-    expect(resolveGithubTimeoutMs()).toBeUndefined();
+    expect(resolveAiPkgsTimeoutMs()).toBeUndefined();
   });
 
   it('parses a positive value', () => {
-    expect(resolveGithubTimeoutMs({ SKILL_REGISTRY_GITHUB_TIMEOUT_MS: '1500' })).toBe(1500);
+    expect(resolveAiPkgsTimeoutMs({ SKILL_REGISTRY_AI_PKGS_TIMEOUT_MS: '1500' })).toBe(1500);
   });
 
   it.each(['0', '-5', 'abc', ''])('returns undefined for invalid value %s', (value) => {
-    expect(resolveGithubTimeoutMs({ SKILL_REGISTRY_GITHUB_TIMEOUT_MS: value })).toBeUndefined();
+    expect(resolveAiPkgsTimeoutMs({ SKILL_REGISTRY_AI_PKGS_TIMEOUT_MS: value })).toBeUndefined();
   });
 
   it('reads process.env by default', () => {
-    process.env.SKILL_REGISTRY_GITHUB_TIMEOUT_MS = '1500';
-    expect(resolveGithubTimeoutMs()).toBe(1500);
+    process.env.SKILL_REGISTRY_AI_PKGS_TIMEOUT_MS = '1500';
+    expect(resolveAiPkgsTimeoutMs()).toBe(1500);
   });
 });

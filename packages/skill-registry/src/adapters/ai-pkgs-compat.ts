@@ -9,6 +9,24 @@ import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './regist
  */
 const AI_PKGS_REGISTRY = process.env.AI_PKGS_REGISTRY ?? 'https://registry.npmjs.org';
 
+/**
+ * Optional per-request timeout in ms for ai-pkgs registry fetches.
+ * Env: SKILL_REGISTRY_AI_PKGS_TIMEOUT_MS. Unset or invalid = no timeout (legacy behavior).
+ */
+export function resolveAiPkgsTimeoutMs(
+  env: Record<string, string | undefined> = process.env,
+): number | undefined {
+  const value = Number.parseInt(env.SKILL_REGISTRY_AI_PKGS_TIMEOUT_MS ?? '', 10);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+/** Fetch with the optional ai-pkgs timeout applied (no-op when unset). */
+async function aiPkgsFetch(input: string, init?: RequestInit): Promise<Response> {
+  const timeoutMs = resolveAiPkgsTimeoutMs();
+  if (timeoutMs === undefined) return fetch(input, init);
+  return fetch(input, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+}
+
 export class AiPkgsCompatAdapter implements RegistryAdapter {
   readonly kind = 'ai-pkgs' as const;
   readonly displayName = 'ai-pkgs';
@@ -19,7 +37,8 @@ export class AiPkgsCompatAdapter implements RegistryAdapter {
       const url = new URL(`${AI_PKGS_REGISTRY}/-/v1/search`);
       url.searchParams.set('text', query.query);
       url.searchParams.set('size', String(query.limit ?? 10));
-      const res = await fetch(url.toString());
+      const res = await aiPkgsFetch(url.toString());
+      // NOTE: empty = not found OR upstream failure (no retry by design)
       if (!res.ok) return [];
       const data = (await res.json()) as {
         objects: Array<{
@@ -44,6 +63,7 @@ export class AiPkgsCompatAdapter implements RegistryAdapter {
           homepage: o.package.links.homepage,
         })) as SkillRegistryEntry[];
     } catch {
+      // NOTE: empty = not found OR upstream failure (no retry by design)
       return [];
     }
   }
@@ -53,7 +73,7 @@ export class AiPkgsCompatAdapter implements RegistryAdapter {
     const name = source.canonical;
     const version = source.version ?? 'latest';
     const url = `${AI_PKGS_REGISTRY}/${encodeURIComponent(name)}/${encodeURIComponent(version)}`;
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const res = await aiPkgsFetch(url, { headers: { Accept: 'application/json' } });
     if (!res.ok) throw new Error(`ai-pkgs fetch failed: ${res.status} ${url}`);
     const meta = (await res.json()) as {
       dist: { tarball: string };
@@ -87,11 +107,13 @@ export class AiPkgsCompatAdapter implements RegistryAdapter {
 
   async getVersions(source: SkillSource): Promise<string[]> {
     try {
-      const res = await fetch(`${AI_PKGS_REGISTRY}/${encodeURIComponent(source.canonical)}`);
+      const res = await aiPkgsFetch(`${AI_PKGS_REGISTRY}/${encodeURIComponent(source.canonical)}`);
+      // NOTE: empty = not found OR upstream failure (no retry by design)
       if (!res.ok) return [];
       const data = (await res.json()) as { versions: Record<string, unknown> };
       return Object.keys(data.versions ?? {});
     } catch {
+      // NOTE: empty = not found OR upstream failure (no retry by design)
       return [];
     }
   }
