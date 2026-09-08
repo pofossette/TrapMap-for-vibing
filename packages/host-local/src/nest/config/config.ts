@@ -172,7 +172,46 @@ function normalizeOptionalEnvValue(value: string | undefined): string | undefine
   return normalized.length > 0 ? normalized : undefined;
 }
 
+// Additive aliases for env vars that predate the TRAPMAP_ prefix convention.
+// Each entry is [oldName, aliasName]. The old name always wins: the alias is
+// only copied across when the old name is unset, so behavior is unchanged
+// when aliases are absent. This runs at the top of loadConfig(), so the
+// LOG_* file loaders (called below) and the LANGFUSE_*/SENTRY_* observability
+// readers (constructed after config load) all honor the aliases without any
+// change to their own read sites. Note: 未调 `loadConfig` 即读 `LANGFUSE_*/SENTRY_*`
+// 的路径别名不生效. OTEL_* intentionally has no alias
+// (see packages/contracts/src/domain/observability-config.ts).
+const NON_PREFIXED_ENV_ALIASES: ReadonlyArray<readonly [oldName: string, aliasName: string]> = [
+  ['LOG_RAG_ENABLED', 'TRAPMAP_LOG_RAG_ENABLED'],
+  ['LOG_RAG_DIR', 'TRAPMAP_LOG_RAG_DIR'],
+  ['LOG_USER_OPS_ENABLED', 'TRAPMAP_LOG_USER_OPS_ENABLED'],
+  ['LOG_USER_OPS_DIR', 'TRAPMAP_LOG_USER_OPS_DIR'],
+  ['LOG_MAX_FILE_SIZE_MB', 'TRAPMAP_LOG_MAX_FILE_SIZE_MB'],
+  ['LOG_MAX_BACKUP_FILES', 'TRAPMAP_LOG_MAX_BACKUP_FILES'],
+  ['LANGFUSE_ENABLED', 'TRAPMAP_LANGFUSE_ENABLED'],
+  ['LANGFUSE_BASE_URL', 'TRAPMAP_LANGFUSE_BASE_URL'],
+  ['LANGFUSE_PUBLIC_KEY', 'TRAPMAP_LANGFUSE_PUBLIC_KEY'],
+  ['LANGFUSE_SECRET_KEY', 'TRAPMAP_LANGFUSE_SECRET_KEY'],
+  ['LANGFUSE_FLUSH_TIMEOUT_MS', 'TRAPMAP_LANGFUSE_FLUSH_TIMEOUT_MS'],
+  ['LANGFUSE_PRIVACY_MODE', 'TRAPMAP_LANGFUSE_PRIVACY_MODE'],
+  ['SENTRY_DSN', 'TRAPMAP_SENTRY_DSN'],
+  ['SENTRY_ENVIRONMENT', 'TRAPMAP_SENTRY_ENVIRONMENT'],
+  ['SENTRY_RELEASE', 'TRAPMAP_SENTRY_RELEASE'],
+  ['SENTRY_TRACES_SAMPLE_RATE', 'TRAPMAP_SENTRY_TRACES_SAMPLE_RATE'],
+  ['SENTRY_SAMPLE_RATE', 'TRAPMAP_SENTRY_SAMPLE_RATE'],
+  ['SENTRY_MAX_BREADCRUMBS', 'TRAPMAP_SENTRY_MAX_BREADCRUMBS'],
+];
+
+function applyNonPrefixedEnvAliases(): void {
+  for (const [oldName, aliasName] of NON_PREFIXED_ENV_ALIASES) {
+    if (process.env[oldName] === undefined && process.env[aliasName] !== undefined) {
+      process.env[oldName] = process.env[aliasName];
+    }
+  }
+}
+
 export function loadConfig(): HostLocalConfig {
+  applyNonPrefixedEnvAliases();
   const userOpsLog = loadUserOpsLogConfig();
   const ragLog = loadRagLogConfig();
   const graphDb = loadGraphDbConfig();
