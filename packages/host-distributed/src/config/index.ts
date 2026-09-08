@@ -10,6 +10,8 @@ export {
   type InternalServiceUrls,
   type InternalTransportKind,
   loadServiceConfig,
+  resolveInternalRetryBaseDelayMs,
+  resolveInternalRetryMaxDelayMs,
   resolveInternalTimeoutMs,
   type ServiceConfig,
   type ServiceName,

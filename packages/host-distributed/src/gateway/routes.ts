@@ -23,6 +23,7 @@ import {
 } from '@trapmap/service-knowledge-read';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getGoAcceleratorConfig, getKnowledgeReadGoConfig } from '../config/service-config.js';
+import { resolveGatewayHealthProbeTimeoutMs } from './config.js';
 import { breakerStatesSnapshot, type InternalServiceClients } from './internal-client.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
 import { resolveRateLimitConfig, TokenBucketRateLimiter } from './rate-limit.js';
@@ -216,7 +217,7 @@ export function registerGatewayRoutes(
           method: 'POST',
           headers: { ...headers, 'content-type': 'application/json' },
           body: JSON.stringify(body),
-          signal: AbortSignal.timeout(3000),
+          signal: AbortSignal.timeout(readGoCfgForProxy.timeoutMs),
         });
         const data = await res.text();
         return { status: res.status, data };
@@ -268,12 +269,13 @@ export function registerGatewayRoutes(
   app.get('/health', async (_request: FastifyRequest, reply: FastifyReply) => {
     const goCfg = getGoAcceleratorConfig();
     const readGoCfg = getKnowledgeReadGoConfig();
+    const healthProbeTimeoutMs = resolveGatewayHealthProbeTimeoutMs(process.env);
     let goStatus: Record<string, unknown> | undefined;
     let readGoStatus: Record<string, unknown> | undefined;
     if (readGoCfg.enabled) {
       try {
         const c2 = new AbortController();
-        const t2 = setTimeout(() => c2.abort(), 800);
+        const t2 = setTimeout(() => c2.abort(), healthProbeTimeoutMs);
         const r2 = await fetch(`${readGoCfg.url.replace(/\/$/, '')}/health`, { signal: c2.signal });
         clearTimeout(t2);
         readGoStatus = r2.ok
@@ -286,7 +288,7 @@ export function registerGatewayRoutes(
     if (goCfg.enabled) {
       try {
         const controller = new AbortController();
-        const t = setTimeout(() => controller.abort(), 800);
+        const t = setTimeout(() => controller.abort(), healthProbeTimeoutMs);
         const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/health`, {
           signal: controller.signal,
         });
@@ -320,12 +322,13 @@ export function registerGatewayRoutes(
     const anyOpen = Object.values(breakerStates).some((state) => state === 'open');
     const goCfg = getGoAcceleratorConfig();
     const readGoCfg2 = getKnowledgeReadGoConfig();
+    const healthProbeTimeoutMs = resolveGatewayHealthProbeTimeoutMs(process.env);
     let goReady: Record<string, unknown> | undefined;
     let readGoReady: Record<string, unknown> | undefined;
     if (readGoCfg2.enabled) {
       try {
         const r = await fetch(`${readGoCfg2.url.replace(/\/$/, '')}/ready`, {
-          signal: AbortSignal.timeout(800),
+          signal: AbortSignal.timeout(healthProbeTimeoutMs),
         });
         readGoReady = r.ok ? { status: 'ready' } : { status: 'unreachable', httpStatus: r.status };
       } catch (e) {
@@ -335,7 +338,7 @@ export function registerGatewayRoutes(
     if (goCfg.enabled) {
       try {
         const res = await fetch(`${goCfg.url.replace(/\/$/, '')}/ready`, {
-          signal: AbortSignal.timeout(800),
+          signal: AbortSignal.timeout(healthProbeTimeoutMs),
         });
         goReady = res.ok ? { status: 'ready' } : { status: 'unreachable', httpStatus: res.status };
       } catch (e) {

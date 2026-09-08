@@ -8,6 +8,7 @@ import {
 } from '@opentelemetry/api';
 
 import { recordDistributedInternalHopMetric } from '../internal-observability.js';
+import { resolveGatewayDefaultTimeoutMs } from '../config.js';
 import {
   CircuitBreaker,
   resolveBreakerCooldownMs,
@@ -28,8 +29,6 @@ export interface InternalRequestOptions {
   headers?: Record<string, string> | undefined;
   timeoutMs?: number | undefined;
 }
-
-const DEFAULT_INTERNAL_TIMEOUT_MS = 10_000;
 
 export function classifyInternalServiceKind(status: number): string {
   if (status === 400 || status === 422) return 'validation';
@@ -74,7 +73,7 @@ export async function callInternalServiceOnce(
   }
 
   const controller = new AbortController();
-  const timeoutMs = options?.timeoutMs ?? DEFAULT_INTERNAL_TIMEOUT_MS;
+  const timeoutMs = options?.timeoutMs ?? resolveGatewayDefaultTimeoutMs(process.env);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   const headers: Record<string, string> = {

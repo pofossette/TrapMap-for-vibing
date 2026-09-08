@@ -404,6 +404,22 @@ export function resolveInternalTimeoutMs(
   return undefined;
 }
 
+/**
+ * Internal-hop retry backoff bounds (previously hard-coded as
+ * `baseDelayMs: 100, maxDelayMs: 2000` in `gateway/resilience.ts`).
+ * Consumed by `resolveRetryPolicy`; unset/invalid env falls back to the
+ * previous defaults so behavior is unchanged.
+ */
+export function resolveInternalRetryBaseDelayMs(env: Record<string, string | undefined>): number {
+  const parsed = Number.parseInt(env.TRAPMAP_INTERNAL_RETRY_BASE_DELAY_MS ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 100;
+}
+
+export function resolveInternalRetryMaxDelayMs(env: Record<string, string | undefined>): number {
+  const parsed = Number.parseInt(env.TRAPMAP_INTERNAL_RETRY_MAX_DELAY_MS ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 2000;
+}
+
 const SERVICE_NAME_BY_INTERNAL_HOST = new Map<string, ServiceName>(
   ALL_SERVICES.flatMap(
     (name): Array<[string, ServiceName]> => [
