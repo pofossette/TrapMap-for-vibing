@@ -89,7 +89,25 @@ export async function createHostLocalSharedInfra(
   if (!config.databaseUrl) {
     throw new Error('host-local graph projection requires PostgreSQL');
   }
-  const pool = new pg.Pool({ connectionString: config.databaseUrl });
+  const pool = new pg.Pool({
+    connectionString: config.databaseUrl,
+    max: config.pool.poolSize,
+    idleTimeoutMillis: config.pool.idleTimeoutMs,
+    // Timeouts stay unset (node-pg defaults) unless explicitly configured,
+    // preserving the previous effective behavior.
+    ...(config.pool.connectionTimeoutMs !== undefined
+      ? { connectionTimeoutMillis: config.pool.connectionTimeoutMs }
+      : {}),
+    ...(config.pool.statementTimeoutMs !== undefined
+      ? { statement_timeout: config.pool.statementTimeoutMs }
+      : {}),
+    ...(config.pool.queryTimeoutMs !== undefined
+      ? { query_timeout: config.pool.queryTimeoutMs }
+      : {}),
+    ...(config.pool.idleInTransactionTimeoutMs !== undefined
+      ? { idle_in_transaction_session_timeout: config.pool.idleInTransactionTimeoutMs }
+      : {}),
+  });
   const store: HostLocalStore = {
     getPool: () => pool,
     close: () => pool.end(),

@@ -64,6 +64,26 @@ const AsyncTaskTransportSchema = z
     }
   });
 
+// Pool defaults preserve the previous effective behavior (only connectionString
+// was passed, i.e. node-pg defaults max=10/idle=10s, no timeouts). Every knob
+// is tunable via TRAPMAP_HOST_LOCAL_* (fallback TRAPMAP_SERVICE_*); timeouts
+// stay unset unless explicitly configured.
+const PoolSchema = z.object({
+  poolSize: z.coerce.number().int().min(1).default(10),
+  idleTimeoutMs: z.coerce.number().int().min(1).default(10_000),
+  connectionTimeoutMs: z.coerce.number().int().min(0).optional(),
+  statementTimeoutMs: z.coerce.number().int().min(0).optional(),
+  queryTimeoutMs: z.coerce.number().int().min(0).optional(),
+  idleInTransactionTimeoutMs: z.coerce.number().int().min(0).optional(),
+});
+
+export const DEFAULT_CONSUL_CHECK_INTERVAL = '10s';
+export const DEFAULT_CONSUL_CHECK_TIMEOUT = '5s';
+const ConsulSchema = z.object({
+  checkInterval: z.string().min(1).default(DEFAULT_CONSUL_CHECK_INTERVAL),
+  checkTimeout: z.string().min(1).default(DEFAULT_CONSUL_CHECK_TIMEOUT),
+});
+
 const DeploymentSchema = z.object({
   profile: z.enum(['local-agent', 'team-monolith', 'distributed']).nullable().default(null),
   preset: z
@@ -134,6 +154,8 @@ export interface HostLocalConfig {
   };
   deployment: z.infer<typeof DeploymentSchema>;
   asyncTaskTransport: z.infer<typeof AsyncTaskTransportSchema>;
+  pool: z.infer<typeof PoolSchema>;
+  consul: z.infer<typeof ConsulSchema>;
   experienceGeneMode: ExperienceGeneMode;
   experienceGenesMode: ExperienceGeneMode;
   userOpsLog: z.infer<typeof UserOpsLogSchema>;
@@ -227,6 +249,28 @@ export function loadConfig(): HostLocalConfig {
     },
     experienceGeneMode,
     experienceGenesMode,
+    pool: {
+      poolSize: process.env.TRAPMAP_HOST_LOCAL_POOL_SIZE ?? process.env.TRAPMAP_SERVICE_POOL_SIZE,
+      idleTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_IDLE_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_IDLE_TIMEOUT_MS,
+      connectionTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_CONNECTION_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_CONNECTION_TIMEOUT_MS,
+      statementTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_STATEMENT_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_STATEMENT_TIMEOUT_MS,
+      queryTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_QUERY_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_QUERY_TIMEOUT_MS,
+      idleInTransactionTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_IDLE_IN_TRANSACTION_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS,
+    },
+    consul: {
+      checkInterval: process.env.TRAPMAP_CONSUL_CHECK_INTERVAL?.trim() || undefined,
+      checkTimeout: process.env.TRAPMAP_CONSUL_CHECK_TIMEOUT?.trim() || undefined,
+    },
     userOpsLog,
     ragLog,
     graphDb,
@@ -246,6 +290,8 @@ export function loadConfig(): HostLocalConfig {
       runtime: RuntimeConfigSchema,
       deployment: DeploymentSchema,
       asyncTaskTransport: AsyncTaskTransportSchema,
+      pool: PoolSchema,
+      consul: ConsulSchema,
       experienceGeneMode: experienceGeneModeSchema,
       experienceGenesMode: experienceGeneModeSchema,
       userOpsLog: UserOpsLogSchema,

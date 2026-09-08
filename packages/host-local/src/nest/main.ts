@@ -29,6 +29,11 @@ export interface AssemblyNestBootstrapOptions extends NestBootstrapOptions {
 
 const VALID_PROFILES: ReadonlySet<string> = new Set(['local-agent', 'team-monolith']);
 
+/** Bound for the async nest-transport node to publish the HTTP surface after boot(). */
+export const ASSEMBLY_BOOT_SURFACE_DEADLINE_MS = 30_000;
+/** Poll interval while waiting for the HTTP surface to land. */
+export const ASSEMBLY_BOOT_SURFACE_POLL_MS = 50;
+
 function readDeploymentProfile(options: AssemblyNestBootstrapOptions): DeploymentProfile {
   const explicit = options.profile;
   if (explicit !== undefined) return explicit;
@@ -68,9 +73,9 @@ export async function bootstrapNest(
   // cordis does not await providing fibers, so httpSurface lands after boot()
   // resolves. Wait for it with a bound instead of racing ctx.get().
   let app = running.ctx.get(HTTP_SURFACE_SERVICE) as NestFastifyApplication | undefined;
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + ASSEMBLY_BOOT_SURFACE_DEADLINE_MS;
   while (!app && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, ASSEMBLY_BOOT_SURFACE_POLL_MS));
     app = running.ctx.get(HTTP_SURFACE_SERVICE) as NestFastifyApplication | undefined;
   }
   if (!app) {

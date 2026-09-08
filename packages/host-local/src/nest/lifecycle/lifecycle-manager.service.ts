@@ -10,6 +10,9 @@ import type {
   LifecyclePhase,
 } from '@trapmap/backend-core';
 
+/** Fallback priority for shutdown hooks registered without an explicit priority. */
+export const SHUTDOWN_HOOK_DEFAULT_PRIORITY = 999;
+
 /**
  * NestJS implementation of the shared {@link LifecycleManager} and
  * {@link HealthCheckRegistrar} interfaces.
@@ -84,7 +87,7 @@ export class LifecycleManagerService
         this.registerHook({
           name: h.name,
           phase: 'shutting-down',
-          priority: h.priority ?? 999,
+          priority: h.priority ?? SHUTDOWN_HOOK_DEFAULT_PRIORITY,
           execute: async () => {
             await h.execute();
           },

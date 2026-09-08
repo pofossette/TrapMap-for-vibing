@@ -2,12 +2,14 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   ConsulHttpAdapter,
+  DEFAULT_CONSUL_TIMEOUT_MS,
   type DiscoveredService,
   type DiscoveryPort,
   type HealthCheck,
@@ -15,6 +17,21 @@ import {
   type ServiceRegistration,
 } from '@trapmap/backend-core';
 import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
+import {
+  DEFAULT_CONSUL_CHECK_INTERVAL,
+  DEFAULT_CONSUL_CHECK_TIMEOUT,
+  HOST_LOCAL_CONFIG_TOKEN,
+  type HostLocalConfig,
+} from '../config/index.js';
+
+/**
+ * Parse an optional positive-int ms env value, falling back to `defaultMs`
+ * when unset or invalid so behavior is unchanged.
+ */
+function resolvePositiveIntMs(raw: string | undefined, defaultMs: number): number {
+  const parsed = Number.parseInt(raw ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultMs;
+}
 
 /**
  * NestJS adapter for the shared Consul HTTP plugin (design D5 single-plugin
@@ -43,6 +60,9 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
   constructor(
     @Inject(ConfigService) private readonly config: ConfigService,
     @Inject(LifecycleManagerService) private readonly lifecycleManager: LifecycleManagerService,
+    @Optional()
+    @Inject(HOST_LOCAL_CONFIG_TOKEN)
+    private readonly hostLocalConfig?: HostLocalConfig,
   ) {}
 
   // ─── NestJS lifecycle ────────────────────────────────────────────────
@@ -62,7 +82,18 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
     const address = `http://${host}:${port}`;
 
     // throwOnError so runtime failures propagate and can flip to degraded mode.
-    this.backend = new ConsulHttpAdapter({ consulAddress: address, throwOnError: true });
+    // timeoutMs mirrors the pool pattern in `config/config.ts`:
+    // TRAPMAP_HOST_LOCAL_* first, shared name as fallback; unset/invalid
+    // falls back to the backend-core default so behavior is unchanged.
+    this.backend = new ConsulHttpAdapter({
+      consulAddress: address,
+      timeoutMs: resolvePositiveIntMs(
+        this.config.get<string>('TRAPMAP_HOST_LOCAL_CONSUL_HTTP_TIMEOUT_MS') ??
+          this.config.get<string>('CONSUL_HTTP_TIMEOUT_MS'),
+        DEFAULT_CONSUL_TIMEOUT_MS,
+      ),
+      throwOnError: true,
+    });
 
     // Validate connectivity.
     if (await this.backend.isReachable()) {
@@ -198,8 +229,12 @@ export class ConsulService implements DiscoveryPort, OnModuleInit, OnModuleDestr
       port: servicePort,
       check: {
         http: `http://${serviceHost}:${servicePort}/health`,
-        interval: '10s',
-        timeout: '5s',
+        interval:
+          this.hostLocalConfig?.consul.checkInterval ??
+          this.config.get<string>('TRAPMAP_CONSUL_CHECK_INTERVAL', DEFAULT_CONSUL_CHECK_INTERVAL),
+        timeout:
+          this.hostLocalConfig?.consul.checkTimeout ??
+          this.config.get<string>('TRAPMAP_CONSUL_CHECK_TIMEOUT', DEFAULT_CONSUL_CHECK_TIMEOUT),
       },
       meta: {
         version,
