@@ -125,3 +125,39 @@ effective = min(serverDefault, localOverride)
 - 按 `clientManifest` 的 `references`、`assets`、`scripts` 生成下一步操作提示
 - `scripts` 走 allowlist 或人工确认，不自动执行未知脚本
 - 已激活文件缓存在本地，少重复下载与重复注入
+
+## 常见用法
+
+下面命令都要运行中的网关加有效 token（登录步骤见 `docs/operations/SECURITY.md`）。端点语义以 `docs/reference/api-surface.md` 为准，这里只给可跑形状。
+
+### 按内容搜 Skill
+
+```bash
+curl -X POST http://127.0.0.1:4000/v1/retrieval/skills/search-by-content \
+  -H 'content-type: application/json' \
+  -H 'authorization: Bearer <token>' \
+  -d '{"text": "JWT token validation", "maxResults": 5}'
+```
+
+你拿到 `clientManifest` 后再决定拉哪些文件，不一次拉全量。
+
+### 拉取并物化指定文件
+
+```bash
+pnpm --filter @trapmap/cli dev -- operations activate \
+  --artifact <artifact-id> \
+  --paths SKILL.md,references/setup.md \
+  --output ./.tmp/skills/<skill-slug>
+```
+
+`scripts/` 下的文件默认不进 `--paths`，你要执行先过四态策略（见上文）。
+
+### 经 MCP 挂给 agent 宿主
+
+```bash
+TRAPMAP_GATEWAY_URL=http://127.0.0.1:4000 \
+TRAPMAP_ACCESS_TOKEN=<token> \
+pnpm --filter @trapmap/app-mcp start
+```
+
+你确认 stdio 宿主能 spawn 该进程后再配角色（`TRAPMAP_MCP_ROLE` 默认 `viewer`）。工具清单见上文工具面表。

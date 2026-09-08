@@ -28,3 +28,21 @@
 | `build` / `typecheck` / `test` | 编译 / 校验 / 单元测试 |
 
 其他服务经 `IdentityAccessPort` 操作身份，不得直写身份表。本包无异步后续处理。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/service-identity-access test
+pnpm --filter @trapmap/service-identity-access typecheck
+```
+
+### 建密钥并查审计（经 CLI）
+
+```bash
+pnpm --filter @trapmap/cli dev -- access-key:create <memberId> --team <teamId> --note "CI Pipeline"
+pnpm --filter @trapmap/cli dev -- audit --limit 50
+```
+
+两条都要登录态。密钥明文只显示一次。权限模型见 `docs/operations/SECURITY.md`。

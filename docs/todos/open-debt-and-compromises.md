@@ -93,7 +93,7 @@
 
 ### test:observability-closeout 引了不存在的测试路径（2026-09-08 新立）
 
-- 来源：`package.json:51` 的 `test:observability-closeout` 引用 `packages/ai-providers/src/observability.test.ts`，该文件不存在；真实文件在 `packages/ai-providers/test/observability.test.ts`。
+- 来源：`package.json:51` 的 `test:observability-closeout` 引用 packages/ai-providers/src/observability.test.ts（该路径不存在，历史误写），真实文件在 `packages/ai-providers/test/observability.test.ts`。
 - 影响：直接跑该 closeout 命令会因缺文件失败；常规 `test:coverage` 不走这条命令，不受影响。
 - 当前边界：仅该一条命令受影响，不改源码行为。
 - 进入条件：另起 tranche，把脚本路径改到 `test/` 目录并跑通该命令。

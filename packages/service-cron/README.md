@@ -22,3 +22,20 @@ import { createCronOwnerBundle, createCronScheduler, createCronServer } from '@t
 | `build` / `typecheck` / `test` | 编译 / 校验 / 单元测试 |
 
 到期任务经注入的 `transport.task.enqueue` 进入异步队列，`trigger` 只做一次额外入队，不推进 `next_run_at`。执行、重试与死信归 `job-runtime`。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/service-cron test
+pnpm --filter @trapmap/service-cron typecheck
+```
+
+### 组装一个 cron 服务实例
+
+```ts
+import { createCronOwnerBundle, createCronScheduler, createCronServer } from '@trapmap/service-cron';
+```
+
+装配顺序见 `packages/service-cron/src/deps.ts`，到期轮询逻辑见 `packages/service-cron/src/scheduler.ts`。cron 表达式先用 `@trapmap/lib` 的 `cronValidate` 验格式。

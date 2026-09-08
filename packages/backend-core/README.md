@@ -22,3 +22,16 @@
 ## 行为
 
 本包无运行时依赖，它不依赖 Fastify / Nest，不做进程启动，不连 PostgreSQL，不读环境变量。宿主在组合层注入端口实现，单元测试用 `testing` 桩替换。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/backend-core test
+pnpm --filter @trapmap/backend-core typecheck
+```
+
+### 在单测里用端口桩
+
+端口桩住在 `@trapmap/backend-core/testing` 子路径下，你用它替换真实仓库与队列实现。子路径后缀以 `packages/backend-core/package.json` 的 exports 映射为准。

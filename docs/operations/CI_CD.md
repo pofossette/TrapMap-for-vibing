@@ -134,3 +134,37 @@ pnpm run ci
 | `NODE_ENV` | 运行环境 | `test` |
 | `BASELINE_PATH` | Baseline 文件路径 | 无 |
 | `WRITE_BASELINE` | 是否写新 baseline | `false` |
+
+## 常见用法
+
+下面命令全部在仓库根执行，映射到上文 job，不替代 CI 本身。
+
+### 本地复刻静态门
+
+```bash
+pnpm check:fallow
+pnpm typecheck
+pnpm check
+```
+
+三条分别对应 `fallow-push-audit`、`typecheck`、`check` 三个 job。`check:fallow` 无回归基线，任一问题都阻断。
+
+### 本地复刻文档守卫
+
+```bash
+pnpm check:docs
+pnpm check:structure
+pnpm check:table-schema
+pnpm check:pgtable-single-source
+```
+
+四条是 `doc-guardrails` 的子集，你改文档、结构、表或 service 导入时按需取用。
+
+### 本地复刻评测门
+
+```bash
+pnpm --filter @trapmap/evals eval:ci
+pnpm --filter @trapmap/evals eval:smoke
+```
+
+第一条带 baseline 对比（缺 baseline 时跳过），第二条要 Docker。你调评测阈值或改 `evals/**` 时跑这两条。

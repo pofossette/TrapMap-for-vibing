@@ -29,3 +29,23 @@
 | `build` / `typecheck` / `test` | 编译 / 校验 / 单元测试 |
 
 召回模式（`semantic` / `hybrid` / `graph-assisted`）由 `intent-recognition` 与 `channel-merge` 端口选择，宿主在检索接缝注入 rule 实现。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/service-knowledge-read test
+pnpm --filter @trapmap/service-knowledge-read typecheck
+```
+
+### 从网关打一次检索（要 token）
+
+```bash
+curl -X POST http://127.0.0.1:4000/v1/retrieval/skills/search-by-content \
+  -H 'content-type: application/json' \
+  -H 'authorization: Bearer <token>' \
+  -d '{"text": "JWT token validation", "maxResults": 5}'
+```
+
+网关路由定义见 `packages/host-local/src/nest/gateway/gateway.route-defs.ts`，内部读侧入口是上表的 `/internal/retrieval/search`，外部调用只走网关。

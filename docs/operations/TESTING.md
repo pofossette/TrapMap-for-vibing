@@ -445,3 +445,41 @@ operator 导出走 `GET /v1/operations/badcases/:feedbackId/export`，脚本导�
 
 - [安全指南](SECURITY.md)：RBAC 与安全等级
 - [环境变量真相表](../reference/ENVIRONMENT.md)：测试相关环境变量
+
+## 常见用法
+
+下面命令全部在仓库根执行。前置条件按条标注，无标注即离线可跑。
+
+### 只改了一个包
+
+```bash
+pnpm --filter @trapmap/contracts test --run
+pnpm typecheck
+```
+
+你把包名换成你改的包（三包命令见上文单元测试一节）。PG 集成用例无库时自动跳过，你不用先起库。
+
+### 只改了一个文件
+
+```bash
+pnpm test:file -- packages/contracts/test/domain/task-queue.test.ts
+```
+
+你把路径换成你改的文件。`test:file` 把路径映射到唯一 project，避免跨 project 误命中同名文件。
+
+### 只改了评测用例
+
+```bash
+pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
+```
+
+这条离线可跑，只验用例格式不执行。通过后再跑 `pnpm --filter @trapmap/evals eval:smoke`（需要 Docker）。
+
+### 只改了文档或守卫
+
+```bash
+pnpm check:docs
+pnpm check:structure
+```
+
+这两条覆盖漂移、mermaid、md-lint 与目录规则。改守卫脚本另加对应单文件测试。

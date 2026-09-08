@@ -22,3 +22,16 @@
 | `build` / `typecheck` / `test` | 编译 / 校验 / 单元测试 |
 
 候选发布经 `KnowledgeWritePort.publishCandidateResult` 委托给写侧，后续工作经 job-runtime 调度，本服务不直写任务队列表。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/service-candidate-ingestion test
+pnpm --filter @trapmap/service-candidate-ingestion typecheck
+```
+
+### 查路由定义定位端点
+
+路由集中在 `packages/service-candidate-ingestion/src/routes.ts`（`createCandidateIngestionRouteDefs`），你要加端点先读该文件，再对着 `packages/contracts/src/domain/candidates.ts` 的 schema 写 handler。

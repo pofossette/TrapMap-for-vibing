@@ -208,3 +208,37 @@ pnpm exec tsx scripts/verify-l3-platform.ts --check compose-replicas
 - `pnpm test:discovery-closeout`：Consul adapter、resolver、缓存、round-robin fallback
 - `pnpm test:distributed-closeout`：distributed acceptance 加 runtime closeout 聚合入口
 - `pnpm exec tsx scripts/verify-l3-platform.ts --check all`：L3 离线 plumbing，live gates 标 `CI_REQUIRED` 而不是本地失败
+
+## 常见用法
+
+下面命令的探针语义见上文健康检查一节，指标标签约束见 `docs/architecture/OBSERVABILITY.md`。
+
+### 网关跑起来后先看四个探针
+
+```bash
+curl http://127.0.0.1:4000/live
+curl http://127.0.0.1:4000/ready
+curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/metrics | head -20
+```
+
+`/ready` 返回 `503` 说明实例未就绪，你查 `/health` 的 `dependencies` 数组定位。四个都不需要认证。
+
+### 带 trace 上下文打一次健康检查
+
+```bash
+curl -s -D /tmp/trapmap-trace-headers.txt \
+  -H "traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01" \
+  http://localhost:4000/health -o /dev/null
+grep -i traceparent /tmp/trapmap-trace-headers.txt
+```
+
+对外只传 `traceparent`，不要写 `X-Trace-Id`。
+
+### 跑性能基线（要运行中的网关）
+
+```bash
+pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
+```
+
+这条不离线跑，你改了网关路由或采样配置后用它确认延迟面无退化。

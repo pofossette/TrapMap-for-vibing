@@ -41,3 +41,29 @@ pnpm --filter @trapmap/web-panel typecheck
 | `test:e2e*` | playwright 套件（含 UI / headed / debug 变体） |
 
 面板只消费 `@trapmap/client-core` 与 `@trapmap/contracts`，后端数据一律经网关 API 获取。页面级产品定义见 `apps/web-panel/docs/requirements.md`，分层约定见 `apps/web-panel/docs/architecture.md`。
+
+## 常见用法
+
+### 本地起面板（要运行中的网关）
+
+```bash
+pnpm --filter @trapmap/web-panel dev
+```
+
+你先起网关（见 `docs/guides/GETTING_STARTED.md`），再开面板，用 access-key 在 `/login` 登录。后端数据只走网关 API。
+
+### 跑单元测试与类型检查
+
+```bash
+pnpm --filter @trapmap/web-panel test
+pnpm --filter @trapmap/web-panel typecheck
+```
+
+### 跑 e2e（要构建产物）
+
+```bash
+pnpm --filter @trapmap/web-panel build
+pnpm --filter @trapmap/web-panel test:e2e
+```
+
+`test:e2e:ui` 开交互界面，`test:e2e:headed` 开有头浏览器，`test:e2e:debug` 单步调试，你按需选用。

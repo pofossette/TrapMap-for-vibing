@@ -20,3 +20,30 @@ const { data } = await apiRequest(provider, { path: '/v1/knowledge', method: 'GE
 ## 行为
 
 本包零运行时依赖，只用标准 `fetch`，因此你能在浏览器直接使用它。调用方注入已解析的网关 base URL，`BackendTarget` 形状由 `@trapmap/contracts` 定义。支持的方法为 `GET` / `POST` / `PATCH`，非 OK 响应或非法 JSON 抛 `ApiError`（携带状态码与响应体）。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/client-core test
+pnpm --filter @trapmap/client-core typecheck
+```
+
+### 发一次带会话的请求
+
+```ts
+import { apiRequest, ApiError } from '@trapmap/client-core';
+import type { SessionProvider } from '@trapmap/client-core';
+
+const provider: SessionProvider = {
+  getBaseUrl: () => 'http://127.0.0.1:4000',
+  getSessionToken: () => storedToken,
+};
+
+try {
+  const { data } = await apiRequest(provider, { path: '/v1/knowledge', method: 'GET' });
+} catch (err) {
+  if (err instanceof ApiError) console.error(err.statusCode, err.payload);
+}
+```

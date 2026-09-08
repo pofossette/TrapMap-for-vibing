@@ -43,3 +43,31 @@ pnpm --filter @trapmap/cli test
 | `test` | `vitest run --passWithNoTests` |
 
 命令签名细节由 `packages/skills/trapmap-cli-usage-guide/SKILL.md` 承载，工作流取舍由 `packages/skills/workflow-with-trapmap/SKILL.md` 承载。
+
+## 常见用法
+
+### 列出全部命令
+
+```bash
+pnpm --filter @trapmap/cli dev -- --help
+```
+
+仓库内无内置二进制时都用 `dev --` 前缀，装好后把 `trapmap` 换上去即可。
+
+### 登录并验连通性
+
+```bash
+pnpm --filter @trapmap/cli dev -- login --server http://127.0.0.1:4000 --access-key <key>
+curl http://127.0.0.1:4000/health
+```
+
+网关地址优先级（登录写入、配置文件、环境变量、硬编码默认）见 `docs/operations/SECURITY.md`。
+
+### 查审计与建密钥
+
+```bash
+pnpm --filter @trapmap/cli dev -- audit --limit 50
+pnpm --filter @trapmap/cli dev -- access-key:create <memberId> --team <teamId> --note "CI Pipeline"
+```
+
+两条都要登录态，旗标已按 `apps/cli/src/commands/audit.ts` 与 `apps/cli/src/commands/member.ts` 核对。

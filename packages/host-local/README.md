@@ -25,3 +25,33 @@ await handle.close();
 | `langfuse`（optional） | LLM 调用镜像 |
 
 部署形态（`local-agent` / `team-monolith`）由 `TRAPMAP_DEPLOYMENT_PROFILE` 选择，运行模式按 profile 与 preset 推导，不直接读环境变量。
+
+## 常见用法
+
+### 本地起网关（开发）
+
+```bash
+pnpm dev -- local-agent
+curl http://127.0.0.1:4000/health
+```
+
+等价别名见仓库根 `package.json`（`dev:local-agent`、`dev:team-monolith`）。`team-monolith` 形态要先配 `TRAPMAP_DATABASE_URL`。
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/host-local test
+```
+
+PG 集成用例无库时自动跳过。
+
+### 在脚本里启停服务
+
+```ts
+import { start } from '@trapmap/host-local';
+
+const handle = await start({ host: '0.0.0.0', port: 4000 });
+await handle.close();
+```
+
+你只在测试编排里这样用，日常开发走 `pnpm dev`。

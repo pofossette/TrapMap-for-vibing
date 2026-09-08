@@ -23,3 +23,20 @@ import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 | `build` / `typecheck` / `test` | 编译 / 校验 / 单元测试 |
 
 业务服务经内部 job-runtime 端口调度后续工作，不直接操作队列运行时写能力。claim、租约、重试、死信语义归本包，业务事实归各聚合 owner。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/service-job-runtime test
+pnpm --filter @trapmap/service-job-runtime typecheck
+```
+
+### 装配依赖并看处理器
+
+```ts
+import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
+```
+
+处理器实现见 `packages/service-job-runtime/src/handlers/`，你要加任务类型先读该目录的现有 handler，再配 claim 与重试语义。队列状态面字段（`reclaimCount`、`recentDeadLetters`）见 `docs/operations/TESTING.md` 的 operator closeout 一节。

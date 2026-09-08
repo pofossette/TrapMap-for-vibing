@@ -327,3 +327,33 @@ Langfuse 适配器可选，`LANGFUSE_ENABLED` 且凭证齐全才启用（相关�
 - [TrapMap API 契约表面](../reference/api-surface.md)：认证 API 详情
 - [环境变量](../reference/ENVIRONMENT.md)：完整变量列表
 - [TrapMap 部署指南](../architecture/DEPLOYMENT.md)：生产部署步骤
+
+## 常见用法
+
+下面命令的旗标已按 `apps/cli/src/commands/` 核对。变量默认值以 `docs/reference/ENVIRONMENT.md` 为准。
+
+### 建密钥给新成员
+
+前置条件：你已用有权限的身份登录。
+
+```bash
+pnpm --filter @trapmap/cli dev -- access-key:create <memberId> --team <teamId> --note "CI Pipeline"
+```
+
+密钥明文只显示一次，你立刻存到安全位置，不进代码仓库。
+
+### 查最近审计事件
+
+```bash
+pnpm --filter @trapmap/cli dev -- audit --limit 50
+```
+
+查看要 `audit:read` 权限。事件命名同时有点分与连字符两种风格，你按上文审计事件类型表过滤。
+
+### 换网关地址重登录
+
+```bash
+pnpm --filter @trapmap/cli dev -- login --server <新地址> --access-key <key>
+```
+
+CLI 只存单值网关地址（`~/.trapmap/cli.json` 的 `gatewayUrl`），换服务器重跑一次登录即可。

@@ -37,3 +37,22 @@ import { nowIso, sha256, truncate, uniqBy } from '@trapmap/lib';
 | `test` | vitest `lib` 项目 |
 
 本包只放纯函数，任何宿主、传输、存储逻辑都不得进入。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/lib test
+pnpm --filter @trapmap/lib typecheck
+```
+
+### 调时间、哈希、截断、向量函数
+
+```ts
+import { nowIso, sha256, truncate, uniqBy, cosineSimilarity } from '@trapmap/lib';
+
+const stamp = nowIso();
+const digest = sha256('input');
+const short = truncate(longText, 120);
+```

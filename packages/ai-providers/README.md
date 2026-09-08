@@ -31,3 +31,22 @@ import { parseJsonWithSchema } from '@trapmap/ai-providers/ai-parse.js';
 | `test` | vitest `ai-providers` 项目 |
 
 供应商标识的完整取值见 `packages/ai-providers/src/provider-config.ts`，Ollama 与 Anthropic 相关行径未经本轮核实，取用前你亲自确认，未知/待确认（2026-09-08）。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/ai-providers test
+pnpm --filter @trapmap/ai-providers typecheck
+```
+
+### 读供应商配置并建 provider
+
+```ts
+import { loadAiProviderConfig } from '@trapmap/ai-providers';
+
+const config = loadAiProviderConfig();
+```
+
+你传环境变量进进程后再调它，变量清单见 `docs/reference/ENVIRONMENT.md` 的 AI 一节。缺 key 时走确定性 fallback 向量，不抛错。

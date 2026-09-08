@@ -19,3 +19,22 @@ import { knowledgeEntrySchema } from '@trapmap/contracts';
 | `test` | `vitest run --project contracts` |
 
 评测专用契约已迁往 `evals/types/`，`@trapmap/contracts/evals` 已退役，产品代码禁止从 `evals/` 导入。本包为私有包，你通过 workspace 引用它。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/contracts test --run
+pnpm --filter @trapmap/contracts typecheck
+```
+
+### 用 schema 校验业务对象
+
+```ts
+import { knowledgeEntrySchema } from '@trapmap/contracts';
+
+const parsed = knowledgeEntrySchema.parse(raw);
+```
+
+你不直接造裸对象，先过 schema 再进业务逻辑。改 schema 时保持向后兼容，改完跑 `pnpm --filter @trapmap/evals eval:smoke`。

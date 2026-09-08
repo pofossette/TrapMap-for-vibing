@@ -123,3 +123,35 @@ pnpm check:fallow
 - [TrapMap API 契约表面](../reference/api-surface.md)
 - [数据模型](../reference/DATA_MODEL.md)
 - [TrapMap 评测工作区](../../evals/README.md)
+
+## 常见用法
+
+下面命令全部在仓库根执行。守卫语义见 `docs/operations/TESTING.md`，流水线映射见 `docs/operations/CI_CD.md`。
+
+### 改完代码先跑最小验证
+
+```bash
+pnpm test:file -- <仓库根相对路径>
+pnpm typecheck
+pnpm lint
+```
+
+你改哪个文件就把它的路径填进 `test:file`，路径格式参照 `packages/contracts/test/domain/task-queue.test.ts`。三条全绿再提交。
+
+### 改完文档跑守卫
+
+```bash
+pnpm check:docs
+pnpm check:deps
+```
+
+你只改了 `docs/` 也要跑这两条，`check:docs` 覆盖漂移、mermaid 与链接。
+
+### 开 PR 前跑全量单测
+
+```bash
+pnpm test
+pnpm --filter @trapmap/evals eval:smoke
+```
+
+第二条需要 Docker（PG 协调拉临时库）。评测相关改动才必须跑第二条，纯文档改动跳过。

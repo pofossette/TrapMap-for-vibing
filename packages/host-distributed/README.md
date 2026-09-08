@@ -23,3 +23,22 @@ pnpm --filter @trapmap/app-distributed start -- --service gateway
 ## 行为
 
 消费方只允许经本包 `package.json` exports 子路径导入。本包承载服务实现、路由、DB 端口与配置解析，进程装配（`--service` 分发、信号处理）归组装中心。`cron-scheduler` 的监听形态以源码为准，未知/待确认（2026-09-08）。
+
+## 常见用法
+
+### 起网关与单个服务（开发）
+
+```bash
+pnpm --filter @trapmap/app-distributed dev:gateway
+pnpm --filter @trapmap/app-distributed dev:candidate-ingestion
+```
+
+脚本名以 `apps/distributed/package.json` 为准。网关占 `4000`，各服务端口见上文端口划分。
+
+### 跑 acceptance 门
+
+```bash
+pnpm --filter @trapmap/host-distributed test:acceptance
+```
+
+这条验证真实 HTTP owner hop、correlation、错误分类与幂等 replay。你改权威写路径或 job ownership 时必跑。

@@ -31,3 +31,23 @@ pnpm --filter @trapmap/app-distributed test
 | `test` | `vitest run --project app-distributed --passWithNoTests` |
 
 你只允许经 `@trapmap/host-distributed` 的 `package.json` exports 子路径导入它，业务逻辑缺失时你扩 exports 面，不动库包源码。
+
+## 常见用法
+
+### 开发态起网关加一个 worker
+
+```bash
+pnpm --filter @trapmap/app-distributed dev:gateway
+pnpm --filter @trapmap/app-distributed dev:job-runtime
+```
+
+网关占 `4000`，起完用 `curl http://127.0.0.1:4000/ready` 验证。其他服务脚本（`dev:candidate-ingestion`、`dev:governance-review`、`dev:cron-scheduler`）见上文入口一节。
+
+### 生产态按服务启动
+
+```bash
+pnpm --filter @trapmap/app-distributed build
+pnpm --filter @trapmap/app-distributed start -- --service gateway
+```
+
+`--service` 合法集合由 `@trapmap/host-distributed` 的 `ALL_SERVICES` 定义，生产路径跑 `node dist/index.js`。

@@ -87,3 +87,35 @@ pnpm test:observability-benchmark -- --base-url http://127.0.0.1:4000
 ```
 
 对外 trace 传播只用 `traceparent`，不要写 `X-Trace-Id`（那是 distributed 内部 hop 头）。
+
+## 常见用法
+
+下面组合按场景取用，前置条件见上文各节。命令定义以仓库根 `package.json` 为准。
+
+### PR 最小回归（离线）
+
+```bash
+pnpm typecheck
+pnpm --filter @trapmap/contracts test --run
+pnpm --filter @trapmap/backend-core test --run
+pnpm --filter @trapmap/host-local test --run
+```
+
+四条无库可跑，PG 用例自动跳过。你改了 `host-distributed` 就加 `pnpm test:distributed-closeout`（要网关）。
+
+### 文档加守卫回归（离线）
+
+```bash
+pnpm check:docs
+pnpm check:structure
+```
+
+你只改文档或守卫时跑这两条，替代全量测试。
+
+### 触及 distributed 写路径时加跑
+
+```bash
+pnpm test:distributed-acceptance
+```
+
+你改了 `packages/host-distributed` 的权威写路径、网关透传、internal client 语义或 job ownership 时，这条是必跑门，不用 `test:deployment-smoke` 代替。

@@ -193,3 +193,44 @@ pnpm install
 ### 评测前要起服务吗
 
 `eval:smoke` 自带 PG 协调，不依赖你手动起网关。Live 评测（`eval:retrieval:live`）才需要运行中的服务加 token，见 `docs/operations/TESTING.md`。
+
+## 常见用法
+
+下面三条轨道分别对应一种部署形态。形态定义见 `docs/architecture/DEPLOYMENT.md`，变量默认值见 `docs/reference/ENVIRONMENT.md`。
+
+### local-agent 轨道（单用户本地）
+
+前置条件：§1 的 `pnpm install` 与 `pnpm build` 已过。PostgreSQL 可选，未配时回退 JSON 文件存储（见 §2）。
+
+```bash
+pnpm dev -- local-agent
+curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/ready
+```
+
+你看到 `200` 就开跑。启动的东西：单个 `@trapmap/host-local` 进程（经 `@trapmap/app-light` 组装）。日志去向：进程 stdout（NestJS logger）；配了 `LOKI_HOST` 才多一路 Loki。文件日志路径未知/待确认（2026-09-08）。
+
+### team-monolith 轨道（完整团队网关）
+
+前置条件：PostgreSQL 在跑，`TRAPMAP_DATABASE_URL` 已配（见 §2）。
+
+```bash
+pnpm dev -- team-monolith
+curl http://127.0.0.1:4000/health
+pnpm --filter @trapmap/cli dev -- --help
+```
+
+启动的东西：同一个 `app-light` 进程，profile 切到 `team-monolith` 后注册完整路由族。验证点：`/health` 的 `deployment.profile` 为 `team-monolith`；CLI `--help` 列出全部命令族。日志去向与 local-agent 相同。
+
+### distributed 轨道（网关加 workers）
+
+前置条件：PostgreSQL 在跑；compose 服务划分见 `docs/architecture/DEPLOYMENT.md`。
+
+```bash
+pnpm dev:distributed:gateway
+pnpm dev:distributed:candidate-worker
+pnpm dev:distributed:governance-worker
+pnpm dev:distributed:outbox-worker
+```
+
+启动的东西：网关进程（`4000`）加三个 worker 进程（实现见 `packages/host-distributed/src/`，可执行脚本见 `apps/distributed/package.json`）。验证点：网关 `curl http://127.0.0.1:4000/ready` 返回 `200`；各 worker 进程无报错退出。日志去向：每个进程各自的 stdout，你按终端窗口区分；需要聚合时再配 Loki。

@@ -95,3 +95,57 @@ SecurityLevel 是 0 到 10 的整数，用户等级大于等于条目等级才�
 | workspace | `pnpm-workspace.yaml` |
 
 包内导航看各包 README 与 `docs/PACKAGES.md`。
+
+## 常见用法
+
+下面按目录给上手顺序：入口文件加阅读顺序加第一条命令。权威细节只在各包 README 与 `docs/reference/` 里维护，这里只给导航。
+
+### packages/backend-core
+
+入口：`packages/backend-core/src/index.ts`。你先读 `packages/backend-core/src/ports/`（端口形状），再读 `packages/backend-core/src/runtime/`（能力模型与路由表面），最后按需进六个限界上下文目录。第一条命令：
+
+```bash
+pnpm --filter @trapmap/backend-core typecheck
+pnpm --filter @trapmap/backend-core test
+```
+
+### packages/contracts
+
+入口：`packages/contracts/src/index.ts`。你先读 `packages/contracts/src/domain/common.ts`，再读你负责领域的 schema 文件，最后看 `packages/contracts/src/enum-types/`。第一条命令：
+
+```bash
+pnpm --filter @trapmap/contracts test --run
+```
+
+### packages/db
+
+入口：`packages/db/src/index.ts`。你先读 `packages/db/src/schema/`（表定义），再读 `packages/db/src/client.ts`（`createDb`），最后读 `packages/db/src/migrate.ts`（`runMigrations`）。第一条命令：
+
+```bash
+pnpm --filter @trapmap/db typecheck
+pnpm check:table-schema
+```
+
+### packages/host-local
+
+入口：`packages/host-local/src/index.ts`（`start()`）。你先读 `packages/host-local/src/nest/config/config.ts`（配置），再读 `packages/host-local/src/nest/gateway/`（路由组装），最后按能力面进其他子目录。第一条命令：
+
+```bash
+pnpm --filter @trapmap/host-local test
+```
+
+### packages/host-distributed
+
+入口：`packages/host-distributed/src/index.ts`，进程分发见 `packages/host-distributed/src/runner.ts`。你先读 `packages/host-distributed/src/config/service-config.ts`（配置），再读 `packages/host-distributed/src/gateway/`（网关），最后进你负责的服务目录。第一条命令：
+
+```bash
+pnpm --filter @trapmap/host-distributed test
+```
+
+### apps/cli
+
+入口：`apps/cli/src/index.ts`。你先读 `apps/cli/src/lib/config.ts` 与 `apps/cli/src/lib/http.ts`（状态与传输），再读 `apps/cli/src/commands/` 下你关心的命令文件。第一条命令：
+
+```bash
+pnpm --filter @trapmap/cli dev -- --help
+```

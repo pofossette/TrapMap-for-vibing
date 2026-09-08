@@ -29,3 +29,26 @@ pnpm --filter @trapmap/cli dev -- skill search --registry <query>
 | `test` | 包单元测试 |
 
 完整设计另见 `docs/architecture/SKILL-REGISTRY.md`。
+
+## 常见用法
+
+### 装一个外部 skill
+
+```bash
+pnpm --filter @trapmap/cli dev -- skill add <source>
+```
+
+装完看 `.trapmap/skills.lock` 确认版本 pin 住。
+
+### 搜 registry 里的 skill
+
+```bash
+pnpm --filter @trapmap/cli dev -- skill search --registry <query>
+```
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/skill-registry test
+pnpm --filter @trapmap/skill-registry typecheck
+```

@@ -25,3 +25,16 @@
 | `build` / `typecheck` / `test` | 编译 / 校验 / 单元测试 |
 
 批准 / 拒绝后的投影刷新、工件跟进等动作全部走异步队列，job-runtime 拥有传输、租约与死信。
+
+## 常见用法
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/service-governance-review test
+pnpm --filter @trapmap/service-governance-review typecheck
+```
+
+### 跟一条审核决策的委托链
+
+你从 `packages/service-governance-review/src/conflict-read.ts` 读冲突现状，再看上文委托表找到对应的 `KnowledgeWritePort` 方法，最后在写侧确认聚合变更。不要在本包内直接改知识状态。
