@@ -45,12 +45,12 @@ distributed profile 下内部地址默认走 compose Docker DNS；本地进程�
 
 | 变量 | 来源 | 说明 | 默认值 |
 |---|---|---|---|
-| `TRAPMAP_HOST_LOCAL_POOL_SIZE` | `packages/host-local/src/nest/config/config.ts:253` | 连接池大小（`TRAPMAP_SERVICE_POOL_SIZE` 回退） | `10` |
-| `TRAPMAP_HOST_LOCAL_IDLE_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:255` | 空闲连接回收毫秒数（回退同名前缀的 `TRAPMAP_SERVICE_*`） | `10000` |
-| `TRAPMAP_HOST_LOCAL_CONNECTION_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:258` | 建连超时毫秒数（不设即 node-pg 默认无超时） | 未设置 |
-| `TRAPMAP_HOST_LOCAL_STATEMENT_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:261` | 语句超时毫秒数（不设即无超时） | 未设置 |
-| `TRAPMAP_HOST_LOCAL_QUERY_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:264` | 查询超时毫秒数（不设即无超时） | 未设置 |
-| `TRAPMAP_HOST_LOCAL_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:267` | 事务空闲超时毫秒数（不设即无超时） | 未设置 |
+| `TRAPMAP_HOST_LOCAL_POOL_SIZE` | `packages/host-local/src/nest/config/config.ts:292` | 连接池大小（`TRAPMAP_SERVICE_POOL_SIZE` 回退；distributed 侧默认 `5`，见 service-config） | `10` |
+| `TRAPMAP_HOST_LOCAL_IDLE_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:294` | 空闲连接回收毫秒数（`TRAPMAP_SERVICE_IDLE_TIMEOUT_MS` 回退；distributed 侧默认 `30000`，见 service-config） | `10000` |
+| `TRAPMAP_HOST_LOCAL_CONNECTION_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:297` | 建连超时毫秒数（`TRAPMAP_SERVICE_CONNECTION_TIMEOUT_MS` 回退；distributed 侧默认 `5000`，见 service-config；不设即 node-pg 默认无超时） | 未设置 |
+| `TRAPMAP_HOST_LOCAL_STATEMENT_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:300` | 语句超时毫秒数（`TRAPMAP_SERVICE_STATEMENT_TIMEOUT_MS` 回退；distributed 侧默认 `30000`，见 service-config；不设即无超时） | 未设置 |
+| `TRAPMAP_HOST_LOCAL_QUERY_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:303` | 查询超时毫秒数（`TRAPMAP_SERVICE_QUERY_TIMEOUT_MS` 回退；distributed 侧默认 `30000`，见 service-config；不设即无超时） | 未设置 |
+| `TRAPMAP_HOST_LOCAL_IDLE_IN_TRANSACTION_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:306` | 事务空闲超时毫秒数（`TRAPMAP_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS` 回退；distributed 侧默认 `30000`，见 service-config；不设即无超时） | 未设置 |
 | `TRAPMAP_CONSUL_CHECK_INTERVAL` | `packages/host-local/src/nest/service-discovery/consul.service.ts:235` | Consul 健康检查间隔 | `10s` |
 | `TRAPMAP_CONSUL_CHECK_TIMEOUT` | `packages/host-local/src/nest/service-discovery/consul.service.ts:240` | Consul 健康检查超时 | `5s` |
 
@@ -171,8 +171,14 @@ PostgreSQL `graph_index_documents` 仍是图索引权威真相源；可选 graph
 |---|---|---|---|
 | `LOG_LEVEL` | `packages/host-local/src/nest/observability/loki.service.ts:56` | 日志级别（light 侧 Loki 传输沿用该级别） | `info` |
 | `LOG_USER_OPS_ENABLED` | `packages/host-local/src/nest/config/user-ops-log.ts:47` | 启用用户操作日志 | `false`（非 `true` 即关） |
+| `TRAPMAP_LOG_USER_OPS_ENABLED` | `packages/host-local/src/nest/config/config.ts:186`（别名表），读取点 `packages/host-local/src/nest/config/user-ops-log.ts:47` | `LOG_USER_OPS_ENABLED` 的别名；旧名优先（旧名已设时别名不生效） | `false`（非 `true` 即关） |
+| `TRAPMAP_LOG_USER_OPS_DIR` | `packages/host-local/src/nest/config/config.ts:187`（别名表），读取点 `packages/host-local/src/nest/config/user-ops-log.ts:48` | `LOG_USER_OPS_DIR` 的别名；旧名优先（旧名已设时别名不生效） | `logs/user-ops` |
 | `LOG_RAG_ENABLED` | `packages/host-local/src/nest/config/rag-log.ts:8` | 启用 RAG 检索日志 | `false`（非 `true` 即关） |
+| `TRAPMAP_LOG_RAG_ENABLED` | `packages/host-local/src/nest/config/config.ts:184`（别名表），读取点 `packages/host-local/src/nest/config/rag-log.ts:8` | `LOG_RAG_ENABLED` 的别名；旧名优先（旧名已设时别名不生效） | `false`（非 `true` 即关） |
+| `TRAPMAP_LOG_RAG_DIR` | `packages/host-local/src/nest/config/config.ts:185`（别名表），读取点 `packages/host-local/src/nest/config/rag-log.ts:9` | `LOG_RAG_DIR` 的别名；旧名优先（旧名已设时别名不生效） | `logs/rag` |
 | `LOG_MAX_FILE_SIZE_MB` | `packages/host-local/src/nest/config/log-rotation.ts:7` | 单个日志文件最大大小（MB） | `10` |
+| `TRAPMAP_LOG_MAX_FILE_SIZE_MB` | `packages/host-local/src/nest/config/config.ts:188`（别名表），读取点 `packages/host-local/src/nest/config/log-rotation.ts:7` | `LOG_MAX_FILE_SIZE_MB` 的别名；旧名优先（旧名已设时别名不生效） | `10` |
+| `TRAPMAP_LOG_MAX_BACKUP_FILES` | `packages/host-local/src/nest/config/config.ts:189`（别名表），读取点 `packages/host-local/src/nest/config/log-rotation.ts:8` | `LOG_MAX_BACKUP_FILES` 的别名；旧名优先（旧名已设时别名不生效） | `5` |
 | `LOKI_HOST` | `packages/host-local/src/nest/observability/loki.service.ts:41` | Loki push API 地址；为空时 Loki 日志传输禁用 | 未设置（禁用） |
 | `NODE_ENV` | `packages/host-local/src/nest/observability/loki.service.ts:37`，另见 `packages/host-distributed/src/shared/telemetry.ts:81` | 运行环境（Sentry `environment`、OTel `environment` 的回退来源之一） | `development`（各消费点回退值） |
 
@@ -181,15 +187,27 @@ PostgreSQL `graph_index_documents` 仍是图索引权威真相源；可选 graph
 | 变量 | 来源 | 说明 | 默认值 |
 |---|---|---|---|
 | `LANGFUSE_ENABLED` | `packages/host-local/src/nest/observability/langfuse-sink.ts:48` | 是否启用 Langfuse 运行时 LLM 观测（`false` 时完全禁用） | 未设置（禁用） |
+| `TRAPMAP_LANGFUSE_ENABLED` | `packages/host-local/src/nest/config/config.ts:190`（别名表），读取点 `packages/host-local/src/nest/observability/langfuse-sink.ts:48` | `LANGFUSE_ENABLED` 的别名；旧名优先（旧名已设时别名不生效） | 未设置（禁用） |
 | `LANGFUSE_BASE_URL` | `packages/host-local/src/nest/observability/langfuse-sink.ts:49` | Langfuse 实例 URL | 未设置（禁用） |
+| `TRAPMAP_LANGFUSE_BASE_URL` | `packages/host-local/src/nest/config/config.ts:191`（别名表），读取点 `packages/host-local/src/nest/observability/langfuse-sink.ts:49` | `LANGFUSE_BASE_URL` 的别名；旧名优先（旧名已设时别名不生效） | 未设置（禁用） |
 | `LANGFUSE_PUBLIC_KEY` | `packages/host-local/src/nest/observability/langfuse-sink.ts:50` | Langfuse public key | 未设置（禁用） |
+| `TRAPMAP_LANGFUSE_PUBLIC_KEY` | `packages/host-local/src/nest/config/config.ts:192`（别名表），读取点 `packages/host-local/src/nest/observability/langfuse-sink.ts:50` | `LANGFUSE_PUBLIC_KEY` 的别名；旧名优先（旧名已设时别名不生效） | 未设置（禁用） |
 | `LANGFUSE_SECRET_KEY` | `packages/host-local/src/nest/observability/langfuse-sink.ts:51` | Langfuse secret key | 未设置（禁用） |
+| `TRAPMAP_LANGFUSE_SECRET_KEY` | `packages/host-local/src/nest/config/config.ts:193`（别名表），读取点 `packages/host-local/src/nest/observability/langfuse-sink.ts:51` | `LANGFUSE_SECRET_KEY` 的别名；旧名优先（旧名已设时别名不生效） | 未设置（禁用） |
 | `LANGFUSE_FLUSH_TIMEOUT_MS` | `packages/host-local/src/nest/observability/langfuse-sink.ts:52` | Bounded flush 超时毫秒数（范围 100-60000，见 `packages/contracts/src/domain/observability-config.ts:370`） | `5000` |
+| `TRAPMAP_LANGFUSE_FLUSH_TIMEOUT_MS` | `packages/host-local/src/nest/config/config.ts:194`（别名表），读取点 `packages/host-local/src/nest/observability/langfuse-sink.ts:52` | `LANGFUSE_FLUSH_TIMEOUT_MS` 的别名；旧名优先（旧名已设时别名不生效） | `5000` |
 | `LANGFUSE_PRIVACY_MODE` | `packages/host-local/src/nest/observability/langfuse-sink.ts:58` | 隐私模式：`strict`（仅 metadata/长度/哈希）或 `metadata-only` | `strict` |
+| `TRAPMAP_LANGFUSE_PRIVACY_MODE` | `packages/host-local/src/nest/config/config.ts:195`（别名表），读取点 `packages/host-local/src/nest/observability/langfuse-sink.ts:58` | `LANGFUSE_PRIVACY_MODE` 的别名；旧名优先（旧名已设时别名不生效） | `strict` |
 | `SENTRY_DSN` | `packages/host-local/src/nest/observability/sentry.service.ts:183` | Sentry DSN；为空时 Sentry 完全禁用（no-op） | 未设置（禁用） |
+| `TRAPMAP_SENTRY_DSN` | `packages/host-local/src/nest/config/config.ts:196`（别名表），读取点 `packages/host-local/src/nest/observability/sentry.service.ts:183` | `SENTRY_DSN` 的别名；旧名优先（旧名已设时别名不生效） | 未设置（禁用） |
 | `SENTRY_ENVIRONMENT` | `packages/host-local/src/nest/observability/sentry.service.ts:184` | Sentry 环境标签 | `NODE_ENV` 或 `development` |
+| `TRAPMAP_SENTRY_ENVIRONMENT` | `packages/host-local/src/nest/config/config.ts:197`（别名表），读取点 `packages/host-local/src/nest/observability/sentry.service.ts:184` | `SENTRY_ENVIRONMENT` 的别名；旧名优先（旧名已设时别名不生效） | `NODE_ENV` 或 `development` |
 | `SENTRY_RELEASE` | `packages/host-local/src/nest/observability/sentry.service.ts:185` | Sentry release 标识 | `npm_package_version` 或 `0.1.0` |
+| `TRAPMAP_SENTRY_RELEASE` | `packages/host-local/src/nest/config/config.ts:198`（别名表），读取点 `packages/host-local/src/nest/observability/sentry.service.ts:185` | `SENTRY_RELEASE` 的别名；旧名优先（旧名已设时别名不生效） | `npm_package_version` 或 `0.1.0` |
 | `SENTRY_TRACES_SAMPLE_RATE` | `packages/host-local/src/nest/observability/sentry.service.ts:186` | Sentry traces 采样率（0-1） | `0` |
+| `TRAPMAP_SENTRY_TRACES_SAMPLE_RATE` | `packages/host-local/src/nest/config/config.ts:199`（别名表），读取点 `packages/host-local/src/nest/observability/sentry.service.ts:186` | `SENTRY_TRACES_SAMPLE_RATE` 的别名；旧名优先（旧名已设时别名不生效） | `0` |
+| `TRAPMAP_SENTRY_SAMPLE_RATE` | `packages/host-local/src/nest/config/config.ts:200`（别名表），读取点 `packages/host-local/src/nest/observability/sentry.service.ts:187` | `SENTRY_SAMPLE_RATE` 的别名；旧名优先（旧名已设时别名不生效） | `1` |
+| `TRAPMAP_SENTRY_MAX_BREADCRUMBS` | `packages/host-local/src/nest/config/config.ts:201`（别名表），读取点 `packages/host-local/src/nest/observability/sentry.service.ts:188` | `SENTRY_MAX_BREADCRUMBS` 的别名；旧名优先（旧名已设时别名不生效） | `50` |
 | `OTEL_DISABLED` | `packages/host-distributed/src/shared/telemetry.ts:76`，另见 `packages/host-local/src/nest/observability/otel.service.ts:35` | 是否禁用 OpenTelemetry SDK 初始化（`true` 时所有 OTel 操作为空操作） | `false` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `packages/host-distributed/src/shared/telemetry.ts:78`，另见 `packages/host-local/src/nest/observability/otel.service.ts:37` | OTLP exporter 端点 | `http://localhost:4318` |
 | `TRAPMAP_METRICS_ENABLED` | `packages/host-local/src/nest/observability/prometheus.service.ts:26` | 是否暴露 `/metrics` Prometheus 端点并收集 `prom-client` 指标 | `true` |
