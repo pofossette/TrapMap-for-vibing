@@ -1,56 +1,79 @@
 # 长期工程债务与平台成熟度登记
 
-> **角色：** 受根 [`../../plan.md`](../../plan.md) 管理的长期问题登记册。
-> **状态：** `deferred`；不构成第二条 active mainline。
-> **2026-08-22 平台化主线 closeout：** 已关闭条目已物理移除（历史见 docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md 与 git history）；本册为净收缩后的仍开放集。
+> 角色：受根 [`plan.md`](../../plan.md) 管理的长期问题登记册。
+> 状态：长期登记（2026-09-08）；不构成第二条 active mainline。
+> Owner：根 `plan.md`；任一项满足进入条件时，新建 active 细则并由根索引显式链接。
 
 ## 使用规则
 
-- 每项记录必须包含来源、影响、当前边界、进入条件和后续落点。
-- 任一项满足进入条件时，创建新的 active detail 并由根 `plan.md` 显式链接。
+- 每项记录必须包含来源、影响、当前边界、进入条件和后续落点，缺要素的条目视为无效登记。
+- 2026-08-22 平台化主线 closeout 已关闭的条目已物理移除（历史见 `docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md（已归档，路径冻结）` 与 git history）；本册为仍开放集。
 
 ## 长期问题池
 
-### web-panel real admin 路径不可运行（刷新于 2026-09-02，Phase2 部分闭环）
+### ai-providers Responses-API 传输缺失（2026-09-08 新立，ai-sdk 主线 closeout 残留）
 
-- 来源/影响/边界：同原登记（原 5 个 `/api/admin/*` 无后端实现，2026-09-02 已闭环 2 个：`GET /api/admin/runtime-overview` 与 `POST /api/admin/reviews/:id/json-edits` 经 `service-governance-review` 双宿主 RouteDef + `contracts` Zod 实现并验证 `typecheck`/`check:docs` 全绿；剩余 3 个 `/api/admin/*` 仍 mock，mock 模式可用）。`apps/web-panel` 本身仍是战略性 human-in-the-loop 产品和治理人工审核保障，必须保留；本条债务仅限于其管理动作尚未接入生产化后端。
-- 2026-08-23 刷新：面板侧已完成 design-token、Dashboard snapshot 绑定、队列 filtered/total 计数区分和 route-level splitting 第一批工作；这不改变 real admin 路由缺失、bearer provider 为 null 或 RBAC 缺失的债务状态。
-- 2026-08-23 追加：治理审核的 `return-for-correction` 已接入 contracts、governance/knowledge owner 和双宿主网关；Web Panel 不再把它伪装成 reject。real admin surface 与 RBAC 债务继续保留。
-- 2026-08-23 追加：Activity 的 actor/type/time/search/cursor 查询已在 mock seam 与页面完成，UI 常显 mock 标识；这不改变 `/api/admin/activity` 生产 RouteDef 缺失或 bearer/RBAC 债务。
-- 2026-08-23 追加：Artifacts 的 level/search/lifecycle/scope 过滤、确定性排序和 cursor 分页已在 mock seam 与页面完成；这不改变 `/api/admin/artifacts` 生产 RouteDef 缺失或 bearer/RBAC 债务。
-- 2026-08-23 追加：Trap/Skill 图谱的深度、搜索和模式状态已完成接线；Skill 工件选择器仍受最多 100 个 snapshot 工件约束，且不改变生产 admin graph/artifact RouteDef 缺失或 bearer/RBAC 债务。
-- 2026-09-02 追加（Phase2 真收敛）：`packages/contracts/src/domain/admin.ts` 新增 `adminRuntimeOverviewResponseSchema` + `adminManualJsonEditRequest/ResponseSchema`（`contracts 955`），`service-governance-review` 新增 `runtime.routes.ts` + `json-edit.routes.ts` 并聚合入 `createGovernanceAdminRouteDefs`，`host-distributed` 网关 `shared.ts`+`governance.ts`+`internal-client` 双宿主转发已落地，`typecheck`/`check:docs`/`check:complexity` 全绿；剩余 3 个 mock 债务保留。
-- 2026-08-26 追加（user-authorized tranche）：`browserSessionProvider` 已改为 token-bearing（`useSessionStore`），新增 `/login` 守卫与 `read-only-operator` 导航/操作区分，mock `login`/`logout` 与 bearer 透传已补回归；这不改变 `/api/admin/*` 生产 RouteDef 缺失与 server-side authorization tests 债务。
-- 进入条件：需要真实管理控制台时。
-- 后续落点：Gene 主线 closeout 后恢复 [`../plans/web-panel-feature-and-ui-optimization-paused.md`](../plans/web-panel-feature-and-ui-optimization-paused.md) 的 phased path 实现；实现必须继续使用 RouteDef 工厂补 owner service 路由，并回填 SessionProvider token。
+- 来源：第十七轮语义质量门探针实证：现网凭证为 Responses-API-only 代理（`/v1/responses` 200，`/v1/chat/completions` 500、`/v1/embeddings` 404），本仓 adapter 只走 Chat Completions（`packages/ai-providers/src/adapters/aisdk.ts`），`eval:smoke` 语义项顶天花板持平基线。
+- 影响：该凭证下语义评测无法推进；不影响确定性 44/44 与 fallback 行为。
+- 当前边界：`generateText`/`embed`/`embedMany` 单通路保持不变；新增 `openai.responses()` 通路前不得改现有调用语义。
+- 进入条件：需要用该 Responses-only 凭证跑通语义质量门，或产品明确要求 Responses 通路时。
+- 后续落点：另起 tranche 做 `openai.responses()` 设计+测试（含 chat/embed 等价性与回退策略），完成后重跑 `eval:smoke` 回填本条。
+
+### apps/light 镜像未构建验证（2026-09-08 新立，ai-sdk 主线 closeout 残留）
+
+- 来源：第十七轮修了 `apps/light/Dockerfile` 的 deps/production 拷贝与 app `node_modules`，但本轮只构建验证了 distributed/migration，未构建 light 镜像。
+- 影响：light 镜像 Dockerfile 改动无构建证据；不影响 `pnpm build:light` 与 `test:light-target`（已 EXIT 0）。
+- 当前边界：`apps/light/Dockerfile` 改动已合入；未验证前不得宣称 light 镜像 closeout。
+- 进入条件：具备 Docker 构建环境时。
+- 后续落点：跑 light 镜像构建并回填本条后关闭。
+
+### go-accelerator 退役语义冲突：DEPRECATED.md vs 410 Gone（2026-09-08 新立）
+
+- 来源：`services/go-accelerator/DEPRECATED.md` 称退役端点仍服务（带 `X-Deprecated: use knowledge-read-go` 头并记 `WARN deprecated`），归档文档（`docs/archived/archived-plans/go-service-gradual-migration-archived.md（已归档，路径冻结）`、`architecture-remediation-phase3-go-convergence-archived.md`）称检索/排序端点已 410 Gone。`docs/architecture/GO-ACCELERATOR.md` 已标未知/待确认（2026-09-08），暂以 DEPRECATED.md 为准。
+- 影响：读者无法确定 `POST /v1/retrieval/*` 到底返回 410 还是带退役头的 200；`POST /v1/retrieval/score` 的命运在架构页里也是两说。
+- 当前边界：以 DEPRECATED.md 为准；宣称 410 前必须先读 handler 与 `services/knowledge-read-go/internal/api/router.go` 确认。
+- 进入条件：有人通读退役 handler 实现并给出逐端点行为表时。
+- 后续落点：按实测更新 `docs/architecture/GO-ACCELERATOR.md` 端点节并关闭本条；归档文档为只读历史，不追改。
+
+### 跨 lane 待确认项（暂无 owner，2026-09-08 收录）
+
+- 来源：各 lane 在本轮重写中标出的未知/待确认（2026-09-08），当时都没有 owner 认领：`docs/architecture/DEPLOYMENT.md:37`（`TRAPMAP_DATA_FILE` 引用的 `.data/skill-shareer.json` 在仓库内未见）、`docs/reference/ENVIRONMENT.md:63-64,70,88-92`（Gene 双 mode 变量、`TRAPMAP_READ_IMPL`、内部重试/熔断/限流 6 个变量缺默认值与行为描述）、`docs/operations/SECURITY.md:190-308`（`NODE_ENV`、`LOG_*`、`SENTRY_DSN`、Langfuse 相关变量在真相表里没有来源行）、`docs/architecture/components/RETRIEVAL.md:14`（`POST /v1/retrieval/genes/search` 未在 gateway route-defs 中出现）、`docs/architecture/components/ASYNC_SHARED_JOB_CONTRACTS.md:13,25,32`（`knowledge.index-follow-up` 与 `skill.index-follow-up` 的 payload schema 未见文件）、`docs/architecture/SKILL-REGISTRY.md:47`（`POST /v1/skills/import` 未在 gateway route-defs 中出现）、`docs/architecture/GO-ACCELERATOR.md:47`（`packages/infra/src/go-accelerator/client.ts` 路径未在本轮实测）。
+- 影响：这些页面的读者用之前必须自己核对代码；放任不管会重新长成失真。
+- 当前边界：各页面已标未知/待确认（2026-09-08），不撒谎；本条只做收拢，不替各 lane 下结论。
+- 进入条件：任一 lane 的 owner 认领其中一项并通读源码确认时。
+- 后续落点：确认一项、在权威页回写一项、从本条划掉一项；全部划完后关闭本条。
+
+### web-panel 治理审计断言缺口（刷新于 2026-09-08）
+
+- 来源：Web Panel Phase2 路由覆盖已闭环（`GET /api/admin/runtime-overview`、`reviews/:id/json-edits`、`reviews|/:id|/activity`、`graph/traps|skills`、`artifacts` 经 owner service RouteDef + `contracts` Zod 双宿主落地），但治理相关读/写的系统性 audit 断言未落地（仅 `helpers.ts:governance-audit` 注释与 `json-edit.routes.ts:32` no-op 注释）。
+- 影响：管理动作缺审计证据；不阻塞细则其余项 closeout。面板本身仍是战略性 human-in-the-loop 产品，必须保留；本条只管审计缺口。
+- 当前边界：2026-09-02 前已关闭 bearer provider 为 null、路由未保护、导航未按角色区分、server-side authorization tests、gateway session/cookie 条件偏好；剩余仅审计断言。
+- 进入条件：需要真实管理控制台的审计合规时，或 Web Panel 细则恢复执行时。
+- 后续落点：在 [`web-panel-feature-and-ui-optimization.md`](web-panel-feature-and-ui-optimization.md) 恢复执行后补审计断言，回填本条。
 
 ### eval:smoke / Experience Gene 活证据 CI 完整补跑（环境门控，刷新于 2026-08-30）
 
-- 来源：本机无 docker daemon；A4 端到端、A15 镜像重建与 compose replicas 演示均需 docker/kind。`pnpm --filter @trapmap/evals eval:smoke` 与 `pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve` 的 live baseline/shadow/serve task-quality comparison 亦需 PostgreSQL/Docker runtime。
-- 2026-08-22 增补：Skill Lookup 主线的 retrieval 单测已绿；完整 `pnpm --filter @trapmap/evals eval:smoke` 继续受同一环境门控约束。
-- 2026-08-30 增补（Experience Gene 活证据，本机离线已验证）：
-  - `pnpm exec fallow audit --base HEAD --no-cache` 本机通过：`Audit scope: 1 changed file vs HEAD (cfa2c477..HEAD) / ✓ No issues in 1 changed file`；对照 `pnpm exec fallow audit --base main --no-cache` 为 `8 changed files vs main` 的 31 clone groups / 9 high-complexity / 1 unused export（均为 `apps/cli` 既有债，与 2026-08-25 登记的 145 文件量级同源，已于 `experience-gene-infrastructure-foundation.md` 第四检查点冻结为 activation-commit `5cbb2f93bdc895056446d43da1fc6de515b0a967` 等价于 PR merge-base，不再阻断 Gene closeout）。
-  - `pnpm --filter @trapmap/evals eval:experience-gene --tier smoke --mode shadow` 本机通过：`total 3 / selected 1 / empty 2 / precision 1.0 / avoidance 1.0 / safety 0`（pre `cfa2c477` 基准，满足 T1 Test plan）。
-  - `pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve` 本机通过：`total 10 / selected 9 / empty 1 / precision 1.0 / avoidance 1.0 / safety 0 / supplementary avoid 7 / token cost ratio 0.90 / promotion eligible true`。
-  - `pnpm --filter @trapmap/evals eval:smoke` 本机仍失败：`failed to connect to the docker API at unix:///var/run/docker.sock`（已知环境门控，非代码回归），已登记为 CI 必跑；live task-quality comparison、 governance 20-Gene sampling 的在线部分与 deployment smoke 的真实 runtime 校验亦需 CI/具备 Docker 的环境补跑。
-- 当前边界：deterministic offline 已满足，`fallow --base HEAD` 已绿，`typecheck`/`check:docs`/`check:structure` 已绿；剩余仅 `pnpm --filter @trapmap/evals eval:smoke` 全量与 live Gene promotion comparison 需 CI 门控。
+- 来源：本机无 docker daemon；A4 端到端、A15 镜像重建与 compose replicas 演示均需 docker/kind。`pnpm --filter @trapmap/evals eval:smoke` 与 `pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve` 的 live baseline/shadow/serve comparison 亦需 PostgreSQL/Docker runtime。
+- 影响：`eval:smoke` 全量与 live Gene promotion comparison 只能在 CI 跑；本机 `eval:smoke` 因缺 docker sock 失败（已知门控，非回归）。确定性离线部分已满足（`eval:experience-gene --tier core --mode serve` precision 1.0 / promotion eligible true）。
+- 当前边界：deterministic offline 已满足，`fallow --base HEAD` 已绿，`typecheck`/`check:docs`/`check:structure` 已绿；剩余仅全量 smoke 与 live comparison 需 CI 门控。
 - 进入条件：CI 或具备 docker 的本地环境（且 `DATABASE_URL`/`TRAPMAP_DATABASE_URL` 指向可响应 pgvector 实例）。
-- 后续落点：CI 跑 `pnpm --filter @trapmap/evals eval:smoke` 全量 + `docker compose build candidate-worker outbox-worker` + replicas 演示 + `pnpm --filter @trapmap/evals eval:experience-gene --tier core --mode serve` 的 live comparison，结果回填本条并关闭；`fallow --base main` legacy 债务转工程维护信号跟踪。
+- 后续落点：CI 跑 `pnpm --filter @trapmap/evals eval:smoke` 全量 + `docker compose build candidate-worker outbox-worker` + replicas 演示 + `eval:experience-gene --tier core --mode serve` 的 live comparison，结果回填本条并关闭。
 
 ### 安全候选 CI advisory 补跑（2026-08-22 新拆，2026-08-30 已在线基线）
 
-- 来源：A13 人工矩阵 historical 3 候选 reachable=0 已关闭（见 docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md）；2026-08-30 本地在线补跑 `pnpm audit --prod --registry=https://registry.npmjs.org`（pnpm 10.33.0 / node v24.16.0，因 `.npmrc` 默认 `registry.npmmirror.com` 不支持 audit，需 `--registry` 覆盖）。
-- 基线结果：`22 advisories` / `23 instances` / `650 prod deps` => `8 moderate` / `15 high` / `0 critical`；分包见报告分包可达性矩阵（js-yaml 3、brace-expansion 3、langsmith 2、uuid 1、protobufjs 1、@opentelemetry/propagator-jaeger 1、fast-uri 5、find-my-way 1、ip-address 3、react-router 1、@opentelemetry/core 1）。historical 仍 reachable=0；新增 direct reachable 4（fastify find-my-way 1 + ip-address 3）、条件可达 12+、打包绑定/不可达其余，无 critical。
-- 当前边界：矩阵已回填 `docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md`（含可达性四档与处置列）；本机 JSON 已落 `/tmp/pnpm-audit-prod.json`。CI 仍需必跑 `pnpm audit --prod --registry=https://registry.npmjs.org` 作回归门控（建议在 `.github/workflows/ci.yml` 新增 audit job，见报告 CI 建议；本 tranche 按分区约束仅文档化不改 CI）。
+- 来源：A13 人工矩阵 historical 3 候选 reachable=0 已关闭（见 `docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md（已归档，路径冻结）`）；2026-08-30 本地在线补跑 `pnpm audit --prod --registry=https://registry.npmjs.org`（`.npmrc` 默认镜像源不支持 audit，需覆盖）。
+- 影响：基线 `22 advisories` / `23 instances` / `650 prod deps`（8 moderate / 15 high / 0 critical），新增 direct reachable 4（fastify find-my-way 1 + ip-address 3）；无 critical，但 direct high 未归零前不能关。
+- 当前边界：矩阵已回填报告（含可达性四档与处置列）；本机 JSON 已落 `/tmp/pnpm-audit-prod.json`。CI 仍需必跑 audit 作回归门控（本轮按分区约束只文档化，不改 CI）。
 - 进入条件：已满足（本地在线）；CI 持久化校验为常态。
-- 后续落点：按报告处置分批升级（P0 fastify/ip-address 直达面、P1 react-router/js-yaml/langsmith 小补丁、P2 fast-uri/OTEL/sentry 联动），每次重跑 audit 回填矩阵并核销；direct high 归零且 CI 持久化后可关闭或转常态跟踪。
+- 后续落点：按报告处置分批升级，每次重跑 audit 回填矩阵并核销；direct high 归零且 CI 持久化后关闭或转常态跟踪。
 
 ### 平台化 L3 运营验证批（C6-C8 残余，2026-08-22 新立）
 
-- 已交付：k8s/base manifests（未经集群验证）、TRAPMAP_TASK_TRANSPORT=amqp 特性开关（pg 默认不变）、job-runtime TRAPMAP_JOB_RUNTIME_DATABASE_URL 回退试点。
-- 待办（需 kind/docker/双库环境）：kind 冒烟断言 pod Ready+/readyz 200；amqp live smoke；job-runtime 双库双跑等价验证与回滚演练。
-- 进入条件：具备 k8s(kind)/docker 环境。
-- 后续落点：逐项验证后更新 DEPLOYMENT.md/SERVICE-DISCOVERY.md 成熟度表述至 Level 3 达成口径。
+- 来源：平台化主线 closeout 时 k8s/kind 验证环境缺失，C6-C8 三项只交付了静态产物。
+- 影响：k8s manifests 未经集群验证，amqp 开关与 job-runtime 双库回退未经 live 验证；生产只能按 Level 2 口径宣称。
+- 当前边界：已交付 k8s/base manifests（未经集群验证）、`TRAPMAP_TASK_TRANSPORT=amqp` 特性开关（pg 默认不变）、job-runtime `TRAPMAP_JOB_RUNTIME_DATABASE_URL` 回退试点；`DEPLOYMENT.md`/`SERVICE-DISCOVERY.md` 成熟度表述停在 Level 2。
+- 进入条件：具备 k8s(kind)/docker/双库环境。
+- 后续落点：逐项验证（kind 冒烟断言 pod Ready + readyz 200；amqp live smoke；job-runtime 双库双跑等价验证与回滚演练）后更新成熟度表述至 Level 3 达成口径。
 
 ### route-surface adoption-time inventory drift（2026-08-22 新立）
 
@@ -58,21 +81,25 @@
 - 影响：守卫可阻断新增漂移，但已知旧差异在清账前不会失败；文档读者仍可能看到未实现的旧外部端点。
 - 当前边界：例外只允许既有清单；新增 documented-not-real 或 real-not-documented 会立即被 `check:docs` 阻断。`/v2/retrieval/search` 继续单独豁免。
 - 进入条件：清理 api-surface / ARTIFACTS 与两宿主 RouteDef 的历史面，或启动宿主网关 parity tranche。
-- 后续落点：按服务族拆分“route surface inventory reconciliation”，先修正文档，再决定缺失端点是实现还是移出公开契约。
+- 后续落点：按服务族拆分 route surface inventory reconciliation，先修正文档，再决定缺失端点是实现还是移出公开契约。
 
 ### gateway surface parity gaps：v2 capsule、knowledge review queue 与 host-local v3（2026-08-22 新立）
 
-- 来源：Skill Lookup closeout 勘察确认 `/v2/retrieval/search` 在两宿主均缺 RouteDef，CLI `--v2` 会 404；`/v3/retrieval/search` 只在 host-distributed 注册，host-local 的 CLI `load` 会 404。两项原实现均随旧 server 包退役或未做宿主 parity。
-- 2026-08-23 补充：`GET /v1/knowledge/review-queue` 目前只有 host-local RouteDef；host-distributed 缺少同路径 parity，因此 Web Panel 的新 server-side queue query 不适用于 heavy 形态。
+- 来源：Skill Lookup closeout 勘察确认 `/v2/retrieval/search` 在两宿主均缺 RouteDef，CLI `--v2` 会 404；`/v3/retrieval/search` 只在 host-distributed 注册，host-local 的 CLI `load` 会 404。2026-08-23 补充：`GET /v1/knowledge/review-queue` 只有 host-local RouteDef，host-distributed 缺同路径 parity。
 - 影响：CLI 的对应调用路径在指定后端形态下不可用；api-surface 对 v2 的承诺仍超出真实网关面。
 - 当前边界：不阻塞 v1 检索和新的 artifact-first skill lookup；D 守卫将 `/v2/retrieval/search` 显式豁免，其余新增漂移会被阻断。
 - 进入条件：CLI `--v2` 或 capsule retrieval 产品需求启动时处理 v2；host-local/v3 parity 纳入下一个 gateway surface reconciliation tranche。
-- 后续落点：优先决定“实现 endpoint”还是“收缩 CLI/docs surface”，然后按 RouteDef 工厂补齐并更新 api-surface。
+- 后续落点：优先决定实现 endpoint 还是收缩 CLI/docs surface，然后按 RouteDef 工厂补齐并更新 api-surface。
 
-### 工程维护信号（持续跟踪，基线见 FALLOW_BASELINE_2026-08-22.md）
+### test:observability-closeout 引了不存在的测试路径（2026-09-08 新立）
 
-- 已知继承热点清单与进入条件维持原登记口径；仅 hotspot 关联生产故障/边界违规时开 scoped tranche。
+- 来源：`package.json:51` 的 `test:observability-closeout` 引用 packages/ai-providers/src/observability.test.ts（该路径不存在，历史误写），真实文件在 `packages/ai-providers/test/observability.test.ts`。
+- 影响：直接跑该 closeout 命令会因缺文件失败；常规 `test:coverage` 不走这条命令，不受影响。
+- 当前边界：仅该一条命令受影响，不改源码行为。
+- 进入条件：另起 tranche，把脚本路径改到 `test/` 目录并跑通该命令。
+- 后续落点：`docs/operations/TESTING.md` 的 closeout 命令表（路径修正后复核）。
 
 ## 审核检查表
 
 - [x] 2026-08-22 closeout：关闭条目物理移除，净收缩核对完成。
+- [x] 2026-09-08 收口：每条补齐来源/影响/边界/进入条件/后续落点；无效单行登记已移除；DEPRECATED-vs-410 冲突与跨 lane 待确认项已收录。

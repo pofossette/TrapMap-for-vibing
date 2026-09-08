@@ -1,31 +1,43 @@
-# @trapmap/app-migration
+# `@trapmap/app-migration`
 
-数据库迁移作业的**组装中心**：进程入口负责把库包的迁移能力接入进程生命周期（信号处理、退出码），**不承载任何业务逻辑**。
+你用这个包运行数据库迁移作业进程，迁移实现归库包所有，本包只负责进程生命周期与退出码。
 
-## 定位
+## 入口
 
-- 迁移实现（六个 service 的 `run*Migrations`、pool 创建、配置加载）全部归 `@trapmap/host-distributed` 的 `migrate.ts` 所有。
-- 本包只做 thin assembly：
-  1. 打印开始/完成日志；
-  2. `await runDistributedMigrations()`；
-  3. 成功 `process.exit(0)`，失败打印错误并 `process.exit(1)`。
-- 仅通过 exports 面内的子路径 `@trapmap/host-distributed/migrate.js` 调用，禁止深路径 import。
-
-## 启动方式
+唯一入口为 `apps/migration/src/index.ts`，它调用 `@trapmap/host-distributed/migrate.js` 导出的 `runDistributedMigrations()`，成功时 `process.exit(0)`，失败打印错误并 `process.exit(1)`。
 
 ```bash
 pnpm --filter @trapmap/app-migration start
+pnpm --filter @trapmap/app-migration build
+pnpm --filter @trapmap/app-migration typecheck
+pnpm --filter @trapmap/app-migration test
 ```
 
-docker-compose 的 migration 服务以 `node dist/index.js` 运行本包。
+## 行为
 
-## 职责边界
+| 依赖 / 脚本 | 用途 |
+| --- | --- |
+| `@trapmap/host-distributed` | `migrate.js` 导出的迁移编排 |
+| `start` | `node dist/index.js`，compose `migration` 服务用此路径运行 |
 
-- **属于本包**：进程入口装配、日志输出、退出码、信号/错误处理。
-- **不属于本包**：任何迁移 SQL、runner 编排、数据库连接、配置读取、服务启动逻辑——这些必须在库包中实现。
+你禁止复制或内联迁移逻辑，禁止 import 库包文件深路径，禁止在入口内引入业务判断。
 
-## 禁止事项
+## 常见用法
 
-- 禁止复制或内联任何迁移逻辑；
-- 禁止 import 库包文件深路径（如 `@trapmap/host-distributed/src/migrate.js`）；
-- 禁止在入口内引入业务判断（分支逻辑应留在库包的工厂/runner 内）。
+### 对空库跑迁移
+
+```bash
+pnpm --filter @trapmap/app-migration build
+pnpm --filter @trapmap/app-migration start
+```
+
+前置条件：`TRAPMAP_DATABASE_URL` 指向空库（迁移不支持已有数据的库，变量默认值见 `docs/reference/ENVIRONMENT.md`）。成功退出码 `0`，失败 `1` 并打印错误。
+
+### 改迁移编排后验证
+
+```bash
+pnpm --filter @trapmap/app-migration typecheck
+pnpm --filter @trapmap/app-migration test
+```
+
+迁移实现归 `@trapmap/host-distributed/migrate.js`，你只改进程生命周期，不碰编排逻辑。

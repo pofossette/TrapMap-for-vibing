@@ -1,12 +1,12 @@
 # 仓库结构
 
-> **说明**：`归档旧实现` 已于  删除（提交 `a66d94e6`）。本文档中的 `归档旧实现` 路径指向已删除的实现，概念描述仍然适用但路径已不存在。详见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> 状态：Active。核对日期：2026-09-08。本文档是 TrapMap 仓库布局的权威来源。你看到其他文档描述的目录与本页不一致时，以本页为准。
 
-本文档是 TrapMap 仓库布局的权威来源。
+packages/server（Wave-10 已删除）。你在树里不再给它留位置；历史追溯见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md（已归档，路径冻结）`。
 
 ## 根目录
 
-根目录用于稳定的入口点和工作区配置。
+根目录只放稳定入口与工作区配置。你新增根 Markdown 文件前，先查守卫白名单。
 
 允许的根目录 Markdown 文件：
 
@@ -14,89 +14,79 @@
 - `CLAUDE.md`
 - `CHANGELOG.md`
 - `README.md`
-- `DESIGN.md`：ClickHouse 视觉语言分析参考，不是 TrapMap 原生品牌规范；Web Panel TODO 只借鉴其暗色底、黄色强调、字体和响应式策略，并结合治理面板语境适配。
+- `DESIGN.md`：外部视觉参考，不是品牌规范。
 - `architecture.md`
 - `plan.md`
 
-历史计划、临时笔记、审计报告和人工撰写的报告必须放在 `docs/archived/` 下。
-
-## 产品包
-
-- `apps/cli/`：Commander CLI 及 CLI 测试（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
-- `归档旧实现/`：Fastify 兼容壳和共享运行时/状态接缝。不再充当默认的 `light` 主机入口或本地回退主机。
-- `packages/contracts/`：共享 Zod schema 和 TypeScript 类型；`packages/contracts/src/domain/retrieval-projection.ts` 放置无副作用的 retrieval projection/read-model helper，`packages/contracts/src/domain/retrieval-fixtures.ts` 放置确定性的跨包 retrieval fixture builder。
-- `packages/db/`：中立的 Drizzle PostgreSQL 表、关系与可复用无状态列工厂；不承载路由、repository 或服务行为。
-- `packages/skills/`：项目级 Skill 工件。
- - `packages/client-core/`：浏览器兼容的共享网关传输层（HTTP SDK、会话契约、错误模型）。供 CLI 和未来 Web 面板使用。
- - `apps/web-panel/`：基于浏览器的管理员运维面板，仅作为网关客户端表面（2026-08 从 `packages/` 迁入，见下方 `apps/` 小节）。
- - `packages/infra/`：共享基础设施包（`@trapmap/infra`）：通用、宿主无关的 pgvector / embedding 基础设施。`src/vector/` 提供 `formatVectorLiteral`、`clampSimilarity`、`appendTeamFilter`、`appendScopeFilter`、`appendExperienceGeneGovernanceFilters`、`buildGeneSearchDocument` 等纯 pgvector 构建器（原先分散在 `service-knowledge-read` / `service-knowledge-write`）；`src/embedding/` 提供 384 维确定性 fallback embedding（`createFallbackEmbedding` / `embedWithFallback`，封装 `@trapmap/lib::createDeterministicFallbackVector`）。2026-08 Experience Gene infrastructure foundation 抽离成果；禁止承载业务规则或框架代码。
- - `packages/backend-core/`：主机无关的后端核心内核（运行时能力模型、端口接口、用例模式、有界上下文模块、调用模型）。Phase 2 保持无框架，将每个有界上下文重组为内部 `domain/application/module` 接缝，位于 `src/identity-access/`、`src/knowledge-read/`、`src/knowledge-write/`、`src/candidate-ingestion/`、`src/governance-review/`、`src/job-runtime/`；其中 `src/<context>/domain/` 是真实纯规则层（零框架、零 DB，配套单元测试）。`src/http/` 承载框架中立 `RouteDef` 路由契约（`route-contract.ts`）与 Nest/Fastify 双 adapter（`adapters/{nest,fastify}.ts`，唯一框架导入落点）。旧的 `src/modules/*.ts` 兼容外观已移除，消费者使用包入口或上下文入口。所有主机共用。
-- `packages/assembly/`：统一组装中心（`@trapmap/assembly`）：cordis 装配内核封装 + 能力节点定义/注册 + TS 组合器 + startupChecks + 退出控制。Phase 1 只有内核（`createAssembly` / `defineNode` / `defineContract` / `startupChecks` / `createShutdownController`），profiles 与节点包装在 Phase 2+；依赖 `@deepseek-ai/cordis`、zod；消费方自 Phase 2 起为 `host-*` / `apps/*`。
-- `packages/service-identity-access/`：拥有身份访问服务组装、内部路由注册（`createIdentityAccessRouteDefs`）和有界上下文 auth/session/team/member/access-key 接线。
-- `packages/service-knowledge-read/`：知识读取服务组装（`createKnowledgeReadRouteDefs`）。拥有检索、读模型和投影视图状态路由接线；read model 经 `packages/contracts` 的 projection helper 读取共享契约，不反向导入 server implementation。
-- `packages/service-knowledge-write/`：拥有知识写入服务组装、内部路由注册（`createKnowledgeWriteRouteDefs`）和有界上下文写入接线（knowledge/trap/skill/lifecycle/maintenance/decay）；pg-ports 只保留 SQL 与行映射。
-- `packages/service-governance-review/`：拥有治理审核服务组装、内部路由注册（`createGovernanceReviewRouteDefs`）和有界上下文 review/feedback/conflict/remediation/operator projection 接线，同时将最终生命周期变更委托给 knowledge-write。
-- `packages/service-candidate-ingestion/`：拥有候选摄取服务组装、内部路由注册（`createCandidateIngestionRouteDefs`）和有界上下文 candidate 接线，同时将结果发布委托给 knowledge-write。
-- `packages/service-job-runtime/`：拥有作业运行时服务组装、内部路由注册（`createJobRuntimeRouteDefs`）、队列/重试/租约/dead-letter 依赖接线、typed owner handlers 和运行时服务器引导表面。
-- `packages/service-cron/`：拥有定时调度服务组装（`createCronRouteDefs`/`createCronServer`）、`cron_jobs` 注册表 owner 接线（`createCronOwnerBundle`，全部 SQL 落位 pg-ports）与轮询调度器（`createCronScheduler`，`FOR UPDATE SKIP LOCKED` 认领到期 job 后经 task transport enqueue，不执行业务逻辑）。迁移由 `@trapmap/db` 统一管理（`packages/db/migrations/schema.sql`），本包无独立 `drizzle/`；`runCronMigrations` 委托至 `runMigrations`。
-- `packages/host-local/`：轻量宿主库包（组装入口在 `apps/light`，2026-08 起由 `@trapmap/app-light` 消费其 `start()` / `start<X>Service()` API），服务于 `local-agent` 和 `team-monolith`。冻结的默认轻量主线为 `src/nest/**`，通过包默认入口（`packages/host-local/src/index.ts`）和默认 `dev` / `start` 脚本暴露。六个有界上下文 Nest module 与 `gateway.module.ts` 都经 `createNestAdapter` 消费各 service 包的 `create<X>RouteDefs` 声明，不在宿主内手写路由实现。
-  `packages/host-local/src/nest/runtime/backend-core-adapters.ts` 是轻量主机中主机拥有的端口适配器选择的权威放置位置（`in-process` vs `remote`）。这些文件是内部端口的适配器接缝，不是仓库适配器，也不是主机组装的万能目录。
-  迁移期共享基础设施组合留在 host-local 的 runtime composition 内；它可暂时调用 server compatibility helpers，但不形成独立 workspace package 或 service-to-service concrete import。
-- `packages/host-distributed/`：重量级宿主库包（组装入口在 `apps/distributed`，2026-08 起由 `@trapmap/app-distributed` 消费），服务于 `distributed` 配置文件。它是真正的重量级主机实现，与 `light` 共用相同的 backend-core/service-package 主实现，成熟度基线仍为 `Level 2 / transitional-microservice`。
-  `packages/host-distributed/src/gateway/` 是网关传输助手和转发接缝的权威放置位置，包括 `route-defs.ts`（网关路由声明）与 `routes.ts`（薄传输壳，仅注册/认证/转发，~180 行）；`internal-client.ts` 是薄内部 HTTP / 规范错误归一化助手。
-  `packages/host-distributed/src/config/service-config.ts` 是服务发现默认值和 URL 解析器接缝的权威放置位置。它拥有显式 `TRAPMAP_*_URL` 覆盖、`distributed` 中的 Docker DNS 默认值和 local/dev 上下文中的 `localhost` 默认值之间的配置感知映射。
-  `packages/host-distributed/src/shared/` 是分布式主机中内部端口共享包装器（如 `internal-knowledge-write-client.ts`）的权威放置位置；这些包装器将传输语义映射回 backend-core 端口语义，不是仓库适配器。
-
-Wave-2 closeout（commit `b3374307`）：contracts projection/fixture helpers remain pure shared code; candidate fixture helpers stay under `归档旧实现/src/lib/candidates/`, labels runner helpers stay under `归档旧实现/src/lib/labels/`, and SQL/PG/worker runtime code remains in its owning zone.
-
-Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、conflict、remediation 与 operator projection 的唯一 owner；distributed gateway 只保留 public transport/认证/trace forwarding，`归档旧实现` 不再拥有这些领域的 route、repository、subscriber 或 aggregate member。
-
- intermediate（2026-07-25）：`packages/runtime-infra/` 已退休删除。host-local 直接组合过渡性 store、AI 与 graph infrastructure；`归档旧实现`、snapshot compatibility state 和其余 legacy runtime consumers 仍保留，不能据此宣告完整 package retirement closeout。
+历史计划、临时笔记与审计报告一律进 `docs/archived/`，不留在根目录。
 
 ## Apps（组装中心）
 
-`apps/` 是顶层 pnpm workspace（`pnpm-workspace.yaml` 的 `apps/*`），承载 6 个可执行组装中心。它们是 **thin assembly**：只做依赖装配、启动入口与可执行产物暴露，禁止承载业务逻辑（业务规则在 `packages/backend-core/src/<context>/domain/`，领域接线在各 service 包）。backend target registry（`scripts/backend-target-registry.ts`）以 `appPackage` 字段指向 light/distributed 组装中心（`libraryPackage` 字段保留对应的宿主库包名）；客户端封装组装中心（`apps/cli`、`apps/web-panel`、`apps/mcp`）不在该 registry 内。
+`apps/` 是顶层 pnpm workspace 的可执行组装中心。它们只做依赖装配与启动入口，不承载业务逻辑（业务规则在 `packages/backend-core` 的各上下文 `domain/`，领域接线在各 service 包）。
 
- - `apps/light/`（`@trapmap/app-light`）：light 宿主组装中心，消费 `packages/host-local` 库包，为 `local-agent` / `team-monolith` profile 组装可执行入口。`apps/light/src/composition/experience-gene.ts` 是 Experience Gene 薄组装 seam（消费 `@trapmap/infra` 的 `embedWithFallback` 组装 `PgExperienceGeneSearchPort`，`packages/host-local` 仅提供库实现）。
- - `apps/distributed/`（`@trapmap/app-distributed`）：distributed 宿主组装中心，消费 `packages/host-distributed` 库包，组装 gateway 与 candidate/governance/outbox worker 进程。`apps/distributed/src/composition/experience-gene.ts` 对等提供 distributed 侧的 gene search 组装。
- - `apps/migration/`（`@trapmap/app-migration`）：迁移作业组装中心。
-- `apps/cli/`（`@trapmap/cli`）：Commander CLI 及 CLI 测试，2026-08 从 `packages/` 迁入。
-- `apps/web-panel/`（`@trapmap/web-panel`）：基于浏览器的管理员运维面板，2026-08 从 `packages/` 迁入。
-- `apps/mcp/`（`@trapmap/app-mcp`）：MCP server 协议封装层（thin 协议封装），经 gateway HTTP API 访问后端；由主线 debt-mcp-platformization-mainline Task B1 创建，工具面见后续任务。
+- `apps/light/`（`@trapmap/app-light`）：light 宿主组装中心，消费 `packages/host-local`，服务 `local-agent` 与 `team-monolith`。见 `apps/light/package.json`。
+- `apps/distributed/`（`@trapmap/app-distributed`）：distributed 组装中心，消费 `packages/host-distributed`，组装 gateway 与 worker 进程。见 `apps/distributed/package.json`。
+- `apps/cli/`：Commander CLI 及 CLI 测试。
+- `apps/web-panel/`：浏览器管理员运维面板，只做网关客户端。
+- `apps/mcp/`：MCP server 协议封装层，经网关 HTTP API 访问后端。
+- `apps/migration/`：迁移作业组装中心。
 
-`packages/host-local` 与 `packages/host-distributed` 仍以库包形式存在：`packages/host-local` 暴露 `start()` API，`packages/host-distributed` 经子路径暴露各 `start<X>Service()` API（exports 面含 `identity-access`、`knowledge-read`、`knowledge-write`、`candidate-ingestion`、`governance-review`、`job-runtime`、`migrate` 子路径），其可执行组装入口统一落在 `apps/`。
+`packages/host-local` 与 `packages/host-distributed` 以库包形式存在：前者暴露 `start()` API，后者经子路径暴露各 `start<X>Service()` API；可执行入口统一落在 `apps/`。
+
+## 产品包
+
+- `packages/contracts/`：共享 Zod schema 与 TypeScript 类型。读模型 helper 只放无副作用的 projection 与 fixture builder。
+- `packages/db/`：中立的 Drizzle PostgreSQL 表与可复用无状态列工厂；不承载路由、repository 或服务行为。表清单见 `docs/reference/DATABASE_SCHEMA.md`。
+- `packages/backend-core/`：主机无关的后端内核（能力模型、端口接口、用例模式、有界上下文模块、调用模型）。`packages/backend-core/src/http/route-contract.ts` 承载框架中立的 `RouteDef` 路由契约；各有界上下文按 `domain/application` 分层。
+- `packages/assembly/`：统一组装中心（`@trapmap/assembly`）。
+- `packages/service-identity-access/`：身份访问服务组装与内部路由注册（`createIdentityAccessRouteDefs`，见 `packages/service-identity-access/src/index.ts`）。
+- `packages/service-knowledge-read/`：知识读取服务组装（`createKnowledgeReadRouteDefs`，见 `packages/service-knowledge-read/src/index.ts`），拥有检索、读模型与投影视图。
+- `packages/service-knowledge-write/`：知识写入服务组装（`createKnowledgeWriteRouteDefs`，见 `packages/service-knowledge-write/src/index.ts`），拥有知识、trap、skill、lifecycle、maintenance 与 decay 接线。
+- `packages/service-governance-review/`：治理审核服务组装（`createGovernanceReviewRouteDefs`，见 `packages/service-governance-review/src/index.ts`），拥有 review、feedback、conflict、remediation 与 operator projection，最终生命周期变更委托 knowledge-write。
+- `packages/service-candidate-ingestion/`：候选摄取服务组装（`createCandidateIngestionRouteDefs`，见 `packages/service-candidate-ingestion/src/index.ts`），结果发布委托 knowledge-write。
+- `packages/service-job-runtime/`：作业运行时服务组装（`createJobRuntimeRouteDefs`，见 `packages/service-job-runtime/src/index.ts`），拥有队列、重试、租约与 dead-letter。
+- `packages/service-cron/`：定时调度服务组装（`createCronRouteDefs`，见 `packages/service-cron/src/index.ts`），调度器认领到期 job 后经 task transport 入队，不执行业务逻辑。
+- `packages/host-local/`：轻量宿主库包。冻结的默认轻量主线为 `packages/host-local/src/nest/`，六个有界上下文 Nest module 经 adapter 消费各 service 包的 `create*RouteDefs`，不在宿主内手写路由实现。
+- `packages/host-distributed/`：重量级宿主库包，服务 distributed 配置，与 light 共用 backend-core 与 service 包主实现。
+- `packages/ai-providers/`：AI 提供商统一入口与提示词构建（含 `packages/ai-providers/src/prompt-builder.ts`）。
+- `packages/skills/`：项目级 Skill 工件。
+
+`packages/host-local/src/nest/runtime/backend-core-adapters.ts` 是轻量主机端口适配器选择的权威位置（`in-process` 对 `remote`）。这些文件是内部端口的适配器接缝，不是仓库适配器。
+
+`packages/host-distributed/src/gateway/` 是网关传输助手与转发接缝的权威位置，包括路由声明与薄传输壳（只做注册、认证与转发）。`packages/host-distributed/src/shared/` 是分布式内部端口共享包装器的权威位置；这些包装器把传输语义映射回 backend-core 端口语义，不是仓库适配器。服务发现默认值与 URL 解析见 `packages/host-distributed/src/config/service-config.ts`。
+
+其余 `packages/*` 条目你用仓库根的 `ls packages/` 核对（2026-09-08 未逐项复核）。
 
 ## 脚本
 
-- `scripts/`：根级工具与守卫脚本——`check-docs.ts` / `check-structure.ts` / `check-complexity-budgets.ts` / `check-naked-asserts.ts` / `check-arch-freeze.ts` / `check-relative-imports.mjs` / `check-doc-*.ts`（`check:docs` 合并后的内部子检查）、`run-backend-target.ts`（`light`/`heavy` target 执行）、`run-postgres-coordinated.ts`（eval/协调测试的临时 PG 协调器）、`run-ci.ts`、`run-eval.ts`、`run-dev.ts`、`complexity-budgets.json`（docRules + lineBudgets）。
-- 根级 `.jscpd.json`：jscpd 重复代码诊断配置（命令 `pnpm duplication`，扫描 `packages`、`apps`、`scripts`、`evals`）。
-- `scripts/archived/`：一次性/运维脚本收纳位置（2026-08 maintainability-rework），fallow 的 `ignorePatterns` 已排除；仅被 reference 引用的例外（`export-badcase-to-eval.ts`、`backfill-labels.ts`、`label-runner.ts`）保留在仓库中。
+- `scripts/`：根级工具与守卫脚本。文档相关的是 `scripts/check-doc-drift.ts`、`scripts/check-table-schema.ts` 与 `scripts/doc-rules/` 下的分片规则；复杂度预算见 `scripts/complexity-budgets.json`。
+- `scripts/archived/`：一次性与运维脚本收纳位置。
 
 ## 文档
 
 - `docs/guides/`：入门和贡献者工作流。
-- `docs/operations/`：运行时、CI、安全、测试、部署相关的运维内容。
+- `docs/operations/`：运行时、CI、安全、测试与部署运维内容。
 - `docs/architecture/`：架构概览和组件文档。
-- `docs/reference/`：真相源、Schema、术语表、API 表面和仓库结构。
-- `docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。默认不是并行的 active execution surface。
+- `docs/reference/`：真相源、Schema、术语表、API 表面、仓库结构与环境变量。
+- `docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。
 - `docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档属于 active surface；owner 主细则可将其执行顺序中的阶段子文档声明为同一主线的 delegated surface。“仍有参考价值”不足以继续留在这里。
-- `docs/archived/`：过时的计划、历史报告和退役的决策。
-- `docs/superpowers/`：由 Superpowers 工作流生成的计划和规范。
+- `docs/archived/`：过时计划、历史报告与退役决策。不要创建 `docs/archive/`。
+- `docs/superpowers/`：工作流生成物沉淀区（树中有位置、有豁免声明、有首页说明）。
 
 ## 评估
 
 - `evals/retrieval/`：检索数据集、场景、运行器、指标和报告。
 - `evals/summary/`：摘要数据集、场景、评判逻辑、运行器和报告。
 - `evals/agent-planning/`：Agent 规划对比数据集、场景和运行器。
-- `evals/label-alignment/`：标签对齐 fixtures、recall/decision 评估和运行器。
+- `evals/label-alignment/`：标签对齐 fixtures 与评估运行器。
 - `evals/graph-extraction/`：图提取、冲突和去重评估。
 - `evals/ingestion/`：Skill 摄取 fixtures 和运行器。
-- `evals/types/`：eval-only 共享 Zod 契约（retrieval/summary/agent-planning/label-alignment/live-eval/platform/report），2026-08 从 `packages/contracts/src/domain/evals/` 迁入；产品代码禁止反向导入 `evals/`。
+- `evals/types/`：eval-only 共享 Zod 契约；产品代码禁止反向导入 `evals/`。
 - `evals/fixtures/`：共享 trap fixtures。
 
 ## 生成或仅本地目录
 
-以下目录为本地工件，不得成为被追踪内容：
+以下目录为本地工件，你不得追踪它们：
 
 - `.data/`
 - `.tmp/`
@@ -105,14 +95,23 @@ Wave-4 closeout（2026-07-21）：`service-governance-review` 是 feedback、con
 - `node_modules/`
 - `reports/`
 - `packages/*/dist/`
-- `packages/*/node_modules/`
 
 ## 归档策略
 
-`docs/archived/` 是人工撰写的历史材料的唯一归档根。不要创建 `docs/archive/`。
+`docs/archived/` 是人工撰写历史材料的唯一归档根。
 
 - 过时的实施计划：`docs/archived/archived-plans/`
 - 历史审计和报告：`docs/archived/reports/`
-- 退役的独立文档：`docs/archived/`
+- 退役的独立文档：`docs/archived/` 根
 
-根目录 `reports/` 保留给生成的评估 JSON 和类似本地输出。不要在那里放置叙述性文档或归档的 Markdown 报告。
+根 `reports/` 只收生成的评估 JSON 之类本地输出，不放叙述性文档。
+
+## 文件行号锚点（2026-09-08 实测）
+
+- `packages/service-identity-access/src/index.ts:27`：`createIdentityAccessRouteDefs` 导出。
+- `packages/service-knowledge-read/src/index.ts:88`：`createKnowledgeReadRouteDefs` 导出。
+- `packages/service-knowledge-write/src/index.ts:64`：`createKnowledgeWriteRouteDefs` 导出。
+- `packages/service-governance-review/src/index.ts:44`：`createGovernanceReviewRouteDefs` 导出。
+- `packages/service-candidate-ingestion/src/index.ts:37`：`createCandidateIngestionRouteDefs` 导出。
+- `packages/service-job-runtime/src/index.ts:33`：`createJobRuntimeRouteDefs` 导出。
+- `packages/backend-core/src/http/route-contract.ts:51`：`RouteDef` 接口定义。

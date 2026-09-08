@@ -1,0 +1,15 @@
+{
+  "config": {
+    "default": true,
+    "MD001": true,
+    "MD025": true,
+    "MD040": true,
+    "MD013": false,
+    "MD033": false,
+    "MD034": false,
+    "MD041": false,
+    "MD051": false
+  },
+  "globs": ["docs/superpowers/README.md"],
+  "ignores": ["node_modules", "packages/*/node_modules"]
+}

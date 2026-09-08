@@ -14,7 +14,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
-
+import { CURRENT_LINT_GLOBS, LINK_CHECK_EXCLUDED_REL } from './docs-surface.js';
 import { type CheckStep, runCheckSteps } from './lib/check-runner.js';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -40,14 +40,9 @@ function resolveBinStep(name: string, pkgName: string, ...rest: string[]): Check
   return { name, command: 'pnpm', args: ['exec', pkgName, ...rest] };
 }
 
-// Mirrors the historical check:links `find` exclusions: top-level
-// docs/archived/* and docs/plans/* plus docs/superpowers/specs/* only
-// (the rest of docs/superpowers/** was always included in link checking).
-const LINK_CHECK_EXCLUDED_REL = [
-  join('docs', 'archived'),
-  join('docs', 'plans'),
-  join('docs', 'superpowers', 'specs'),
-];
+// Excluded directories for link checking live in ./docs-surface.js
+// (single source). Archived, plans, and the whole superpowers
+// sediment are never link-scanned.
 
 function isExcluded(absDir: string): boolean {
   const rel = resolve(absDir);
@@ -90,8 +85,24 @@ const steps: CheckStep[] = [
     args: ['exec', 'tsx', 'scripts/check-mermaid.ts'],
   },
   {
-    name: 'md-lint',
-    ...resolveBinStep('md-lint', 'markdownlint-cli2', 'docs/**/*.md', 'README.md', 'evals/**/*.md'),
+    ...resolveBinStep(
+      'md-lint:current',
+      'markdownlint-cli2',
+      '--config',
+      '.markdownlint-current.jsonc',
+      ...CURRENT_LINT_GLOBS,
+    ),
+  },
+  {
+    ...resolveBinStep(
+      'md-lint:legacy',
+      'markdownlint-cli2',
+      '--config',
+      '.markdownlint-cli2.jsonc',
+      'docs/**/*.md',
+      'README.md',
+      'evals/**/*.md',
+    ),
   },
   {
     name: 'route-surface',

@@ -1,0 +1,88 @@
+{
+  "docRules": [
+    {
+      "file": "docs/README.md",
+      "mustContain": [
+        "SYSTEM_TRUTH_SOURCES.md",
+        "微服务平台能力增强细则",
+        "历史背景输入，不再作为当前根计划执行面",
+        "已完成并归档",
+        "background 或 deferred reference",
+        "`pnpm run ci`",
+        "`pnpm --filter @trapmap/evals eval:ci:core`",
+        "Nest modular monolith"
+      ],
+      "mustNotContain": [
+        "使用 JSON 文件存储",
+        "48 张表",
+        "54 张表",
+        "Node.js 20+ (ESM)",
+        "NestJS 是后续宿主替换目标"
+      ]
+    },
+    {
+      "file": "plan.md",
+      "mustContain": [
+        "执行计划索引",
+        "open-debt-and-compromises.md",
+        "不承载 tranche checklist 或实施细节",
+        "Dead Code and Architecture Order Cleanup",
+        "docs/archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md",
+        "运行时语义不变是硬约束（检索行为升级除外）"
+      ],
+      "mustNotContain": [
+        "当前主线阶段：`Phase 1-2`",
+        "当前唯一执行面是",
+        "当前主线阶段：`Phase 0-7 全部完成`",
+        "docs/todos/microservice-platform-evolution-plan.md",
+        "当前活跃细则中的阶段 checklist",
+        "docs/todos/service-discovery-and-observability-plan.md",
+        "docs/todos/backend-build-targets-plan.md",
+        "当前主线：待办收口与后续整合",
+        "状态：`收口中`",
+        "docs/todos/agent-eval-framework-evaluation-and-plan.md",
+        "docs/todos/observability-traceability-closure.md",
+        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md"
+      ]
+    },
+    {
+      "file": "docs/todos/README.md",
+      "mustContain": [
+        "活跃索引",
+        "当前状态说明",
+        "完整归档表见",
+        "Dead Code and Architecture Order Cleanup",
+        "dead-code-and-architecture-order-cleanup.md"
+      ],
+      "mustNotContain": [
+        "service-discovery-and-observability-plan.md` | 服务发现与可观测性升级主线细则与 closeout tasklist",
+        "| `microservice-platform-evolution-plan.md` | 微服务平台能力增强：服务发现、内部 RPC、可观测性与资源治理 |",
+        "docs/todos/compatibility-shell-retirement-runtime-infra-ownership.md"
+      ]
+    },
+    {
+      "file": "docs/todos/README.md",
+      "mustContain": [
+        "当前状态说明",
+        "完整归档表见",
+        "Dead Code and Architecture Order Cleanup",
+        "dead-code-and-architecture-order-cleanup.md"
+      ]
+    },
+    {
+      "file": "README.md",
+      "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
+    },
+    {
+      "file": "docs/PACKAGES.md",
+      "mustContain": [
+        "包概览",
+        "backend-core",
+        "service-knowledge-read",
+        "host-local",
+        "contracts"
+      ],
+      "mustNotContain": ["Phase 1", "Phase 2"]
+    }
+  ]
+}

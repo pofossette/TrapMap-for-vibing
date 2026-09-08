@@ -1,144 +1,87 @@
 # TrapMap 架构
 
-> 权威事实与防漂移规则见 [SYSTEM_TRUTH_SOURCES.md](../reference/SYSTEM_TRUTH_SOURCES.md)。
+> 权威事实与防漂移规则见 [SYSTEM_TRUTH_SOURCES.md](../reference/SYSTEM_TRUTH_SOURCES.md)。状态：Active。
 
-## 概览
+## 运行态
 
-TrapMap 是知识 / Trap 经验 / Skill 工件的治理与检索基础设施。当前唯一运行态是 **Nest 宿主 + 无框架领域内核 + 渐进式服务抽离**。
+TrapMap 以 Nest 宿主承载 HTTP 面，以无框架领域内核承载规则。你按部署形态选用三档中的一档：`local-agent`、`team-monolith`、`distributed`。
 
-- **宿主**：`host-local`（light：`local-agent` / `team-monolith`）与 `host-distributed`（heavy：`distributed`）。代码分别在 `packages/host-local/src/nest/` 与 `packages/host-distributed/src/`。
-- **内核**：`backend-core` 承载纯函数领域规则、端口契约、调用/运行时能力模型，零框架、零 DB 依赖。
-- **服务**：6 个 bounded-context owner 各持一个 Drizzle baseline 与 PostgreSQL 投影，见下节。
-- **契约**：共享类型与 Zod schema 在 `packages/contracts`，HTTP 以 `RouteDef` 工厂对外。
-- **加速**：Go 读服务 `services/knowledge-read-go`（`TRAPMAP_READ_IMPL` 绞杀）与 `services/collection-mgmt-go` 仅在 distributed 中按需启用。
+| 形态 | 宿主 | 代码落点 |
+|---|---|---|
+| `local-agent` | `host-local` 单用户本地服务 | `packages/host-local/src/nest/`，装配见 `packages/host-local/src/nest/main.ts:22-38` |
+| `team-monolith` | `host-local` 单实例多用户 | 同上，`TRAPMAP_DEPLOYMENT_PROFILE=team-monolith` 切换（`docker-compose.yml:20`） |
+| `distributed` | `host-distributed` gateway + 多服务 | `packages/host-distributed/src/`，gateway 见 `packages/host-distributed/src/gateway/routes.ts` |
 
-运行档：`embedded/local-agent → team-monolith → distributed` 三档；`gateway` 是宿主拥有的统一外部适配层。
+`host-local` 的 `AppModule.forRuntime` 只做组合（`packages/host-local/src/nest/app.module.ts:10-13`），中间件固定为 `RequestContextMiddleware, HttpMetricsMiddleware, LoggingMiddleware`（同文件第 14-18 行）。`host-local` 装配侧 `readDeploymentProfile` 只识别 `local-agent | team-monolith`，其余回落 `local-agent`（`packages/host-local/src/nest/main.ts:30-38`）；`distributed` 由 `host-distributed` 与 compose 接线承载（`docker-compose.yml:88` 起各服务均置 `TRAPMAP_DEPLOYMENT_PROFILE=distributed`）。
 
-## 设计灵感（Research Inspirations）
+组装中心（thin assembly，不新增业务逻辑）：`apps/light/src/`、`apps/distributed/src/`、`apps/migration/src/`。
+
+## 有界上下文
+
+| Context | Owner 包 | 职责 |
+|---|---|---|
+| `identity-access` | `packages/service-identity-access/src/` | auth / team / member / access-key / session |
+| `knowledge-write` | `packages/service-knowledge-write/src/` | 知识 / Trap 写、生命周期、索引副作用 |
+| `knowledge-read` | `packages/service-knowledge-read/src/`（+ Go 读服务） | 检索读模型、召回、图查询、经验基因检索 |
+| `governance-review` | `packages/service-governance-review/src/` | 审核队列、冲突、decay / maintenance 编排 |
+| `candidate-ingestion` | `packages/service-candidate-ingestion/src/` | 候选提交、去重、异步摄取 |
+| `job-runtime` | `packages/service-job-runtime/src/` | task queue / outbox / worker / workflow_runs |
+
+判断节点契约注册表在 `packages/assembly/src/contracts/judgment-contracts.ts:93-100`，6 个 descriptor：`intent-recognition`、`dedup-strategy`、`conflict-trigger`、`artifact-derivation`、`label-alignment`、`channel-merge`。
+
+## HTTP 路由
+
+你新增路由时在对应 service 以 `create<X>RouteDefs(deps)` 声明 `RouteDef`，再由双适配器消费。`RouteDef` 与 canonical error envelope 的定义在 `packages/backend-core/src/http/route-contract.ts:50-58,95-108`；框架导入只允许落在 `packages/backend-core/src/http/adapters/fastify.ts` 与 `nest.ts`。Controller 只注入 Port 或 service-assembly factory，不重写业务逻辑。错误信封为 `{ code, message, kind, requestId, traceId?, details? }`；`401` 停留在 guard 层（`packages/host-local/src/nest/runtime/auth.guard.ts`）。
+
+对外与内部路径的逐条对照见 [TrapMap API 契约表面](../reference/api-surface.md)。实现落点：对外在 `packages/host-distributed/src/gateway/route-defs/`，内部在各包 `routes.ts`（形如 `/internal/*`）。
+
+## 持久化
+
+权威存储是 PostgreSQL 16 + pgvector。唯一真源是 `packages/db/src/schema/`；表分布、索引与事务见 [持久化层](components/PERSISTENCE.md)，镜像清单见 [数据库表清单](../reference/DATABASE_SCHEMA.md)，你用 `pnpm check:table-schema` 验证。PG-first：你不引入新的 JSON 文件存储主路径；内存实现只用于测试。
+
+## 启动顺序
+
+宿主经 assembly 装配启动（`packages/host-local/src/nest/main.ts:48-85`）：先在 cordis 之外创建共享运行时（store / pool），再按 profile 构建装配并 boot，以 30 秒上限等待 transport 节点产出 httpSurface，失败则逆序析构；直接运行时注册 SIGINT / SIGTERM 优雅退出（同文件第 87-106 行）。
+
+## 设计灵感
 
 TrapMap 的两大演进方向直接以以下两篇论文为出发点，架构决策与数据模型均对齐其核心结论（详见各组件文档与执行计划）：
 
 | 方向 | 论文 | 链接 | 对 TrapMap 的落点 |
 |---|---|---|---|
-| **Experience Gene（经验基因）** | *From Procedural Skills to Strategy Genes: Towards Experience-Driven Test-Time Evolution* | HTML: https://arxiv.org/html/2604.15097v2 · ABS: https://arxiv.org/abs/2604.15097 | 文档型 Skill 控制信号稀疏（~2500t, -1.1pp），而 compact、control-oriented 的 Gene（~230t, +3.0pp, 45 scenarios / 4590 trials）更能改善 test-time control。Gene 定义 `g=(m,u,π,α,c,v)` 1:1 映射为本仓 `signalsMatch / summary / strategy / avoid / constraints / validation`，配合 `contentHash=sha256(canonicalJson)`、稳定边界、失败警告、验证接口与 lineage，实现 `trap/skill-artifact/skill-capsule → ExperienceGene` 的派生、固化与 `gene-native` 检索；渲染为 `<strategy-gene>Domain keywords/Summary/Strategy/AVOID</strategy-gene>` 直接注入模型。主线见 `docs/archived/archived-plans/experience-gene-program-mainline-archived.md`，契约见 `packages/contracts/src/domain/experience-gene.ts`，存储见 `packages/db/src/schema/experience-genes.ts` |
+| **Experience Gene（经验基因）** | *From Procedural Skills to Strategy Genes: Towards Experience-Driven Test-Time Evolution* | HTML: https://arxiv.org/html/2604.15097v2 · ABS: https://arxiv.org/abs/2604.15097 | 文档型 Skill 控制信号稀疏（~2500t, -1.1pp），而 compact、control-oriented 的 Gene（~230t, +3.0pp, 45 scenarios / 4590 trials）更能改善 test-time control。Gene 定义 `g=(m,u,π,α,c,v)` 1:1 映射为本仓 `signalsMatch / summary / strategy / avoid / constraints / validation`，配合 `contentHash=sha256(canonicalJson)`、稳定边界、失败警告、验证接口与 lineage，实现 `trap/skill-artifact/skill-capsule → ExperienceGene` 的派生、固化与 `gene-native` 检索；渲染为 `<strategy-gene>Domain keywords/Summary/Strategy/AVOID</strategy-gene>` 直接注入模型。主线见 `docs/archived/archived-plans/experience-gene-program-mainline-archived.md（已归档，路径冻结）`，契约见 `packages/contracts/src/domain/experience-gene.ts`，存储见 `packages/db/src/schema/experience-genes.ts` |
 | **v3 图编排 / ExecutionPlan** | *GraSP: Agent Skill Graph 编排（腾讯）* + *SkillGraph (2605.12039)* | PDF: https://arxiv.org/pdf/2604.17870 · Plan: `docs/superpowers/plans/2026-05-25-topological-execution-plan.md` | 借鉴 GraSP 的 DAG 编译（`state / data / order` 边）与 SkillGraph 的 `R_ret = TopoSort(R_seed ∪ R_BFS ∪ R_beam)` 拓扑排序，在 `TrapFirstPlan` 中新增 `executionPlan: ExecutionStep[]`。`buildExecutionPlan()` 在 `plan-compiler` 侧对 `mitigates / requires / order` 边执行 Kahn 拓扑排序，输出 `{ rank, nodeId, label, kind:trap-mitigation|skill, blockedBy }`，客户端无需自算顺序；`recommendedSkills` 保持 score 序不变。契约已在 `packages/contracts/src/domain/plans.ts` 落地（`executionStepSchema`） |
 
 > 两篇论文为“灵感出发点”而非照搬：TrapMap 保留 PG-first、RouteDef 双宿主、`approved && !suppressedFromRetrieval` 治理门控与 `off|shadow|serve` 受控 rollout，GEP 的自动 mutation loop 与多 Gene 自由组合不在本轮主线内。
 
-## 有界上下文（6）
+## 常见用法
 
-| Context | Owner 包 | 职责 |
-|---|---|---|
-| `identity-access` | `service-identity-access` | auth / team / member / access-key / session |
-| `knowledge-write` | `service-knowledge-write` | 知识 / Trap 写、生命周期、索引副作用 |
-| `knowledge-read` | `service-knowledge-read` (+ Go) | 检索读模型、召回、图查询、经验基因检索 |
-| `governance-review` | `service-governance-review` | 审核队列、冲突、decay/maintenance 编排 |
-| `candidate-ingestion` | `service-candidate-ingestion` | 候选提交、去重、异步摄取 |
-| `job-runtime` | `service-job-runtime` | task queue / outbox / worker / workflow_runs |
+### 你以 `local-agent` 形态起服务
 
-> 六上下文目录见 `packages/backend-core/src/<context>/{domain,application,module.ts,index.ts}`；宿主通过 `app.module.ts` 注册六个 Nest module，经 `create<X>RouteDefs` 消费各 service 的 RouteDef。
-
-## HTTP 路由（薄层）
-
-- 新路由在对应 service 以 `create<X>RouteDefs(deps)` 声明 `RouteDef`，由 `createNestAdapter` / `createFastifyAdapter` 消费（唯一框架导入落点 `packages/backend-core/src/http/adapters/`）。
-- Controller 不重写业务逻辑，仅注入 Port / service-assembly factory。
-- 错误信封：`{ code, message, kind, requestId, traceId?, details? }`；`401` 停留在 guard 层。
-
-## 持久化
-
-- **权威**：PostgreSQL 16 + pgvector，42 张表（`packages/db/src/schema/` 为唯一真源，镜像见 [DATABASE_SCHEMA.md](../reference/DATABASE_SCHEMA.md)）。
-- **分区**：每个 service owner 各持一个 `drizzle/` baseline；distributed 按 `identity-access → knowledge-write → candidate-ingestion → governance-review → job-runtime → knowledge-read` 顺序执行。
-- **检索索引**：`knowledge_embeddings` / `capsule_embeddings` / `experience_gene_embeddings` 为 HNSW 向量表；`knowledge_search_documents` 为 `tsvector + GIN`；`capsules.keywordTokens` 等低频字段为 `jsonb + GIN`。
-- **PG-first**：不引入新的 JSON 文件存储主路径；未声明 PG 的本地开发可使用内存实现，仅用于测试。
-
-## 启动顺序
-
-宿主统一编排（`packages/host-local/src/nest/main.ts` / `packages/host-distributed/src/`）：
-
-1. **Repositories** — 执行 Drizzle 迁移、建 `repos` 聚合、确保 HNSW 索引、注册 graph channel
-2. **Candidate Recovery** — 重排队中断候选
-3. **Workers** — 启动 PG task worker（仅 PG 模式）
-4. **Graph Reconciliation** — 对账图索引
-5. **Lifecycle** — 注册 domain event 订阅、启动 outbox worker（仅 PG 模式）
-
-约束：`Repos` 先于 `Candidate Recovery` 与 `Workers`；启动顺序属基础设施，不归任何领域服务所有。
-
-运行时状态：`queueWorker` / `outboxWorker` 在 JSON 回退下为 `not-configured`；PG 下为 `running | remote | degraded`；graph fail-open 时 `readiness = degraded`。
-
-## 分层视图
-
-```mermaid
-flowchart TB
-    subgraph Presentation["表现层"]
-        CLI["CLI (Commander)"]
-        HTTP["HTTP Client"]
-    end
-    subgraph Route["路由层 (薄)"]
-        RD["RouteDef<br/>auth | teams | knowledge | review | retrieval | operations | traps"]
-    end
-    subgraph Logic["业务逻辑层"]
-        AI["AI Provider"]
-        Gov["治理 / 资格"]
-        Ret["检索管道 v1/v2/v3"]
-        Idx["索引管道"]
-        Ing["异步摄取"]
-        Art["工件派生"]
-    end
-    subgraph Persist["持久层"]
-        PG["PostgreSQL + pgvector<br/>42 tables / HNSW / GIN"]
-    end
-    Presentation --> Route --> Logic --> Persist
-```
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant R as Route
-    participant A as Auth + Governance
-    participant S as Service
-    participant DB as PostgreSQL
-    C->>R: HTTP Request
-    R->>A: verify session / RBAC
-    alt 拒绝
-        A-->>C: 403
-    else 通过
-        A->>S: invoke use-case
-        S->>DB: read / write
-        DB-->>S: result
-        S-->>R: response
-        R-->>C: HTTP Response
-    end
-```
-
-## 模块划分
-
-| 层 | 包 | 说明 |
-|---|---|---|
-| Apps | `apps/cli`, `apps/web-panel`, `apps/mcp`, `apps/light`, `apps/distributed` | thin assembly；`light`/`distributed` 仅组装宿主，`cli`/`web-panel`/`mcp` 经 `client-core` 走 gateway HTTP |
-| Hosts | `packages/host-local`, `packages/host-distributed` | 宿主装配、transport、provider wiring、health/ready |
-| Services | `service-*` (6 + cron) | owner-local schema + RouteDef + application 接线 |
-| Core | `packages/backend-core`, `packages/contracts`, `packages/client-core`, `packages/db`, `packages/assembly` | 内核契约、共享类型、聚合装配 |
-
-依赖方向：`Apps/Hosts → Services → Core`；`Services` 之间不直接依赖，经 `backend-core` 端口契约协作。
-
-## 可观测性与服务发现
-
-- **可观测性**：`OBSERVABILITY.md`（OTel + Prometheus/Tempo/Loki/Grafana）。`local-agent` 可选/降级为 console，`distributed` 必需全量。
-- **服务发现**：`SERVICE-DISCOVERY.md`（Consul）。`local-agent` 不需要，`team-monolith` 可选，`distributed` 必需。
-- Compose：见 `docker-compose.yml` 与 `docker-compose.observability.yml`，配置在 `config/`。
-
-## 健康检查
+前置条件：`postgres` 可达；依赖已装。
 
 ```bash
-curl http://127.0.0.1:4000/health
-curl http://127.0.0.1:4000/ready   # readiness=not-ready 时 503
+pnpm run dev -- local-agent
 ```
 
-返回包含 `liveness/readiness`、`requestContext`、`dependencies { database, queueWorker, graphQuery }`、`memory`、`uptimeSeconds`。API-only 实例对 `queueWorker` 可报告 `remote` 而不视为不健康。
+profile 装配逻辑在 `packages/host-local/src/nest/main.ts:30-38`；非法值回落 `local-agent`。对外路径对照见 [TrapMap API 契约表面](../reference/api-surface.md)。
 
-## 配置与部署
+### 你校验表镜像
 
-- 宿主配置见 `packages/host-local/src/nest/config/config.ts` 与 `packages/host-distributed/src/config/service-config.ts`。
-- 部署指南见 [DEPLOYMENT.md](DEPLOYMENT.md)。
-- 历史路径不再赘述；追溯见 `docs/archived/`。
+前置条件：依赖已装；活库比对需 PG 可达。
 
+```bash
+pnpm check:table-schema
+```
+
+逐表清单只在 [数据库表结构](../reference/DATABASE_SCHEMA.md) 维护，本页不复述。
+
+### 你查看网关路由落点
+
+前置条件：离线可跑。
+
+```bash
+ls packages/host-distributed/src/gateway/route-defs/
+```
+
+`RouteDef` 定义在 `packages/backend-core/src/http/route-contract.ts:50-58`。

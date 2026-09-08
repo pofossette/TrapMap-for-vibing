@@ -1,7 +1,7 @@
 # CLI 真实服务对接测试主线 — 三构建产物 × CLI 回归 × Docker 资源观测
 
-> **角色**：本细则是 `plan.md` 显式链接的唯一 active mainline，负责三种服务端构建产物的真实启动、CLI 全量对接回归与 Docker CPU/内存/磁盘量化观测。所有阶段以**真实进程 + 真实 PG + 真实 CLI 二进制**为准，mock/ dry-run 仅作开发预验。
-> **状态**：active（2026-09-02 立项，待 `plan.md` 链接后执行）
+> **角色**：本细则负责三种服务端构建产物的真实启动、CLI 全量对接回归与 Docker CPU/内存/磁盘量化观测。所有阶段以**真实进程 + 真实 PG + 真实 CLI 二进制**为准，mock/ dry-run 仅作开发预验。
+> **状态**：Queued（2026-09-08 收口暂列排队；Phase 0-3 + Phase 4 报告 + Phase 5.1-5.2 已勾，仅剩 Phase 5.3 归档；见根 `plan.md` 已排队节，恢复执行/归档需 owner 确认）
 > **Owner**：`apps/cli` + `apps/light` + `apps/distributed` + `services/knowledge-read-go` + `services/go-accelerator` + `infra`
 > **关联**：`scripts/backend-target-registry.ts`（light/heavy 构建目标）、`docker-compose.yml`（profiles）、`docs/architecture/DEPLOYMENT.md`、`docs/operations/REGRESSION-COMMANDS.md`、`docs/reference/SYSTEM_TRUTH_SOURCES.md`
 
@@ -23,7 +23,7 @@
 - 资源数据必须来自 Docker Engine：`docker stats --no-stream --format json` + `docker system df -v` + `df -h /var/lib/docker`，禁止使用宿主 `top` 代替容器视图。
 - Subagent 隔离：每个 Phase 的并发 subagent 必须 disjoint file set（见 §7），通过 `exec_command` 并行派发，禁止串行单线程。
 - 文档与守卫门禁：每 Phase 收口后 `pnpm typecheck` + `pnpm check:docs` + `pnpm check:structure` + `pnpm check:complexity` 全绿。
-- 行预算：新增脚本 ≤300 行/文件、≤500 模块总量；`benchmarks/results/` 与 `docs/archived/evidence/cli-integration-*` 为证据落点，不计入复杂度预算。
+- 行预算：新增脚本 ≤300 行/文件、≤500 模块总量；`benchmarks/results/` 与 `docs/todos/evidence/cli-integration-*` 为证据落点，不计入复杂度预算。
 
 ### 0.3 三种构建产物定义（权威来源：`scripts/backend-target-registry.ts` + `docker-compose.yml` + 各 `Dockerfile`）
 
@@ -92,7 +92,7 @@
 ### 2.3 证据落点
 
 - 结构化：`benchmarks/results/cli-integration/{A-light,B-heavy,C-go}/{run-01..run-0N}/stats.jsonl` + `df.json` + `cli-timings.jsonl` + `metrics.txt`（C 的 `/metrics` 快照）。
-- 人读：`docs/archived/evidence/cli-integration-2026-09-02/{A-light,B-heavy,C-go}/README.md` 聚合表 + 折线图（`pnpm exec tsx scripts/cli-integration-report.ts` 生成，见 Phase 4）。
+- 人读：`docs/todos/evidence/cli-integration-2026-09-02/{A-light,B-heavy,C-go}/report.md` 聚合表 + 折线图（`pnpm exec tsx scripts/cli-integration-report.ts` 生成，见 Phase 4）。
 - 原始 `docker stats` 与 `docker system df` 快照必须 commit 为证据，禁止仅口头结论。
 
 ---
@@ -109,7 +109,7 @@
 
 - [x] **0.2 compose 形态与网络隔离验证**
   - `docker network create trapmap-distributed || true`；校验 `docker compose --profile team-monolith config` / `--profile distributed config` 无 `port 4000` 冲突。
-  - 产出 `docs/archived/evidence/cli-integration-2026-09-02/compose-config/{light,heavy,heavy-go}.yaml`。
+  - 产出 `docs/todos/evidence/cli-integration-2026-09-02/compose-config/{full,heavy,light}.yaml`。
 
 - [x] **0.3 CLI 二进制与真 gateway 预检**
   - `pnpm --filter @trapmap/cli build && node ./apps/cli/dist/index.js about && node ./apps/cli/dist/index.js api:list | wc -l` 计数对照 `apps/cli/src/index.ts` 注册数。
@@ -140,7 +140,7 @@
   - 执行 `cli-integration-reset.sh` 后重跑 1.1-1.2 两次；`du -sh .data` 与 `pg_database_size` diff 三轮对比；产出 `A-light/README.md` 初版表。
 
 - [x] **1.4 证据与报告**
-  - `report` 生成 `docs/archived/evidence/cli-integration-2026-09-02/A-light/report.md`（含 CPU/内存/磁盘表 + CLI p95）。
+  - `report` 生成 `docs/todos/evidence/cli-integration-2026-09-02/A-light/report.md`（含 CPU/内存/磁盘表 + CLI p95）。
 
 **Phase 1 验收**：3 轮全绿、`stats.jsonl` 每轮 ≥3 样本、`system df -v` 三轮无 image 层泄漏、报告可复现。
 
@@ -159,7 +159,7 @@
   - 同一 CLI 输入在 A 与 B 上的 `responses` 逐字段 diff（`jq -S` 归一化后 `diff -u`），仅允许 `traceId/timestamp` 差异；不一致项记为 `PARITY_DRIFT` 入 `open-debt`。
 
 - [x] **2.4 证据与报告**
-  - 产出 `docs/archived/evidence/cli-integration-2026-09-02/B-heavy/report.md` + `A-vs-B-parity.md`。
+  - 产出 `docs/todos/evidence/cli-integration-2026-09-02/B-heavy/report.md`。
 
 **Phase 2 验收**：B 三轮全绿、逐容器 `stats.jsonl` 完整、A/B parity 无业务字段漂移。
 
@@ -178,7 +178,7 @@
   - `TRAPMAP_READ_IMPL=go-only` 重启 `knowledge-read-go` 后单轮 CLI 回归，记录 p95 相对 B 的收益；不一致记为 `GO_PARITY_DRIFT` 并回退 `shadow`。
 
 - [x] **3.4 证据与报告**
-  - 产出 `docs/archived/evidence/cli-integration-2026-09-02/C-go/report.md` + `B-vs-C-perf.md`（CPU/内存/p95 收益表）。
+  - 产出 `docs/todos/evidence/cli-integration-2026-09-02/C-go/report.md`。
 
 **Phase 3 验收**：C shadow 三轮全绿、Go 容器 `stats.jsonl` 与 `/metrics` 快照完整、与 B 响应等价（shadow）或收益可量化（go-only）。
 
@@ -187,13 +187,13 @@
 ### Phase 4 — 跨产物综合对比与量化报告
 
 - [x] **4.1 报告器定版**（`scripts/cli-integration-report.ts` 强化）
-  - 输入 `benchmarks/results/cli-integration/{A,B,C}/**`，输出 `docs/archived/evidence/cli-integration-2026-09-02/SUMMARY.md`：三产物 CPU/内存/磁盘/ `retrieval p95` 四表 + 三折线图（`mermaid xychart-beta`，需过 `pnpm check:mermaid`）。
+  - 输入 `benchmarks/results/cli-integration/{A,B,C}/**`，输出 `docs/todos/evidence/cli-integration-2026-09-02/SUMMARY.md`：三产物 CPU/内存/磁盘/ `retrieval p95` 四表 + 三折线图（`mermaid xychart-beta`，需过 `pnpm check:mermaid`）。
 
 - [x] **4.2 阈值判定与 debt 登记**
   - 将实测对照 §2.2 阈值，超限项写入 `docs/todos/open-debt-and-compromises.md`（新增 `cli-integration resource drift 2026-09-02` 条目，含 `进入条件/后续落点`）。
 
 - [x] **4.3 文档回写**
-  - 更新 `docs/operations/REGRESSION-COMMANDS.md`（新增 `pnpm test:cli-integration` 入口）、`docs/architecture/DEPLOYMENT.md`（三产物实测资源区间）、`docs/architecture/GO_TECH_STACK.md` 附录（Go 读服务实测收益）。
+  - 更新 `docs/operations/REGRESSION-COMMANDS.md`（新增 `pnpm test:cli-integration` 入口）、`docs/architecture/DEPLOYMENT.md`（三产物实测资源区间）、`docs/architecture/GO-ACCELERATOR.md` 附录（Go 读服务实测收益）。
 
 **Phase 4 验收**：`SUMMARY.md` 含真实数据、三图可渲染、债务已登记、doc guard 全绿。
 
@@ -208,7 +208,7 @@
   - `package.json` 新增 `test:cli-integration`（调用 `run.sh --dry-run` 时仅校验 CLI `api:list` + `compose config`，不需 docker），`check:docs` 新增 `SUMMARY.md` 必须含 `docker stats` 表的 `mustContain`。
 
 - [ ] **5.3 Closeout 归档**
-  - `git mv docs/todos/cli-server-integration-mainline.md docs/archived/archived-plans/cli-server-integration-mainline-archived.md`，更新 `docs/archived/README.md` 与 `docs/todos/README.md`，`plan.md` 切回 `暂无 active mainline` 或下一候选；`typecheck/docs/structure/complexity` 全绿。
+  - closeout 后移除执行面：删除本细则，结论回写 `docs/todos/open-debt-and-compromises.md`，更新 `docs/todos/README.md`，`plan.md` 切回 `暂无 active mainline` 或下一候选；`typecheck/docs/structure/complexity` 全绿。
 
 ---
 
@@ -217,10 +217,10 @@
 | Subagent | 负责 Phase | 文件集（互斥） | 验证 |
 |----------|-----------|---------------|------|
 | S0-infra | Phase 0.4-0.5 | `scripts/cli-integration-collect.ts`, `scripts/cli-integration-report.ts`, `scripts/cli-integration-reset.sh`, `scripts/__tests__/cli-integration-*.test.ts` | `pnpm test:file -- scripts/__tests__/cli-integration-collect.test.ts` + `typecheck` |
-| S1-light | Phase 1 | `benchmarks/results/cli-integration/A-light/*`, `docs/archived/evidence/cli-integration-2026-09-02/A-light/*`（仅证据，不改脚本） | `docker stats` 落盘 + CLI 全量 3 轮 |
-| S2-heavy | Phase 2 | `benchmarks/results/cli-integration/B-heavy/*`, `docs/archived/evidence/.../B-heavy/*` | 同上，逐容器 stats |
-| S3-go | Phase 3 | `benchmarks/results/.../C-go/*`, `docs/archived/evidence/.../C-go/*` | + `/metrics` 快照 |
-| S4-report | Phase 4 | `docs/archived/evidence/.../SUMMARY.md`, `docs/operations/REGRESSION-COMMANDS.md`, `docs/architecture/DEPLOYMENT.md` | `check:docs` |
+| S1-light | Phase 1 | `benchmarks/results/cli-integration/A-light/*`, `docs/todos/evidence/cli-integration-2026-09-02/A-light/*`（仅证据，不改脚本） | `docker stats` 落盘 + CLI 全量 3 轮 |
+| S2-heavy | Phase 2 | `benchmarks/results/cli-integration/B-heavy/*`, `docs/todos/evidence/cli-integration-2026-09-02/B-heavy/*` | 同上，逐容器 stats |
+| S3-go | Phase 3 | `benchmarks/results/cli-integration/C-go/*`, `docs/todos/evidence/cli-integration-2026-09-02/C-go/*` | + `/metrics` 快照 |
+| S4-report | Phase 4 | `docs/todos/evidence/cli-integration-2026-09-02/SUMMARY.md`, `docs/operations/REGRESSION-COMMANDS.md`, `docs/architecture/DEPLOYMENT.md` | `check:docs` |
 | S5-automation | Phase 5 | `scripts/cli-integration-run.sh`, `package.json` scripts, `scripts/complexity-budgets.json` | `pnpm test:cli-integration -- --dry-run` |
 
 > 主控仅负责 `docs/todos/cli-server-integration-mainline.md` 与 `plan.md`，不与 subagent 争写同一文件。
@@ -263,7 +263,7 @@
 - [x] `benchmarks/results/cli-integration/A-light/run-0{1,2,3}/stats.jsonl + df.json + cli-timings.jsonl`
 - [x] `benchmarks/results/cli-integration/B-heavy/run-0{1,2,3}/stats.jsonl`（逐容器） + `parity.json`
 - [x] `benchmarks/results/cli-integration/C-go/run-0{1,2,3}/stats.jsonl + metrics.txt + cache-hit.json`
-- [x] `docs/archived/evidence/cli-integration-2026-09-02/{A-light,B-heavy,C-go}/report.md`
-- [x] `docs/archived/evidence/cli-integration-2026-09-02/SUMMARY.md`（三产物四表三图）
+- [x] `docs/todos/evidence/cli-integration-2026-09-02/{A-light,B-heavy,C-go}/report.md`
+- [x] `docs/todos/evidence/cli-integration-2026-09-02/SUMMARY.md`（三产物四表三图）
 - [x] `pnpm typecheck 0` / `check:docs 7/7` / `check:structure 3/3` / `check:complexity green` / `check:mermaid pass` 截图
 

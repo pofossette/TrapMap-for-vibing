@@ -1,14 +1,54 @@
-# @trapmap/skill-registry
+# `@trapmap/skill-registry`
 
-Skill Version Manager & Package Manager for TrapMap.
+你用这个包管理 skill 的版本、历史与外部安装，它是 skill 的版本与包管理器。
 
-Extracted from `packages/skills` + `apps/cli` skill trap versioning, with `ai-pkgs` / `skills.sh` inspiration.
+## 入口
 
-## Goals
-- Internal version control: semver + revision, git-like history/diff/merge for local skills
-- External registries: skills.sh, GitHub (anthropics/skills, openai/skills, vercel-labs/skills), ai-pkgs compat, generic git URL
-- CLI parity: `trapmap skill add <source>`, `search --registry`, `list`, `outdated`, `update`, `remove`, `status`, `diff`, `install` from lockfile
-- ccswitch-style multi-agent targets: `--agent claude-code|codex|cursor|... --global/--project`
-- Lockfile: `.trapmap/skills.lock` + `trapmap.skills.json` manifest; check updates & 3-way merge preserving local edits.
+| 子路径 | 内容 |
+| --- | --- |
+| `@trapmap/skill-registry` | 主入口（adapters、domain、services 全量转出） |
+| `@trapmap/skill-registry/cli` | CLI 装配 |
+| `@trapmap/skill-registry/cli/add.js` | `trapmap skill add <source>` |
+| `@trapmap/skill-registry/cli/search.js` | `--registry` 搜索 |
 
-See `docs/architecture/SKILL-REGISTRY.md` for full design.
+源码落点为 `packages/skill-registry/src/`（`adapters/` 含 `local`、`github`、`skills-sh`、`ai-pkgs-compat`；`domain/` 含 semver、history、diff、merge；`services/` 含 install、merge、registry、update）。本地锁文件为 `.trapmap/skills.lock`，清单为 `trapmap.skills.json`。
+
+```bash
+pnpm --filter @trapmap/cli dev -- skill add <source>
+pnpm --filter @trapmap/cli dev -- skill search --registry <query>
+```
+
+## 行为
+
+| 依赖 / 脚本 | 用途 |
+| --- | --- |
+| `@trapmap/contracts` | skill 契约类型 |
+| `@trapmap/lib` | 纯函数工具 |
+| `zod` | manifest 与 lockfile 校验 |
+| `build` / `typecheck` | `tsc -p tsconfig.json` 编译 / 校验 |
+| `test` | 包单元测试 |
+
+完整设计另见 `docs/architecture/SKILL-REGISTRY.md`。
+
+## 常见用法
+
+### 装一个外部 skill
+
+```bash
+pnpm --filter @trapmap/cli dev -- skill add <source>
+```
+
+装完看 `.trapmap/skills.lock` 确认版本 pin 住。
+
+### 搜 registry 里的 skill
+
+```bash
+pnpm --filter @trapmap/cli dev -- skill search --registry <query>
+```
+
+### 跑本包测试
+
+```bash
+pnpm --filter @trapmap/skill-registry test
+pnpm --filter @trapmap/skill-registry typecheck
+```

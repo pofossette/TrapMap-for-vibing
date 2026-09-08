@@ -17,11 +17,19 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
+import { EXCLUDED_DOCS_SUBDIRS } from './docs-surface.js';
+
 const repoRoot = resolve(import.meta.dirname, '..');
 
 const DELETED_PACKAGES = ['packages/server', 'packages/runtime-infra'];
 
-const EXCLUDED_DIRS = ['docs/archived', 'docs/plans', 'docs/superpowers', 'node_modules', 'dist'];
+// Docs exclusions come from ./docs-surface.js (single source).
+// node_modules / dist are build artifacts, not documentation surface.
+const EXCLUDED_DIRS = [
+  ...EXCLUDED_DOCS_SUBDIRS.map((subdir) => join('docs', subdir)),
+  'node_modules',
+  'dist',
+];
 
 const HISTORICAL_MARKERS = [
   '已删除',

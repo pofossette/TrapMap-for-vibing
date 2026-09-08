@@ -1,29 +1,18 @@
 # Label Alignment Eval
 
-Standalone scaffold for label-alignment evaluation.
+你用这个套件衡量规范标签对齐（同义消除、漏合并、误合并、对齐准确率）。
 
-Current scope:
-
-- validated smoke fixture loading
-- deterministic dry-run execution
-- live-mode scaffold that calls real label-alignment interfaces when adapters are supplied
-- structured metrics for synonym elimination, missed merges, false merges, alignment accuracy, and recall reasons
-
-Local usage:
+## 跑法
 
 ```bash
-pnpm exec tsx --tsconfig tsconfig.base.json evals/label-alignment/run.ts --tier smoke --mode dry-run
+pnpm --filter @trapmap/evals eval:label-alignment:smoke
+pnpm --filter @trapmap/evals eval:label-alignment:dry-run
+pnpm --filter @trapmap/evals eval:label-alignment
+pnpm --filter @trapmap/evals eval:label-alignment:core
 ```
 
-JSON output:
+smoke 为 CI 门禁 tier，core fixture 已归档到 `evals/label-alignment/archived/fixtures/`，`--tier core` 只供手动运行。入口为 `evals/label-alignment/run.ts`，核心实现见 `evals/label-alignment/core.ts`，用例见 `evals/label-alignment/fixtures/`。
 
-```bash
-pnpm exec tsx --tsconfig tsconfig.base.json evals/label-alignment/run.ts --tier smoke --mode dry-run --json
-```
+## 结果读法
 
-## Owner 与变更门禁
-
-- **Owner**：label-alignment eval owner
-- **Tier 状态**：smoke 是 CI 门禁 tier；core fixture 已归档到 `archived/fixtures/`（`--tier core` 仍可手动运行，不进 CI）
-- **变更必跑**：`pnpm test:file -- evals/promptfoo/parity-label-alignment.test.ts`（快照 parity）+ `pnpm test:file -- evals/label-alignment/core.test.ts`（fixture 加载与 dry-run）
-- 修改 fixture/case 后若判定发生变化，需同步重新生成并提交 parity 快照（`pnpm --filter @trapmap/evals eval:snapshots`）
+你读同义消除、漏合并、误合并、对齐准确率与召回原因五组指标。改 fixture / case 后若判定变化，你同步重跑 parity 快照（`pnpm --filter @trapmap/evals eval:snapshots`）并提交。

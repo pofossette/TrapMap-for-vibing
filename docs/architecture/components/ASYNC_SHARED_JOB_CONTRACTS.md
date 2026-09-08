@@ -1,167 +1,85 @@
 # Shared Async Job Contracts
 
-本页是 Stage 2 对 shared async jobs 的统一契约说明。任务契约位于 `packages/contracts/src/domain/async.ts`，队列消费和 typed handlers 由 `packages/service-job-runtime` 提供；本页提供 operator / 架构层可读语义。
+> 本页是 shared async jobs 的契约表。模型（queue / outbox / workflow、lease、operator）见 [异步模型](ASYNC_MODEL.md)，本页只收录逐任务契约。状态：Active。
 
 ## 统一规则
 
-- 所有 shared job 必须先在 `sharedJobContracts` 中声明 `taskType`、payload shape、owner context、idempotency key、`maxAttempts`、dead-letter 语义和 workflow binding，再由 `job-runtime` 的 typed handler 接入 worker。
-- `subjectId` 表示业务归属对象，用于 operator 视角按 entry / feedback 定位问题。
-- `runId` 表示任务实例绑定，必须至少与该任务的幂等单元同粒度，避免多个合法 follow-up 覆盖同一 workflow run。
-- authoritative write 仍在命令事务内完成；这些 jobs 只负责 derived / retryable follow-up。
-- 组合层通过 `asyncTransport.queue` 注入窄 queue port；调度器和业务服务本身不应直接构造 `TaskQueue`。
-- `workflow_runs.stats` 是 shared job 的 checkpoint / resume surface；需要恢复的进度必须写入这里，而不是依赖进程内状态。
-- Phase 2 之后，operator 必须通过 `/v1/operations/status/async` 的统一 failure taxonomy 和 freshness contract 理解 shared job 故障，而不是只看 task status 字符串。
+- 你新增 shared job 时先声明 `taskType`、payload shape、owner context、idempotency key、`maxAttempts`、dead-letter 语义与 workflow binding，再让 `job-runtime` 的 typed handler 接入 worker（handler 落点 `packages/service-job-runtime/src/handlers/`，实测有 `experience-gene.ts`、`experience-gene-outbox.ts`、`governance-conflict.ts`、`governance-feedback.ts`）。
+- `subjectId` 表业务归属对象，供 operator 按 entry / feedback 定位问题。
+- `runId` 表任务实例绑定，至少与该任务的幂等单元同粒度。
+- authoritative write 仍在命令事务内完成；这些 jobs 只做 derived / retryable follow-up。
+- `workflow_runs.stats` 是 checkpoint / resume 面；需恢复的进度写这里，不依赖进程内状态。
+
+payload 的 Zod 真源在 `packages/contracts/src/domain/async.ts`：`candidateProcessingPayloadSchema`、`remediationReactivationPayloadSchema`、`badcaseExportDraftPayloadSchema`、`governanceConflictDetectionPayloadSchema`（同文件第 13-47 行）。`knowledge.index-follow-up` 与 `skill.index-follow-up` 的 payload schema 未在该文件中出现，标未知/待确认（2026-09-08）。
 
 ## `candidate_processing`
 
-- Owner context: `candidate-submission`
-- Subject: `candidate:<candidateId>`
-- Payload:
-  - `candidateId`
-  - `retryCount`
-- Idempotency key:
-  - Format: `candidate_processing:<candidateId>`
-  - Meaning: 同一 candidate 在 pending/running 期间只保留一个 durable processing work item；重试复用同一业务主键
-- Max attempts: `3`
-- Workflow binding:
-  - `workflowType = candidate-processing`
-  - `subjectId = candidateId`
-  - `runId` 绑定到 `candidateId`
-- Ownership:
-  - bounded context: `candidate-ingestion`
-  - service boundary: candidate route/service 通过窄 `candidateQueue` 端口提交，不直接构造 queue
-- Dead-letter:
-  - Step: `dead-letter`
-  - Meaning: duplicate analysis / review-ready 转换未能在重试内完成，candidate 会停留在错误态
-  - Operator action: 检查 candidate workflow run 与 queue dead letter，修复处理错误后按需 requeue
+- Owner context：`candidate-submission`；Subject：`candidate:<candidateId>`
+- Payload：`candidateId`、`retryCount`；幂等键 `candidate_processing:<candidateId>`（同一 candidate 在 pending / running 期只保留一个 durable work item）
+- Max attempts：`3`；`workflowType = candidate-processing`，`runId` 绑 `candidateId`
+- Dead-letter：duplicate analysis / review-ready 转换重试未完成，candidate 停错误态；你查 candidate workflow run 与 queue dead letter，修复后按需 requeue
 
 ## `knowledge.index-follow-up`
 
-- Owner context: `knowledge-entry`
-- Subject: `trap:<entryId>`
-- Payload:
-  - `entryId`
-  - `previousState`
-  - `nextState`
-  - `reason`
-- Idempotency key:
-  - Format: `knowledge.index-follow-up:<entryId>:<previousState>:<nextState>:<reason>`
-  - Meaning: 同一知识条目、同一生命周期迁移与原因，在 pending/running 期间只保留一个 follow-up
-- Max attempts: `3`
-- Workflow binding:
-  - `workflowType = knowledge-index-follow-up`
-  - `subjectId = entryId`
-  - `runId` 绑定到 `<entryId>:<previousState>:<nextState>:<reason>` 粒度
-- Projection ownership:
-  - owner: `knowledge-lifecycle-projection`
-  - refreshes: retrieval trap visibility and related derived read-model inputs
-- Cache invalidation trigger:
-  - `shared-job` in PostgreSQL mode
-  - `write-through-fallback` in JSON store mode
+- Owner context：`knowledge-entry`；Subject：`trap:<entryId>`
+- Payload：`entryId`、`previousState`、`nextState`、`reason`（schema 未知/待确认（2026-09-08））；幂等键 `knowledge.index-follow-up:<entryId>:<previousState>:<nextState>:<reason>`
+- Max attempts：`3`；`workflowType = knowledge-index-follow-up`，`runId` 绑 `<entryId>:<previousState>:<nextState>:<reason>`
+- Dead-letter：索引同步重试未完成，workflow 标 failed；你查 workflow run 与 dead letter，修复索引错误后按需 requeue
 
 ## `skill.index-follow-up`
 
-- Owner context: `skill-artifact`
-- Subject: `skill:<artifactId>`
-- Payload:
-  - `artifactId`
-  - `previousState`
-  - `nextState`
-  - `reason`
-- Idempotency key:
-  - Format: `skill.index-follow-up:<artifactId>:<previousState>:<nextState>:<reason>`
-  - Meaning: 同一 skill artifact、同一生命周期迁移与原因，在 pending/running 期间只保留一个 follow-up
-- Max attempts: `3`
-- Workflow binding:
-  - `workflowType = skill-index-follow-up`
-  - `subjectId = artifactId`
-  - `runId` 绑定到 `<artifactId>:<previousState>:<nextState>:<reason>` 粒度
-- Projection ownership:
-  - owner: `skill-lifecycle-projection`
-  - refreshes: skill graph / retrieval visibility projections
-- Cache invalidation trigger:
-  - `shared-job` in PostgreSQL mode
-  - `write-through-fallback` in JSON store mode
-- Dead-letter:
-  - Step: `dead-letter`
-  - Meaning: skill projection refresh 未能完成，读侧可能继续返回旧索引结果
-  - Operator action: 修复 skill indexing 错误后按需 requeue
-- Dead-letter:
-  - Step: `dead-letter`
-  - Meaning: 索引同步在所有重试后仍未完成，workflow 会标记为 failed
-  - Operator action: 查看 workflow run 和 queue dead letter，修复索引错误后按需 requeue
+- Owner context：`skill-artifact`；Subject：`skill:<artifactId>`
+- Payload：`artifactId`、`previousState`、`nextState`、`reason`（schema 未知/待确认（2026-09-08））；幂等键 `skill.index-follow-up:<artifactId>:<previousState>:<nextState>:<reason>`
+- Max attempts：`3`；`workflowType = skill-index-follow-up`，`runId` 绑同粒度
+- Dead-letter：skill projection 刷新未完成，读侧可能返回旧索引；你修复 skill indexing 错误后按需 requeue
 
 ## `feedback.remediation-reactivation`
 
-- Owner context: `governance-review`（contract owner: `feedback-remediation`）
-- Subject: `<entryType>:<entryId>`
-- Payload:
-  - `entryId`
-  - `entryType`
-  - `feedbackIds`
-  - `resolvedAt`
-  - `resolvedByUserId`
-  - `notes`
-- Idempotency key:
-  - Format: `feedback.remediation-reactivation:<entryId>:<resolvedAt>`
-  - Meaning: 同一 entry 在同一次 remediation complete 时间戳下，只保留一个重激活 follow-up
-- Max attempts: `5`
-- Workflow binding:
-  - `workflowType = feedback-remediation-reactivation`
-  - `subjectId = entryId`
-  - `runId` 绑定到 `<entryId>:<resolvedAt>` 粒度
-- Projection ownership:
-  - owner: `governance-review`
-  - refreshes: remediation 解除后的 retrieval visibility
-- Cache invalidation trigger:
-  - `shared-job` for reactivation
-  - `write-through-fallback` for suppression writes
-- Dead-letter:
-  - Step: `dead-letter`
-  - Meaning: remediation 已标记完成，但重激活/重索引始终未完成，读侧可能继续陈旧
-  - Operator action: 检查 entry 是否仍存在，修复索引问题后按需 requeue
+- Owner context：`governance-review`；Subject：`<entryType>:<entryId>`
+- Payload：`entryId`、`entryType`、`feedbackIds`、`resolvedAt`、`resolvedByUserId`、`notes`；幂等键 `feedback.remediation-reactivation:<entryId>:<resolvedAt>`
+- Max attempts：`5`；`workflowType = feedback-remediation-reactivation`，`runId` 绑 `<entryId>:<resolvedAt>`
+- Dead-letter：remediation 已完成但重激活 / 重索引未完成，读侧可能陈旧；你确认 entry 存在后修复索引按需 requeue
 
 ## `feedback.badcase-export-draft`
 
-- Owner context: `governance-review`（contract owner: `feedback-badcase`）
-- Subject: `feedback:<feedbackId>`
-- Payload:
-  - `feedbackId`
-  - `entryId`
-  - `entryType`
-  - `queryId`
-- Idempotency key:
-  - Format: `feedback.badcase-export-draft:<feedbackId>`
-  - Meaning: 同一 feedback 在 pending/running 期间只保留一个 badcase draft follow-up
-- Max attempts: `3`
-- Workflow binding:
-  - `workflowType = badcase-export-draft`
-  - `subjectId = feedbackId`
-  - `runId` 绑定到 `feedbackId`
-- Dead-letter:
-  - Step: `dead-letter`
-  - Meaning: badcase draft 导出未能完成，反馈记录缺少最终 async bookkeeping
-  - Operator action: 检查相关 feedback trace 与队列 dead letter，修复导出/存储问题后按需 requeue
+- Owner context：`governance-review`；Subject：`feedback:<feedbackId>`
+- Payload：`feedbackId`、`entryId`、`entryType`、`queryId`；幂等键 `feedback.badcase-export-draft:<feedbackId>`
+- Max attempts：`3`；`workflowType = badcase-export-draft`，`runId` 绑 `feedbackId`
+- Dead-letter：draft 导出未完成，反馈记录缺 async bookkeeping；你查 feedback trace 与 dead letter 后按需 requeue
 
 ## `governance.conflict-detection`
 
-- Owner context: `governance-review`（contract owner: `conflict-relation`）
-- Subject: `knowledge-entry:<entryId>`
-- Payload:
-  - `entryId`
-  - `sourceEventId`
-- Idempotency key:
-  - Format: `governance.conflict-detection:<entryId>:<sourceEventId>`
-  - Meaning: 同一 approved entry 和 source event 只保留一个 conflict detection work item；重复 delivery 必须幂等
-- Max attempts: `5`
-- Workflow binding:
-  - `workflowType = governance-conflict-detection`
-  - `subjectId = entryId`
-- Ordering: `per-transition`
-- Projection ownership:
-  - owner: `governance-review`
-  - refreshes: canonical conflict relations and the read-only retrieval conflict projection
-- Dead-letter:
-  - Step: `dead-letter`
-  - Meaning: conflict detection 重试耗尽，治理 conflict projection 可能陈旧
-  - Operator action: 检查 governance workflow 与 queue dead letter，修复依赖后 replay task
+- Owner context：`governance-review`；Subject：`knowledge-entry:<entryId>`
+- Payload：`entryId`、`sourceEventId`；幂等键 `governance.conflict-detection:<entryId>:<sourceEventId>`（同一 approved entry 与 source event 只保留一个 work item）
+- Max attempts：`5`；`workflowType = governance-conflict-detection`，`runId` 绑 `entryId`；ordering `per-transition`
+- Dead-letter：重试耗尽，conflict projection 可能陈旧；你查 governance workflow 与 dead letter，修复依赖后 replay task
+
+## 常见用法
+
+### 你列出 payload schema
+
+前置条件：离线可跑。
+
+```bash
+grep -n "PayloadSchema" packages/contracts/src/domain/async.ts
+```
+
+真源行见本页「统一规则」节。
+
+### 你核对 handler 接入
+
+前置条件：离线可跑。
+
+```bash
+ls packages/service-job-runtime/src/handlers/
+```
+
+新增 shared job 时先声明契约再接入 worker，步骤见本页「统一规则」节。
+
+### 你校验契约产物同步
+
+前置条件：依赖已装；离线可跑。
+
+```bash
+pnpm generate:contracts:check
+```

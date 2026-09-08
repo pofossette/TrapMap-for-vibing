@@ -1,66 +1,44 @@
-# @trapmap/infra
+# `@trapmap/infra`
 
-Shared infrastructure helpers for TrapMap. This package consolidates generic, host-agnostic infrastructure that is consumed by multiple service packages and both host assemblies — pgvector SQL builders, vector literal formatting, governance filter helpers, deterministic fallback embedding, and gene search document building. It is the dedicated home for the generic infra extracted during the Experience Gene foundation phase (see `docs/todos/experience-gene-infrastructure-foundation.md`).
+你用这个包复用宿主无关的共享基础设施（pgvector SQL 构造、回退 embedding、治理过滤、gene 检索文档）。
 
-## Installation
+## 入口
+
+| 子路径 | 来源 | 内容 |
+| --- | --- | --- |
+| `@trapmap/infra` | `packages/infra/src/index.ts` | 全量转出 |
+| `@trapmap/infra/vector` | `packages/infra/src/vector/` | `formatVectorLiteral`、`clampSimilarity`、距离 / 相似度表达式、team / scope / gene 治理过滤、`buildGeneSearchDocument` |
+| `@trapmap/infra/embedding` | `packages/infra/src/embedding/` | `createFallbackEmbedding`、`embedWithFallback`（384 维确定性回退） |
+| `@trapmap/infra/go-accelerator/*.js` | `packages/infra/src/go-accelerator/` | 加速器相关导出 |
+
+```ts
+import { formatVectorLiteral, appendTeamFilter } from '@trapmap/infra';
+```
+
+## 行为
+
+| 依赖 / 脚本 | 用途 |
+| --- | --- |
+| `@trapmap/lib` | `createDeterministicFallbackVector`、`sha256` 等纯函数 |
+| `@trapmap/contracts` | `ExperienceGene` 等共享类型 |
+| `build` / `typecheck` | `tsc -p tsconfig.json` 编译 / 校验 |
+| `test` | 包单元测试 |
+
+子路径导入后缀以 `packages/infra/package.json` 的 exports 映射为准，取用前你亲自核对，未知/待确认（2026-09-08）。
+
+## 常见用法
+
+### 跑本包测试
 
 ```bash
-pnpm add @trapmap/infra
+pnpm --filter @trapmap/infra test
+pnpm --filter @trapmap/infra typecheck
 ```
 
-## Dependencies
+### 拼向量查询片段
 
-| Package | Purpose |
-|---------|---------|
-| `@trapmap/lib` | Shared pure helpers (`createDeterministicFallbackVector`, `sha256`, etc.) |
-| `@trapmap/contracts` | Shared types (`ExperienceGene`, `ExperienceGeneMode`) |
-
-## Modules
-
-All helpers are re-exported from the package entry point (`src/index.ts`). Sub-path exports are also available as `@trapmap/infra/vector` and `@trapmap/infra/embedding`.
-
-| Module | Exports | Description |
-|--------|---------|-------------|
-| `vector/pgvector` | `formatVectorLiteral`, `clampSimilarity`, `vectorDistanceExpression`, `vectorSimilarityExpression`, `appendTeamFilter`, `appendScopeFilter`, `appendExperienceGeneGovernanceFilters`, `buildGeneSearchDocument` | Pure pgvector SQL builders and governance filter helpers previously duplicated across `service-knowledge-read` and `service-knowledge-write` |
-| `embedding` | `createFallbackEmbedding`, `embedWithFallback`, `FALLBACK_EMBEDDING_DIMENSION`, `EXPERIENCE_GENE_FALLBACK_MODEL_VERSION` | Deterministic fallback embedding wrapper around `@trapmap/lib::createDeterministicFallbackVector` (384-dim, model `experience-gene-fallback-v1`) |
-
-## Usage
-
-```typescript
-import { formatVectorLiteral, clampSimilarity, appendTeamFilter, buildGeneSearchDocument } from '@trapmap/infra';
-import { createFallbackEmbedding, embedWithFallback } from '@trapmap/infra';
-
-const literal = formatVectorLiteral([0.1, 0.2, 0.3]); // "[0.1,0.2,0.3]"
-const doc = buildGeneSearchDocument({ title, summary, strategy, avoid, validation });
-const vector = createFallbackEmbedding(doc);
-const clamped = clampSimilarity(similarity);
-
-const conditions: string[] = ["status = 'solidified'"];
-const params: unknown[] = [];
-appendTeamFilter(conditions, params, teamId, 'ke.team_id');
+```ts
+import { formatVectorLiteral, appendTeamFilter } from '@trapmap/infra';
 ```
 
-App-layer composition (thin assembly) now owns the wiring:
-
-```typescript
-// apps/light/src/composition/experience-gene.ts
-import { embedWithFallback } from '@trapmap/infra';
-import { createPgExperienceGeneSearchPort } from '@trapmap/service-knowledge-read';
-
-const port = createPgExperienceGeneSearchPort({ pool, embed: embedWithFallback, mode });
-```
-
-## Scripts
-
-| Script | Description |
-|--------|-------------|
-| `pnpm build` | Compile TypeScript to `dist/` |
-| `pnpm test` | Run the package unit tests (Vitest `infra` project) |
-| `pnpm typecheck` | Type-check without emitting |
-
-## Constraints
-
-- **No framework / domain imports**: infra must not depend on Nest, Fastify, pg concrete pools, or service-specific domain rules — only `lib`/`contracts` and stdlib.
-- **Single source for vector helpers**: `service-knowledge-read` and `service-knowledge-write` must import pgvector helpers from `@trapmap/infra` instead of re-implementing `formatVectorLiteral`, `appendTeamFilter`, etc. locally.
-- **Fallback embedding is deterministic**: `createFallbackEmbedding('hello', 384)` must be byte-equivalent to `createDeterministicFallbackVector('hello', 384)` from `@trapmap/lib` (see `src/embedding/index.ts`).
-- Host packages (`host-local`, `host-distributed`) remain library implementations; thin assembly decisions (which embed function, which mode) are owned by `apps/light` and `apps/distributed` composition seams.
+你用 `formatVectorLiteral` 把 embedding 转 pgvector 字面量，用 `appendTeamFilter` 拼团队治理条件。无 key 时的 384 维回退走 `@trapmap/infra/embedding` 的 `embedWithFallback`。

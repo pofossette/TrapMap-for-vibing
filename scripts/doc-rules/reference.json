@@ -1,0 +1,61 @@
+{
+  "docRules": [
+    {
+      "file": "docs/reference/REPO_STRUCTURE.md",
+      "mustContain": [
+        "`docs/plans/`：历史设计参考，仅在当前根 `plan.md` 显式重新链接时才重新激活。",
+        "`docs/todos/`：当前执行文档目录。只有被根 `plan.md` 显式链接、且明确承担当前 owner 执行责任的文档属于 active surface；owner 主细则可将其执行顺序中的阶段子文档声明为同一主线的 delegated surface。“仍有参考价值”不足以继续留在这里。",
+        "packages/host-local/src/nest/runtime/backend-core-adapters.ts",
+        "packages/host-distributed/src/gateway/",
+        "packages/host-distributed/src/shared/"
+      ]
+    },
+    {
+      "file": "docs/reference/DATABASE_SCHEMA.md",
+      "mustContain": ["42 张表"],
+      "mustNotContain": [
+        "48 张表",
+        "54 张表",
+        "56 张表",
+        "62 张表",
+        "63 张表",
+        "64 张表",
+        "55 张表"
+      ]
+    },
+    {
+      "file": "docs/reference/api-surface.md",
+      "mustContain": [
+        "必须转入独立审计或独立计划",
+        "不属于 script/eval draft payload",
+        "Phase 4 closeout",
+        "operator runbook",
+        "dashboard/alert/SLO",
+        "/v1/operations/status/async",
+        "本根计划已经关闭"
+      ]
+    },
+    {
+      "file": "docs/reference/SYSTEM_TRUTH_SOURCES.md",
+      "mustContain": [
+        "Light 默认宿主",
+        "数据库 schema",
+        "六服务归属边界",
+        "Go 读服务",
+        "HTTP 路由契约",
+        "DOCS_TRUTH_MATRIX.md",
+        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
+      ],
+      "mustNotContain": ["Phase 1 server/backend-core boundary freeze", "store_snapshot"]
+    },
+    {
+      "file": "docs/reference/ENVIRONMENT.md",
+      "mustContain": [
+        "TRAPMAP_DATABASE_URL",
+        "packages/host-local/src/nest/config/config.ts",
+        "packages/host-distributed/src/config/service-config.ts"
+      ],
+      "mustNotContain": ["最新", "目前"]
+    }
+  ]
+}

@@ -1,540 +1,65 @@
-# 客户端运行逻辑 (Client Architecture)
+# 客户端运行逻辑
+
+> 真源：`apps/cli/src/`、`apps/web-panel/src/`、`apps/mcp/src/`。状态：Active。
 
 ## 概述
 
-TrapMap 的客户端（CLI）基于 Commander.js 构建，提供终端用户与 TrapMap 服务器交互的命令行界面。客户端通过 HTTP API 与服务器通信，支持知识提交、检索、审核、团队管理等操作。
+你通过三类客户端接入 TrapMap：`apps/cli`（Commander 终端）、`apps/web-panel`（Web 面板）、`apps/mcp`（agent 接入封装）。三者都只连统一 gateway，不直连内部服务。zone 规则见 [架构边界守护](../BOUNDARIES.md)：`cli → [client-core, contracts, lib, skill-registry]`，`web-panel → [client-core, contracts]`，`mcp → [client-core, contracts, lib]`。
 
-## Phase 1 埋点可见性边界
+## 调试句柄边界
 
-- client surface 只消费 shared observability contract 中允许的 additive debug handles：`requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId`
-- 这些字段的用途是帮助用户把一次请求、一次 retrieval、一次 feedback follow-up 关联到 operator 或 badcase export 路径
-- `workflowRunId`、`candidateId`、`entryId`、`artifactId` 不属于默认通用 client debug envelope；如未来需要暴露，必须按具体路由单独设计，而不是在 CLI/http 基础层隐式常驻输出
-- `backendTarget` 继续只表达部署形态偏好，不承载第二套 observability owner 或 trace config 语义
+client 面只消费 additive debug 句柄：`requestId`、`traceId`、`queryId`、`feedbackId`、`asyncJobId`。你用它们把一次请求关联到 operator 或 badcase 导出路径。`workflowRunId`、`candidateId`、`entryId`、`artifactId` 不进默认通用 envelope；未来需要暴露时按路由单独设计。
 
-## 客户端架构
+## CLI 架构
 
 ```mermaid
 flowchart TB
-    subgraph 命令层["Command Layer"]
-        A["auth | knowledge | retrieval | review | team | skill | trap\ndecay | maintenance | operations | feedback | audit\nevidence | output-profile | load | policy | member"]
+    subgraph 命令层["命令层 (20 文件 + 2 子目录)"]
+        A["身份团队 | 知识读写 | 检索策略 | 审核治理 | 反馈 | 定时 | 运维 | Skill | 输出"]
     end
-
-    subgraph 库层["Library Layer"]
-        B["config.ts | http.ts | input.ts | output.ts\nmarkdown-formatter.ts | output-profile.ts\nprompts.ts | sanitize.ts | skill-artifact-export.ts\nactivation-policy.ts | artifact-bundle.ts"]
+    subgraph 库层["库层 apps/cli/src/lib/"]
+        B["config | http | input | output | prompts | sanitize | markdown | bundle"]
     end
-
-    subgraph 状态管理["State Management"]
-        C["~/.trapmap/cli.json\n本地配置和会话状态"]
+    subgraph 状态["本地状态"]
+        C["~/.trapmap/cli.json"]
     end
-
-    命令层 --> 库层 --> 状态管理
+    命令层 --> 库层 --> 状态
 ```
 
-## 命令注册流程
+命令注册按会话可见性裁剪（`apps/cli/src/index.ts:138-193`）。完整命令表见 [TrapMap CLI 参考](../CLI.md)。
 
-```mermaid
-flowchart TB
-    A[CLI 启动] --> B[加载 CLI 状态]
-    B --> C[解析会话权限]
-    C --> D[计算可见性]
-    D --> E[注册命令]
-    E --> F[解析命令行参数]
-    F --> G[执行命令]
-    G --> H[输出结果]
-```
+## web-panel 与 mcp
 
-### 启动流程详解
+- `apps/web-panel` 只依赖 `client-core` 与 `contracts`，渲染管理面（审核队列、activity、graph）。
+- `apps/mcp` 为 agent 协议做外层封装；TrapMap 服务本体不实现 MCP 协议。
 
-1. **加载 CLI 状态**：从 `~/.trapmap/cli.json` 读取配置
-2. **解析会话权限**：提取 `effectivePermissions` 和 `securityLevel`
-3. **计算可见性**：根据权限决定哪些命令可用
-4. **注册命令**：按可见性注册对应命令
-5. **解析参数**：Commander 解析命令行参数
-6. **执行命令**：调用对应命令处理函数
-7. **输出结果**：格式化输出结果
+## 常见用法
 
-## 状态管理
+### 你确认本机 CLI 可用
 
-### CLI 状态结构
-
-```typescript
-interface CliState {
-  gatewayUrl: string;             // 统一 gateway URL
-  backendTarget: BackendTarget;   // 从 @trapmap/contracts 导入的目标形态偏好
-  sessionToken: string | null;    // 会话令牌
-  session: ActiveSession | null;  // 活动会话
-  outputProfile?: OutputProfile;  // 输出配置
-}
-```
-
-### 输出配置
-
-```typescript
-interface OutputProfile {
-  tool: OutputToolProfile;        // 'claude-code' | 'codex' | 'opencode' | 'generic'
-  modelHint?: OutputModelHint;    // 'claude' | 'gpt' | 'qwen' | 'generic'
-  renderMode: OutputRenderMode;   // 'text' | 'json'
-  graphPlanMode: OutputGraphPlanMode; // 'summary' | 'full' | 'skill-list'
-  verbosity: OutputVerbosity;     // 'compact' | 'balanced' | 'detailed'
-  includeRawHints: boolean;       // 是否包含原始提示
-}
-```
-
-### 配置文件位置
-
-- **路径**：`~/.trapmap/cli.json`
-- **格式**：JSON
-- **默认 gateway**：`http://127.0.0.1:4000`（可通过 `TRAPMAP_GATEWAY_URL` 环境变量覆盖）
-- **默认 backend target**：`light`
-- **值域**：`light`、`heavy`
-- **约束**：该字段只表达目标后端形态偏好，不得派生第二套 URL、第二套认证模型或内部服务发现
-
-### 后端形态配置项
-
-- 字段名固定为 `backendTarget`。
-- `light` 对应 `local-agent` / `team-monolith`；`heavy` 对应 `distributed`。
-- 旧配置缺省该字段时按 `light` 解释；未知值也回退到 `light`。
-- 客户端继续遵守 `gateway only`：`backendTarget` 只影响提示、诊断和默认行为选择，不改变 `gatewayUrl` 的单 URL 模型。
-- `BackendTarget`、schema、normalization 与 profile mapping 由 `@trapmap/contracts` 所有；target 的 host、dev/build/verification command 由 `scripts/backend-target-registry.ts` 所有，client 不得维护平行映射。
-- web-panel 当前没有持久化 connection configuration；因此不新增 selector，也不把 target 透传为内部 service URL。
-
-### 状态管理 API
-
-```typescript
-// 加载状态
-async function loadCliState(): Promise<CliState>
-
-// 保存状态
-async function saveCliState(state: CliState): Promise<void>
-
-// 更新状态
-async function updateCliState(
-  patch: Partial<CliState> | ((current: CliState) => CliState)
-): Promise<CliState>
-
-// 清除会话
-async function clearSession(): Promise<CliState>
-```
-
-## HTTP 通信层
-
-### API 请求函数
-
-```typescript
-async function apiRequest<T>(
-  state: CliState,
-  options: ApiRequestOptions,
-): Promise<ApiResponse<T>>
-```
-
-### 请求选项
-
-```typescript
-interface ApiRequestOptions {
-  path: string;                  // API 路径
-  method?: 'GET' | 'POST' | 'PATCH'; // HTTP 方法
-  body?: unknown;                // 请求体
-  gatewayUrl?: string;           // gateway URL（覆盖默认）
-  sessionToken?: string | null;  // 会话令牌（覆盖默认）
-}
-```
-
-### 响应结构
-
-```typescript
-interface ApiResponse<T> {
-  data: T;                       // 响应数据
-  sessionToken: string | null;   // 新会话令牌（如果有）
-}
-```
-
-### 认证机制
-
-```typescript
-// 请求头中添加认证
-if (options.sessionToken ?? state.sessionToken) {
-  headers.authorization = `Bearer ${options.sessionToken ?? state.sessionToken}`;
-}
-
-// 响应中可能包含新令牌
-const sessionToken = response.headers.get('x-session-token');
-```
-
-### 错误处理
-
-```typescript
-class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly payload: unknown,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-```
-
-## 命令分类
-
-### 认证命令
-
-| 命令 | 描述 | 权限要求 |
-|------|------|---------|
-| `login` | 使用访问密钥登录 | 无 |
-| `logout` | 清除本地会话并登出 | 已登录 |
-| `session` | 查看当前会话状态 | 无 |
-
-### 知识管理命令
-
-| 命令 | 描述 | 权限要求 |
-|------|------|---------|
-| `submit` | 提交新知识条目 | knowledge:submit |
-| `resubmit` | 重新提交被拒绝的条目 | knowledge:submit |
-| `review-status` | 查看提交历史 | knowledge:submit/review/update |
-| `supersede` | 用新条目替代旧条目 | knowledge:submit |
-
-### 检索命令
-
-| 命令 | 描述 | 权限要求 |
-|------|------|---------|
-| `search` | 语义检索 | knowledge:search |
-| `search --v2` | 胶囊检索（v2） | knowledge:search |
-
-### 审核命令
-
-| 命令 | 描述 | 权限要求 |
-|------|------|---------|
-| `review queue` | 查看待审核队列 | knowledge:review |
-| `review approve` | 批准条目 | knowledge:review |
-| `review reject` | 拒绝条目 | knowledge:review |
-| `evidence` | 查看/管理审核证据 | knowledge:review |
-
-### 团队管理命令
-
-| 命令 | 描述 | 权限要求 |
-|------|------|---------|
-| `team list` | 列出团队 | 已登录 |
-| `team select` | 选择活动团队 | 已登录 |
-| `team create` | 创建团队 | team:create + level >= 1 |
-
-### 运维命令
-
-| 命令 | 描述 | 权限要求 |
-|------|------|---------|
-| `list` | 列出知识条目 | knowledge:export |
-| `edit` | 编辑知识条目 | knowledge:update |
-| `deactivate` | 停用知识条目 | knowledge:update |
-| `export` | 导出知识条目 | knowledge:export |
-| `import` | 导入知识条目 | knowledge:import |
-| `load` | 加载条目详情 | knowledge:search |
-| `decay` | 管理淘汰状态 | knowledge:update |
-| `maintenance` | 管理维护分配 | knowledge:update |
-| `policy` | 查看策略信息 | knowledge:search |
-| `output-profile` | 管理输出配置 | 已登录 |
-| `trap submit/resubmit/list/show` | 陷阱专属命令 | knowledge:submit/inspect |
-
-## 输入处理
-
-### 文本输入解析
-
-```typescript
-// 支持多种输入方式
-async function resolveTextInput(
-  sources: { text?: string; file?: string; stdin?: boolean },
-  fieldName: string,
-): Promise<string>
-```
-
-**支持的输入方式**：
-- `--detail <text>`：直接提供文本
-- `--file <path>`：从文件读取
-- `--stdin`：从标准输入读取
-
-### 数组参数收集
-
-```typescript
-// 收集多次出现的选项
-function collectValues(value: string, previous: string[]): string[]
-```
-
-**使用示例**：
-```bash
-trapmap submit --label trap --label typescript --label node
-```
-
-## 输出格式化
-
-### 输出模式
-
-| 模式 | 描述 | 使用场景 |
-|------|------|---------|
-| `text` | 人类可读文本 | 终端交互 |
-| `json` | JSON 格式 | 脚本集成 |
-
-### 命令结果结构
-
-```typescript
-interface CommandResult {
-  action: string;                // 操作名称
-  success: boolean;              // 是否成功
-  summary: string;               // 摘要
-  artifacts: Artifact[];         // 产物列表
-  nextSteps: string[];           // 下一步建议
-}
-```
-
-### 知识条目格式化
-
-```typescript
-function formatEntry(entry: KnowledgeEntry): string {
-  const lines = [
-    `${entry.id} [${entry.lifecycleState}]`,
-    `Scope: ${entry.scope}`,
-    `Required level: ${entry.requiredLevel}`,
-    `Owner: ${entry.owner.handle}`,
-    `Labels: ${entry.labels.join(', ')}`,
-    `Shortcut: ${entry.shortcut}`,
-    `History: ${entry.history.length} revision(s)`,
-  ];
-
-  // 添加智能体审核信息
-  if (entry.agentReview) {
-    lines.push(`Agent review: ${entry.agentReview.status}`);
-  }
-
-  // 添加审核历史
-  if (entry.reviewHistory.length > 0) {
-    const lastDecision = entry.reviewHistory.at(-1);
-    lines.push(`Last decision: ${lastDecision.decision}`);
-  }
-
-  return lines.join('\n');
-}
-```
-
-### 检索结果格式化
-
-```typescript
-function formatMatch(match: RetrievalMatch): string {
-  const lines = [
-    `${match.entryId}`,
-    `Shortcut: ${match.shortcut}`,
-    `Labels: ${match.labels.join(', ')}`,
-    `Score: ${match.score.toFixed(2)}`,
-    `Reason: ${match.reason}`,
-  ];
-
-  // 添加引用信息
-  if (match.citation?.recallChannels?.length) {
-    lines.push(`Channels: ${match.citation.recallChannels.join(', ')}`);
-  }
-
-  // 添加冲突信息
-  if (match.conflicts?.length) {
-    lines.push(formatConflicts(match.conflicts));
-  }
-
-  return lines.join('\n');
-}
-```
-
-## 权限可见性
-
-### 可见性计算
-
-```typescript
-const visibility = {
-  allowTeamCreate: securityLevel >= 1 && hasPermission(effectivePermissions, 'team:create'),
-  allowMemberCreate: securityLevel >= 1 && hasPermission(effectivePermissions, 'member:create'),
-  allowKnowledgeSubmit: hasPermission(effectivePermissions, 'knowledge:submit'),
-  allowKnowledgeReview: securityLevel >= 1 && hasPermission(effectivePermissions, 'knowledge:review'),
-  allowKnowledgeSearch: hasPermission(effectivePermissions, 'knowledge:search'),
-  // ... 更多权限检查
-};
-```
-
-### 命令可见性矩阵
-
-| 命令 | 权限要求 | 安全等级要求 |
-|------|---------|-------------|
-| `team create` | team:create | >= 1 |
-| `member create` | member:create | >= 1 |
-| `submit` | knowledge:submit | - |
-| `review:queue` | knowledge:review | >= 1 |
-| `search` | knowledge:search | - |
-| `list` | knowledge:export | - |
-| `edit` | knowledge:update | >= 1 |
-| `import` | knowledge:import | >= 1 |
-
-## 检索模式
-
-### v1 检索（传统）
+前置条件：离线可跑。
 
 ```bash
-trapmap search "typescript async error handling"
-trapmap search --mode hybrid "node memory leak"
-trapmap search --mode graph-assisted "react useEffect cleanup"
+trapmap about
+trapmap knowledge --help
 ```
 
-**支持的模式**：
-- `semantic`：纯语义相似度
-- `hybrid`：语义 + BM25 关键词
-- `graph-assisted`：语义 + 图关系
+完整命令表见 [TrapMap CLI 参考](../CLI.md)。
 
-### v2 检索（胶囊）
+### 你起 web 面板
+
+前置条件：gateway 运行中。
 
 ```bash
-trapmap search --v2 "typescript async error handling"
+pnpm dev:web
 ```
 
-**特点**：
-- 胶囊优先输出
-- 包含 Profile 提示
-- 支持冲突检测
+`apps/web-panel` 只依赖 `client-core` 与 `contracts`，见本页「web-panel 与 mcp」节。
 
-## 登录流程
+### 你跑 CLI 集成（dry）
 
-```mermaid
-flowchart TB
-    A[trapmap login --access-key <key>] --> B[加载 CLI 状态]
-    B --> C[POST /v1/auth/login]
-    C --> D{验证密钥}
-    D -->|失败| E[401 未授权]
-    D -->|成功| F[返回会话信息]
-    F --> G[保存会话令牌]
-    G --> H[更新 CLI 状态]
-    H --> I[显示登录成功]
-```
-
-### 登录命令
+前置条件：依赖已装；参数见 `scripts/cli-integration-run.sh`。
 
 ```bash
-# 使用访问密钥登录
-trapmap login --access-key <key>
-
-# 使用系统管理员密钥登录
-trapmap login --system-admin-key <key>
-
-# 指定服务器 URL
-trapmap login --access-key <key> --server http://example.com:4000
+pnpm test:cli-integration:dry
 ```
-
-## 提交流程
-
-```mermaid
-flowchart TB
-    A["trapmap submit --scope global --label trap --shortcut xxx --detail yyy"] --> B[加载 CLI 状态]
-    B --> C[检查会话令牌]
-    C -->|无令牌| D[提示登录]
-    C -->|有令牌| E[解析输入]
-    E --> F[解析边界约束]
-    F --> G[POST /v1/knowledge]
-    G --> H{服务器处理}
-    H -->|成功| I[返回条目信息]
-    H -->|失败| J[返回错误]
-    I --> K[格式化输出]
-    K --> L[显示结果]
-```
-
-### 提交命令
-
-```bash
-# 基本提交
-trapmap submit \
-  --scope global \
-  --label trap \
-  --label typescript \
-  --shortcut "Promise 未捕获拒绝导致进程退出" \
-  --detail "详细描述..."
-
-# 从文件读取详情
-trapmap submit \
-  --scope project \
-  --label bug \
-  --shortcut "xxx" \
-  --file ./detail.md
-
-# 从标准输入读取
-cat detail.md | trapmap submit --scope global --label trap --shortcut "xxx" --stdin
-```
-
-## 检索流程
-
-```mermaid
-flowchart TB
-    A["trapmap search query"] --> B[加载 CLI 状态]
-    B --> C[检查会话令牌]
-    C -->|无令牌| D[提示登录]
-    C -->|有令牌| E[解析搜索参数]
-    E --> F[构建请求体]
-    F --> G[POST /v1/retrieval/search]
-    G --> H{服务器处理}
-    H -->|成功| I[返回检索结果]
-    H -->|失败| J[返回错误]
-    I --> K[格式化输出]
-    K --> L[显示结果]
-```
-
-### 检索命令
-
-```bash
-# 基本搜索
-trapmap search "typescript async error"
-
-# 带过滤的搜索
-trapmap search --label typescript --scope global "memory leak"
-
-# 混合模式搜索
-trapmap search --mode hybrid "react useEffect"
-
-# 胶囊检索
-trapmap search --v2 "node event loop"
-
-# 从标准输入读取
-echo "query text" | trapmap search --stdin
-```
-
-## 错误处理
-
-### 常见错误
-
-| 错误 | 原因 | 解决方法 |
-|------|------|---------|
-| `Not authenticated` | 未登录 | 运行 `trapmap login` |
-| `403 Forbidden` | 权限不足 | 联系管理员提升权限 |
-| `404 Not Found` | 条目不存在 | 检查条目 ID |
-| `400 Bad Request` | 请求参数错误 | 检查命令参数 |
-
-### 错误输出
-
-```typescript
-// 错误格式化
-function printError(error: Error): void {
-  if (error instanceof ApiError) {
-    console.error(`API Error ${error.statusCode}: ${error.message}`);
-  } else {
-    console.error(`Error: ${error.message}`);
-  }
-  process.exit(1);
-}
-```
-
-## 环境变量
-
-| 变量 | 描述 | 默认值 |
-|------|------|-------|
-| `TRAPMAP_SERVER_URL` | 默认服务器 URL | `http://127.0.0.1:4000` |
-
-## 参考文档
-
-- [检索系统](RETRIEVAL.md)
-- [治理模型](GOVERNANCE.md)
-- [知识生命周期（已归档）](../../archived/architecture/components/KNOWLEDGE_LIFECYCLE.md)
-
-## 相关源码
-
-- [apps/cli/src/index.ts](../../../apps/cli/src/index.ts)
-- [apps/cli/src/lib/config.ts](../../../apps/cli/src/lib/config.ts)
-- [apps/cli/src/lib/http.ts](../../../apps/cli/src/lib/http.ts)
-- [apps/cli/src/lib/output.ts](../../../apps/cli/src/lib/output.ts)
-- [apps/cli/src/commands/](../../../apps/cli/src/commands/)

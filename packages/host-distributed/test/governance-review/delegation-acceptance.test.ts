@@ -57,15 +57,36 @@ describe('governance-review delegation acceptance', () => {
 
     expect(approveReviewDecision).toHaveBeenCalledWith(
       { entryId: 'entry-1', actorId: 'user-1' },
-      { headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' }, timeoutMs: 2500 },
+      {
+        headers: {
+          'x-request-id': 'req-1',
+          'x-trace-id': 'trace-1',
+          'x-trapmap-actor-id': 'user-1',
+        },
+        timeoutMs: 2500,
+      },
     );
     expect(applyMaintenanceDecision).toHaveBeenCalledWith(
       { entryId: 'entry-1', actorId: 'user-1', action: 'refresh' },
-      { headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' }, timeoutMs: 2500 },
+      {
+        headers: {
+          'x-request-id': 'req-1',
+          'x-trace-id': 'trace-1',
+          'x-trapmap-actor-id': 'user-1',
+        },
+        timeoutMs: 2500,
+      },
     );
     expect(applyDecayDecision).toHaveBeenCalledWith(
       { entryId: 'entry-1', actorId: 'user-1', action: 'suppress' },
-      { headers: { 'x-request-id': 'req-1', 'x-trace-id': 'trace-1' }, timeoutMs: 2500 },
+      {
+        headers: {
+          'x-request-id': 'req-1',
+          'x-trace-id': 'trace-1',
+          'x-trapmap-actor-id': 'user-1',
+        },
+        timeoutMs: 2500,
+      },
     );
   });
 
@@ -253,10 +274,18 @@ describe('governance-review delegation acceptance', () => {
     expect(approveReviewDecision).toHaveBeenCalledTimes(2);
     const [firstCall, secondCall] = approveReviewDecision.mock.calls;
     expect(firstCall[1]).toEqual({
-      headers: { 'x-request-id': 'req-retry', 'x-trace-id': 'trace-retry' },
+      headers: {
+        'x-request-id': 'req-retry',
+        'x-trace-id': 'trace-retry',
+        'x-trapmap-actor-id': 'user-1',
+      },
     });
     expect(secondCall[1]).toEqual({
-      headers: { 'x-request-id': 'req-retry', 'x-trace-id': 'trace-retry' },
+      headers: {
+        'x-request-id': 'req-retry',
+        'x-trace-id': 'trace-retry',
+        'x-trapmap-actor-id': 'user-1',
+      },
     });
   });
 
@@ -300,7 +329,11 @@ describe('governance-review delegation acceptance', () => {
         input: { entryId: 'entry-1', actorId: 'user-1' },
       },
       {
-        headers: { 'x-request-id': 'req-rpc-hop', 'x-trace-id': 'trace-rpc-hop' },
+        headers: {
+          'x-request-id': 'req-rpc-hop',
+          'x-trace-id': 'trace-rpc-hop',
+          'x-trapmap-actor-id': 'user-1',
+        },
       },
     );
   });

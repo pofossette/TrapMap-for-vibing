@@ -11,8 +11,8 @@ import { type CheckStep, runCheckSteps } from './lib/check-runner.js';
 const steps: CheckStep[] = [
   {
     name: 'structure-guard',
-    command: 'node',
-    args: ['scripts/check-structure.mjs'],
+    command: 'pnpm',
+    args: ['exec', 'tsx', 'scripts/check-structure-guard.ts'],
   },
   {
     name: 'arch-freeze',

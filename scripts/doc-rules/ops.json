@@ -1,0 +1,115 @@
+{
+  "docRules": [
+    {
+      "file": "docs/guides/CODE_GUIDE.md",
+      "mustContain": [],
+      "mustNotContain": ["createApp()"]
+    },
+    {
+      "file": "docs/guides/GETTING_STARTED.md",
+      "mustContain": ["PostgreSQL 设置（推荐）", ".data/skill-shareer.json"],
+      "mustNotContain": [
+        "PostgreSQL 模式（可选）",
+        ".data/trapmap.json",
+        "pnpm run db:migrate",
+        "pnpm run db:generate"
+      ]
+    },
+    {
+      "file": "docs/operations/REGRESSION-COMMANDS.md",
+      "mustContain": ["pnpm test:observability-benchmark", "grep -i traceparent"],
+      "mustNotContain": ["grep X-Trace-Id"]
+    },
+    {
+      "file": "docs/guides/CONTRIBUTING.md",
+      "mustContain": ["packages/service-*/drizzle/", "已有开发数据库需重建"],
+      "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
+    },
+    {
+      "file": "docs/operations/TESTING.md",
+      "mustContain": [
+        "pnpm --filter @trapmap/evals eval:ci:core",
+        "route 额外携带的 `debug` 仅用于 operator/debug 闭环，不属于 eval draft payload。",
+        "Phase 4 验证归属矩阵",
+        "pnpm check:docs",
+        "pnpm check:complexity",
+        "Phase 2 Store Snapshot / PG-first Freeze Checks",
+        "snapshot-usage-guard.test.ts",
+        "pg-first-compat.test.ts",
+        "Phase 3 Unified Adapter Freeze Checks",
+        "pnpm check:docs",
+        "pnpm check:structure",
+        "Phase 4 Adapter Env / Target Freeze Checks",
+        "Phase 5 Distributed Baseline Freeze Checks",
+        "Phase 6 Mature Capability Freeze Checks",
+        "Phase 7 Maintainability / CI-Testing Truth / Documentation Closeout Checks",
+        "pnpm --filter @trapmap/evals eval:smoke",
+        "`pnpm --filter @trapmap/evals eval:ci`",
+        "`pnpm --filter @trapmap/evals eval:ci:core`",
+        "Runtime Foundations Verification",
+        "outboxWorker",
+        "operator runbook",
+        "dashboard/alert/SLO",
+        "root-plan closeout",
+        "pnpm test:observability-closeout",
+        "pnpm test:discovery-closeout",
+        "pnpm test:distributed-closeout",
+        "pnpm test:deployment-smoke",
+        "pnpm --filter @trapmap/evals eval:smoke"
+      ],
+      "mustNotContain": ["TIER=core pnpm eval:ci"]
+    },
+    {
+      "file": "docs/operations/OBSERVABILITY-OPERATIONS.md",
+      "mustContain": [
+        "NestJS: `not-ready` 和 `unhealthy` 返回 `503`；`degraded` 和 `ready` 返回 `200`",
+        "pnpm test:observability-closeout"
+      ],
+      "mustNotContain": ["NestJS: 当前始终返回 200"]
+    },
+    {
+      "file": "docs/operations/CI_CD.md",
+      "mustContain": [
+        "Node.js 24 + pnpm 10.33.0",
+        "`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`",
+        "`pnpm run ci`",
+        "`pnpm --filter @trapmap/evals eval:ci`",
+        "`pnpm --filter @trapmap/evals eval:ci:core`",
+        "Runtime foundations",
+        "doc-guardrails",
+        "`pnpm --filter @trapmap/evals eval:smoke`"
+      ],
+      "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
+    },
+    {
+      "file": "evals/README.md",
+      "mustContain": [
+        "retrieval/",
+        "summary/",
+        "graph-extraction/",
+        "ingestion/",
+        "pnpm --filter @trapmap/evals eval:ci",
+        "只输出 `badcaseEvalDraftSchema`",
+        "不属于 eval draft payload"
+      ]
+    },
+    {
+      "file": "evals/README.md",
+      "mustContain": ["root-plan closeout 已冻结该边界", "唯一序列化载荷"]
+    },
+    {
+      "file": "docs/operations/TESTING.md",
+      "mustContain": ["Phase 4 验证归属矩阵"]
+    },
+    {
+      "file": "docs/guides/CODE_STYLE.md",
+      "mustContain": ["package.json", "check:asserts"],
+      "mustNotContain": ["最新", "目前"]
+    },
+    {
+      "file": "docs/guides/DEV_WORKFLOW.md",
+      "mustContain": ["回写", "plan.md"],
+      "mustNotContain": ["最新", "目前"]
+    }
+  ]
+}

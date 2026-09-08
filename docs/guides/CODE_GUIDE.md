@@ -1,344 +1,151 @@
 # TrapMap 代码导读
 
-面向新贡献者的源码导航。按**阅读顺序**组织，帮助你从入口出发逐步理解整个系统。
-
----
+> 状态：Active。你按本页顺序读，能用最少的文件数摸到系统骨架。
 
 ## 建议阅读顺序
 
-```
-contracts → server (app → routes → lib) → cli → evals
-```
-
-先理解数据模型（contracts），再看服务端如何编排业务逻辑，最后看客户端如何消费 API 和评估系统如何验证质量。
-
----
-
-## 1. 共享契约层 — `packages/contracts`
-
-**切入点**：`packages/contracts/src/index.ts`
-
-所有跨包类型和 Zod 验证 schema 的唯一来源。CLI 和 Server 都从这里导入类型，保证前后端契约一致。
-
-### 核心领域模型
-
-| 文件 | 关注点 |
-|------|--------|
-| `domain/common.ts` | 基础类型：`EntityId`、`SecurityLevel`(0-10)、`Permission`(RBAC)、`LifecycleState`、`ActorRef`、`PaginatedQuery` |
-| `domain/knowledge.ts` | 知识条目的完整生命周期 schema |
-| `domain/review.ts` | 审核决策（approve/reject + 备注） |
-| `domain/retrieval.ts` | 检索请求/响应/结果 schema，支持 v1/v2/v3 三个版本 |
-| `domain/candidates.ts` | 异步摄取管道的候选条目 schema |
-| `domain/artifacts.ts` | Skill 工件（capsule/profile/manifest）schema |
-| `domain/auth.ts` | 登录、会话、访问密钥 |
-| `domain/team.ts` | 团队与成员关系 |
-| `domain/operations.ts` | 批量导入/导出 schema |
-
-### 阅读建议
-
-从 `common.ts` 开始，它定义了贯穿全局的基础类型。`LifecycleState` 尤其关键——知识条目的状态流转是整个业务的核心驱动。
-
----
-
-## 2. 服务端 — 宿主与服务组合
-
-> `归档旧实现` 已于  删除。当前服务端由宿主层（`host-local` / `host-distributed`）和六个 service owner 包组成。
-
-### 2.1 应用启动 — `packages/host-local/src/nest/` + `packages/host-distributed/src/`
-
-从宿主入口开始读。`host-local` 是 `light` 默认宿主，`host-distributed` 是 `heavy` 分布式宿主。启动流程：
-
-1. 加载配置（端口、AI provider、存储后端）
-2. 创建 PostgreSQL 连接池
-3. 组合各 service owner bundle（identity、knowledge-write、governance-review 等）
-4. 注册所有路由和健康检查
-5. 执行启动序列（迁移、图索引对账、outbox worker）
-
-六个 service owner 包各自拥有其领域逻辑：
-- `service-identity-access` — 认证、用户、团队
-- `service-knowledge-write` — 知识/工件写入
-- `service-knowledge-read` — 检索/图查询
-- `service-candidate-ingestion` — 候选处理
-- `service-governance-review` — 治理/反馈
-- `service-job-runtime` — 任务队列/outbox
-
-### 2.2 路由层 — `src/routes/`
-
-路由是**薄层**，只做请求验证、权限检查和转发到业务逻辑。按功能域组织：
-
-| 路由文件 | 前缀 | 核心逻辑调用 |
-|----------|------|-------------|
-| `auth.ts` | `/v1/auth` | 会话管理、密钥认证 |
-| `teams.ts` | `/v1/teams` | 团队 CRUD |
-| `members.ts` | `/v1/members` | 成员管理、角色分配 |
-| `knowledge.ts` | `/v1/knowledge` | 条目提交、查询、更新 |
-| `review.ts` | `/v1/knowledge/review` | 审核队列、approve/reject |
-| `retrieval.ts` | `/v1/retrieval` | 多版本检索入口（含子路由 `/v1/retrieval/skills/search-by-content`） |
-| `candidates.ts` | `/v1/candidates` | 异步摄取（提交/查询/解决/重复），分模块见 `routes/candidates/` |
-| `operations.ts` | `/v1/operations` | 批量导入/导出 |
-| `traps.ts` | `/v1/traps` | Trap 管理（共享应用服务） |
-
-#### 知识/Trap 共享应用服务
-
-`knowledge.ts` 和 `traps.ts` 的提交、重提、取代工作流委托给 `lib/knowledge/application-service.ts` 中的 `KnowledgeApplicationService`。该服务封装了：
-
-- **submit**: 运行预审 → 创建条目记录 → 插入仓库
-- **resubmit**: 验证所有权和状态 → 运行预审 → 持久化治理/修订/生命周期变更
-- **supersede**: 委托给 `KnowledgeOwnerPort.supersede()`；knowledge-write owner 在本地事务内更新生命周期并写入 outbox
-
-路由仅负责 HTTP 关注点（认证、权限、请求解析、日志），所有持久化逻辑通过 `repos.knowledge` 统一访问。
-
-知识生命周期的后置投影也已经统一：路由在事务提交后通过 `lib/lifecycle/emit-transition.ts` 发布生命周期变化。PG 模式写 `domain_event_outbox`，JSON 模式走同步 event bus。当前 `review.ts`、`knowledge.ts`、`decay.ts`、`operations/knowledge-legacy.ts` 都使用同一入口，而不是各自手写不同的投影分发逻辑。
-
-### 2.3 业务逻辑 — `src/lib/`
-
-这是系统最复杂的部分。
-
-#### AI 抽象 — `lib/ai/`
-
-```
-lib/ai/
-├── index.ts              # AI 初始化入口
-├── provider-config.ts    # Provider 配置（模型名、端点、embedding 独立配置）
-├── providers.ts          # 多 provider 实现（多 provider + fallback 链）
-├── providers/            # Prompt provider 系统（XML/JSON 渲染、模板、配置）
-├── prompts.ts            # Prompt 模板管理（XML 格式）
-├── providers.test.ts     # Provider 测试
-├── cache/                # 缓存系统
-│   └── section-cache.ts  # Section 缓存 TTL、命中率追踪
-└── dynamic/              # 动态 prompt 注入
-    ├── conditions.ts     # 条件逻辑
-    ├── context-resolver.ts # 上下文解析器
-    └── injections.ts     # 注入逻辑
+```text
+contracts → hosts + service owners → cli → evals
 ```
 
-支持 OpenAI、OpenAI 兼容端点（如 vLLM）、Ollama 和 Google GenAI。核心概念是 **fallback 链**：主 provider 失败时自动切换到备用 provider。
+你先吃透数据契约，再看宿主如何组装服务，最后看客户端与评测如何消费网关。
 
-**Prompt Provider 子系统**（`AI_PROMPT_PROVIDER` 环境变量）：
-- 支持 `anthropic`、`openai`、`deepseek`、`kimi`、`gemini`、`default` 六种 provider
-- 自动从模型 ID 推断 provider（如 `claude-*` → anthropic）
-- 系统 prompt 统一使用 XML 四层架构（XML = 内容标记层，JSON = 传输协议层）
-- 模板覆盖通过 `AI_PROMPT_TEMPLATE_FILE` 指定 JSON slot 文件
+## 1. 共享契约层：`packages/contracts`
 
-**Embedding 独立配置**：可通过 `EMBEDDING_PROVIDER`/`EMBEDDING_BASE_URL`/`EMBEDDING_API_KEY`/`EMBEDDING_MODEL` 将 embedding 能力与 chat 分离到不同提供商。
+入口是 `packages/contracts/src/index.ts`。跨包类型与 Zod schema 的唯一来源，CLI 与服务端都从这里 import，保证两端一致。
 
-#### 存储抽象 — `lib/store.ts` 与 `lib/persistence/`
+### 先读这几个领域文件
 
-```
-lib/store.ts
-├── SkillShareerStore 接口与 JsonStore 文件存储
-└── 领域记录类型
+| 文件 | 内容 |
+|------|------|
+| `packages/contracts/src/domain/common.ts` | 基础类型与分页查询 |
+| `packages/contracts/src/domain/auth.ts` | 登录、会话、访问密钥 |
+| `packages/contracts/src/domain/candidates.ts` | 异步摄取管道的候选条目 |
+| `packages/contracts/src/domain/artifacts.ts` | Skill 工件（capsule、profile、manifest） |
+| `packages/contracts/src/domain/artifact-ports.ts` | 工件读取投影契约 |
+| `packages/contracts/src/domain/health.ts` | 健康快照契约 |
+| `packages/contracts/src/domain/observability.ts` | correlation key、metric 命名、failure taxonomy 的冻结入口 |
 
-lib/persistence/
-├── create-store.ts   # 根据配置选择存储实现
-├── postgres-store.ts # PostgreSQL + Drizzle ORM（生产用）
-├── schema.ts         # Drizzle schema barrel（重导出 ./schema/ 子模块）
-└── schema/           # 按领域拆分的 schema 定义
-    ├── auth.ts       # 用户、团队、成员、会话、访问密钥、审计
-    ├── knowledge.ts  # 知识条目、修订、生命周期、边界、反馈、分析
-    ├── artifacts.ts  # 工件、修订、派生、生命周期事件
-    ├── candidates.ts # 候选管线、判重、手动结果、血缘
-    ├── retrieval.ts  # 图索引文档
-    └── queue.ts      # 任务队列
-```
+`packages/contracts/src/domain/` 下还有团队、检索、评测等 schema，你用到时再展开。契约一改，两端与评测同时受影响。
 
-`SkillShareerStore` 是遗留存储接口，用于尚未迁移到 PostgreSQL 结构化表的域（用户、团队、成员、会话、访问密钥、审计）。核心业务域（知识、工件、候选、反馈、统计、检索索引）已直接通过各自的 `Pg*Repository` 访问 PostgreSQL。`createSkillShareerStore()` 根据 `TRAPMAP_DATABASE_URL` 选择 PostgreSQL，否则使用 JSON 文件存储。
+## 2. 服务端：宿主加六个 service owner
 
-**Artifact owner 阅读路径**（如需理解结构化事实源与投影规则）：
+`packages/server/` 兼容壳已于 2026-07-31 删除。服务端由两层构成：宿主负责组装与进程形态，owner 包负责领域真相。
 
-- 共享读取契约：`packages/contracts/src/domain/artifact-ports.ts` → `ArtifactReadProjection`
-- owner-local PostgreSQL 实现：`packages/service-knowledge-write/src/artifact-ports.ts` → `createArtifactReadProjection()`
-- owner-local 写入组合：`packages/service-knowledge-write/src/pg-ports.ts` → `createKnowledgeWritePgPorts()`
-- 读取模型组合：`packages/service-knowledge-read/src/read-model.ts` → `createOwnerReadModelProjection()`
-- Schema 定义：`packages/db/src/schema/artifacts.ts` — 所有 `skill_artifact_*` 表定义
-- 事实源/投影规则的权威实现由上述 contracts 与 owner ports 共同定义；server compatibility shell 不保留 artifact serializer 或 repository。
+### 2.1 宿主入口
 
-#### 检索管道 — `lib/retrieval/`
+| 宿主 | 位置 | 覆盖形态 |
+|------|------|----------|
+| `@trapmap/host-local` | `packages/host-local/src/nest/` | `local-agent`、`team-monolith` |
+| `@trapmap/host-distributed` | `packages/host-distributed/src/` | `distributed` 网关与 workers |
 
-检索系统是 TrapMap 的核心差异化能力：
+`packages/host-local/src/nest/` 下按能力面分子目录（`gateway`、`identity-access`、`candidate-ingestion`、`governance-review`、`job-runtime`、`cron`、`health`、`config`）。启动配置走 `packages/host-local/src/nest/config/config.ts`，distributed 侧走 `packages/host-distributed/src/config/service-config.ts`。环境变量全表在 `docs/reference/ENVIRONMENT.md`。
 
-- **v1**：基于条目的检索（语义 / 混合 / 图辅助三种模式）
-- **v2**：原生胶囊检索，带激活提示
-- **v3**：GraphRAG-lite，带陷阱优先计划编译
+### 2.2 六个 service owner 包
 
-关键文件从请求进入 → 索引查询 → 结果排序 → 响应构建的完整流程。
+| 包 | 领域 |
+|----|------|
+| `packages/service-identity-access/` | 认证、用户、团队 |
+| `packages/service-knowledge-write/` | 知识与工件写入 |
+| `packages/service-knowledge-read/` | 检索与图查询读侧 |
+| `packages/service-candidate-ingestion/` | 候选处理管道 |
+| `packages/service-governance-review/` | 治理、审核、反馈 |
+| `packages/service-job-runtime/` | 任务队列与 outbox |
 
-#### 索引适配器 — `lib/indexing/`
+Schema 真源在 `packages/db/src/schema/`（42 张 `pgTable`，以 `pnpm check:table-schema` 实测为准）。service 包里不直接定义表，只 re-export `@trapmap/db`，守卫是 `pnpm check:pgtable-single-source`。
 
-三种可插拔的索引后端：
+### 2.3 AI 与存储接缝
 
-| 适配器 | 技术 | 用途 |
-|--------|------|------|
-| Vector | OpenAI embeddings | 语义相似度搜索 |
-| Keyword | BM25 | 精确关键词匹配 |
-| Graph | Graphology | 关系感知检索（知识图谱） |
+AI provider 配置走 `packages/ai-providers/src/provider-config.ts`，提示词槽位走 `packages/ai-providers/src/prompt-builder.ts`。Embedding 可以与 chat 走不同提供商，变量见 `docs/reference/ENVIRONMENT.md` 的 AI 一节。持久化走各 owner 的 repository，经 PostgreSQL 落库；JSON 文件存储只剩 `local-agent` 兼容回退。
 
-#### Embeddings — `lib/embeddings.ts`
+## 3. 客户端：`apps/cli`
 
-统一的 embedding 生成接口。负责将文本转换为向量，供 vector 索引使用。
-
-### 2.4 配置 — `packages/host-local/src/nest/config/config.ts`
-
-从环境变量构建运行时配置。关键变量见 `docs/operations/ENVIRONMENT.md`。
-
----
-
-## 3. 客户端 — `apps/cli`
-
-### 3.1 入口 — `apps/cli/src/index.ts`
-
-Commander.js 应用入口。**注意**：命令不是静态注册的——根据用户权限和 `SecurityLevel` 动态显示/隐藏命令。
-
-### 3.2 命令 — `src/commands/`
-
-每个命令文件导出一个 `register(app)` 函数。命令结构统一：
-
-```typescript
-// 典型的命令注册模式
-export function register(app: Command) {
-  app.command('submit')
-    .description('提交新知识条目')
-    .argument('<content>', '知识内容')
-    .option('--title <title>', '标题')
-    .action(async (content, options) => {
-      const session = await loadCliState();
-      const response = await httpClient.post('/v1/knowledge', { content, ...options });
-      formatOutput(response);
-    });
-}
-```
-
-### 3.3 基础设施 — `src/lib/`
+入口是 `apps/cli/src/index.ts`。命令按文件注册在 `apps/cli/src/commands/`（`knowledge.ts`、`retrieval.ts`、`review.ts`、`member.ts`、`audit.ts` 等），基础设施在 `apps/cli/src/lib/`：
 
 | 文件 | 职责 |
 |------|------|
-| `config.ts` | CLI 状态管理：加载/保存会话、当前团队、输出格式 |
-| `http.ts` | HTTP 客户端：自动注入认证头、处理错误 |
-| `input.ts` | 用户输入：交互式提示、选择器 |
-| `output.ts` | 输出格式化：表格渲染、JSON 模式、ANSI 颜色 |
-| `sanitize.ts` | 输入清理工具：`stripNewlines`、`stripAnsi`、`sanitizeForDisplay`，用于防止格式化注入 |
+| `apps/cli/src/lib/config.ts` | 会话、网关地址、输出格式的本地状态 |
+| `apps/cli/src/lib/http.ts` | 认证头注入与错误处理 |
+| `apps/cli/src/lib/output.ts` | 表格、JSON、ANSI 输出 |
+| `apps/cli/src/lib/sanitize.ts` | `stripNewlines`、`stripAnsi`、`sanitizeForDisplay`，挡格式化注入 |
+| `apps/cli/src/lib/activation-policy.ts` | Skill 激活四态策略的客户端收紧 |
+| `apps/cli/src/lib/artifact-bundle.ts` | 工件拉取与本地物化 |
 
-CLI 是 Server 的薄包装——核心逻辑全在 Server 端。读 CLI 代码主要关注**用户交互流程**和**API 调用模式**。
+CLI 是网关的薄包装，核心逻辑全在服务端。你读 CLI 只看交互流程与 API 调用形状。
 
----
+## 4. 评估系统：`evals/`
 
-## 4. 评估系统 — `evals/`
+统一入口是 `evals/scripts/eval-all.ts`（`eval:smoke`、`eval:core` 经它分发），CI 基线对比入口是 `evals/scripts/eval-ci.ts`（`eval:ci`、`eval:ci:core`）。各 suite 的 `run.ts`（`evals/retrieval/run.ts`、`evals/summary/run.ts` 等）只管本域数据集与判定。快照 parity 在 `evals/promptfoo/parity-*.test.ts`，对照 `evals/promptfoo/snapshots/`。跑法与结果读法见 `docs/operations/TESTING.md`。
 
-评估框架用于量化检索质量和摘要准确性，是 CI 质量门禁的核心。
+## 5. 安全模型要点
 
-### 结构
+SecurityLevel 是 0 到 10 的整数，用户等级大于等于条目等级才能访问。RBAC 权限、`audit:read`、生命周期流转见 `docs/operations/SECURITY.md`。
 
-```
-evals/
-├── retrieval/              # 检索质量评估
-│   ├── datasets/           # 黄金数据集和场景 fixture
-│   └── lib/                # 评估指标库
-├── summary/                # 摘要质量评估
-│   └── lib/
-│       └── judge.ts        # LLM-as-Judge 评判系统
-├── fixtures/               # 测试陷阱数据
-├── scripts/
-│   └── eval-ci.ts          # CI 评估运行器
-└── tsconfig.json
-```
-
-### 关键概念
-
-| 指标 | 含义 |
-|------|------|
-| Hit@K | 前 K 个结果中是否包含相关条目 |
-| MRR | 平均倒数排名 |
-| nDCG | 归一化折损累计增益 |
-| Recall@K | 前 K 个结果中相关条目的召回率 |
-
-### 运行
-
-```bash
-pnpm --filter @trapmap/evals eval:smoke    # 快速冒烟测试（~10s）
-pnpm --filter @trapmap/evals eval:core     # 完整评估（~60s）
-pnpm --filter @trapmap/evals eval:ci       # CI 回归检测
-```
-
----
-
-## 5. 关键数据流
-
-### 知识提交流程
-
-```
-CLI knowledge submit
-  → POST /v1/knowledge
-  → Server: 验证 + AI 预审
-  → 候选创建（异步）
-  → 重复检测（指纹 + 语义）
-  → 管理员审核 approve/reject
-  → 索引更新（vector + keyword + graph）
-```
-
-对应代码路径：`cli/commands/knowledge.ts` → `server/routes/knowledge.ts` → `server/lib/` → `server/lib/store.ts` / `server/lib/persistence/`
-
-### 检索流程
-
-```
-CLI retrieval search "如何处理 N+1"
-  → POST /v1/retrieval/search
-  → Server: 查询解析 + 模式选择
-  → 多路召回（vector + keyword + graph）
-  → 排序 + 过滤
-  → 生成引用 + 返回结果
-```
-
-对应代码路径：`cli/commands/retrieval.ts` → `server/routes/retrieval.ts` → `server/lib/retrieval/`
-
----
-
-## 6. 安全模型要点
-
-- **SecurityLevel**：0-10 整数，知识条目标记所需等级，用户必须 >= 该等级才能访问
-- **RBAC**：细粒度权限控制（`knowledge:submit`、`knowledge:review` 等 14 个权限）
-- **生命周期**：`draft → submitted → agent-pass → approved → deactivated`，每个状态转换都有权限约束
-- 详见 `docs/operations/SECURITY.md`
-
----
-
-## 7. 配置入口速查
+## 6. 配置入口速查
 
 | 场景 | 文件 |
 |------|------|
-| 环境变量 | `.env`（模板见 `.env.example`） |
-| 服务配置 | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` |
-| CLI 配置 | `apps/cli/src/lib/config.ts` |
-| AI Provider | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` |
-| TypeScript | `tsconfig.base.json`（各包继承） |
+| 环境变量真相表 | `docs/reference/ENVIRONMENT.md` |
+| 服务配置 | `packages/host-local/src/nest/config/config.ts`、`packages/host-distributed/src/config/service-config.ts` |
+| CLI 状态 | `apps/cli/src/lib/config.ts` |
+| TypeScript | `tsconfig.base.json` |
 | 代码规范 | `biome.json` |
 | 测试 | `vitest.config.ts` |
-| Docker | `docker-compose.yml` |
-| pnpm workspace | `pnpm-workspace.yaml` |
+| 部署拓扑 | `docker-compose.yml` |
+| workspace | `pnpm-workspace.yaml` |
 
----
+包内导航看各包 README 与 `docs/PACKAGES.md`。
 
-## 8. 编码约定：Falsy 与存在性检查
+## 常见用法
 
-在条件展开和可选字段渲染中，**不要使用 truthy 检查来判断值是否存在**。Truthy 检查会错误地丢弃 `''`、`0`、`false` 等合法 falsy 值。
+下面按目录给上手顺序：入口文件加阅读顺序加第一条命令。权威细节只在各包 README 与 `docs/reference/` 里维护，这里只给导航。
 
-| 场景 | 错误写法 | 正确写法 |
-|------|----------|----------|
-| 条件展开 | `...(value ? { value } : {})` | `...(value != null ? { value } : {})` |
-| 条件渲染 | `if (data.field)` | `if (data.field != null)` |
-| 数组元素检查 | `arr[0]` | `arr.some(x => x != null)` |
-| 空数组 join | `arr?.join(', ') ?? 'fallback'` | 先检查 `arr.length > 0` |
+### packages/backend-core
 
-`!= null` 同时检查 `null` 和 `undefined`，但保留 `''`、`0`、`false` 等合法值。
+入口：`packages/backend-core/src/index.ts`。你先读 `packages/backend-core/src/ports/`（端口形状），再读 `packages/backend-core/src/runtime/`（能力模型与路由表面），最后按需进六个限界上下文目录。第一条命令：
 
----
+```bash
+pnpm --filter @trapmap/backend-core typecheck
+pnpm --filter @trapmap/backend-core test
+```
 
-## 9. 调试技巧
+### packages/contracts
 
-1. **JSON Store 调试**：开发模式下数据存储在 JSON 文件中，可以直接查看文件内容
-2. **RAG 日志**：检索管道日志记录完整的召回-排序-输出过程，用于调试检索质量
-3. **用户操作日志**：JSON Lines 格式，记录所有 API 调用，带轮转策略
-4. **审计日志**：通过 `audit:read` 权限查看完整操作历史
+入口：`packages/contracts/src/index.ts`。你先读 `packages/contracts/src/domain/common.ts`，再读你负责领域的 schema 文件，最后看 `packages/contracts/src/enum-types/`。第一条命令：
 
----
+```bash
+pnpm --filter @trapmap/contracts test --run
+```
 
-如需查阅包内导航，请参阅各 service owner 包的 README 和 [`docs/PACKAGES.md`](../PACKAGES.md)。
+### packages/db
+
+入口：`packages/db/src/index.ts`。你先读 `packages/db/src/schema/`（表定义），再读 `packages/db/src/client.ts`（`createDb`），最后读 `packages/db/src/migrate.ts`（`runMigrations`）。第一条命令：
+
+```bash
+pnpm --filter @trapmap/db typecheck
+pnpm check:table-schema
+```
+
+### packages/host-local
+
+入口：`packages/host-local/src/index.ts`（`start()`）。你先读 `packages/host-local/src/nest/config/config.ts`（配置），再读 `packages/host-local/src/nest/gateway/`（路由组装），最后按能力面进其他子目录。第一条命令：
+
+```bash
+pnpm --filter @trapmap/host-local test
+```
+
+### packages/host-distributed
+
+入口：`packages/host-distributed/src/index.ts`，进程分发见 `packages/host-distributed/src/runner.ts`。你先读 `packages/host-distributed/src/config/service-config.ts`（配置），再读 `packages/host-distributed/src/gateway/`（网关），最后进你负责的服务目录。第一条命令：
+
+```bash
+pnpm --filter @trapmap/host-distributed test
+```
+
+### apps/cli
+
+入口：`apps/cli/src/index.ts`。你先读 `apps/cli/src/lib/config.ts` 与 `apps/cli/src/lib/http.ts`（状态与传输），再读 `apps/cli/src/commands/` 下你关心的命令文件。第一条命令：
+
+```bash
+pnpm --filter @trapmap/cli dev -- --help
+```

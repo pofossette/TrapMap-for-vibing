@@ -14,10 +14,10 @@
 ## 计划与待办目录规则
 
 - `plan.md`（根）：只做索引，链接当前活跃细则，不承载执行细节
-- `docs/todos/`：只保留当前 active mainline detail 与其内联承载的 debt/backlog/deferred 信息；已完成或只剩参考价值的文档归档至 `docs/archived/archived-plans/`
+- `docs/todos/`：只保留当前 active mainline detail 与其内联承载的 debt/backlog/deferred 信息；已完成或只剩参考价值的文档移除执行面，结论写回 `docs/` 对应权威页
 - 当前只有根 `plan.md` 显式链接的主细则属于 active execution surface；主细则可把其执行顺序中的阶段子文档声明为同一主线的 delegated execution surface。已归档 closeout 文档只作历史参考，详见 `docs/todos/README.md`
 - 新增问题优先进入当前活跃细则的问题池或其显式声明的 deferred 落点，不回写已归档文档
-- 归档操作：`git mv` 到 `docs/archived/archived-plans/`，同步更新 `docs/archived/README.md` 归档表和 `docs/todos/README.md` 索引
+- 归档操作：先跑 `pnpm exec tsx scripts/check-doc-references.ts` 确认引用不断裂，再移除 `docs/todos/` 下的执行面文件，把结论写回 `docs/` 对应权威页并在长期债务登记册记录残留，同步更新 `docs/todos/README.md` 索引
 
 ## 通用执行约束
 
@@ -26,7 +26,7 @@
 - 涉及检索、摘要、治理、feedback、fixtures、eval runner 的改动，至少补跑 `pnpm --filter @trapmap/evals eval:smoke`
 - 新增枚举、字面量联合、共享接口/类型别名时，默认放到就近 `enum-types/` 目录并通过 `index.ts` 聚合导出
 - 涉及跨包导入路径变更或新增包时，必须通过 `pnpm exec fallow audit --base main` 验证架构边界合规；zone 规则和已知例外详见 [`docs/architecture/BOUNDARIES.md`](docs/architecture/BOUNDARIES.md)
-- 通用工具函数（`nowIso`/`timestamp`/`formatDate`/`timeout`/`truncate`/`normalizeLabel`/`uniq`/`uniqBy`/`chunk`/`asRecord`/`prefixedId`/`sha256` 等）统一从 `@trapmap/lib` 导入，禁止在各包内重复实现已有工具；新增通用函数时：多包消费的放入 `@trapmap/lib` 并补单元测试，单包专用留在包内；重复问题的分析报告见 [`docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md`](docs/archived/reports/TECH_DEBT_UTILS_TYPES_2026-08-08.md) 与 [`docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md`](docs/archived/reports/TECH_DEBT_UTILS_FACTORY_2026-08-09.md)
+- 通用工具函数（`nowIso`/`timestamp`/`formatDate`/`timeout`/`truncate`/`normalizeLabel`/`uniq`/`uniqBy`/`chunk`/`asRecord`/`prefixedId`/`sha256` 等）统一从 `@trapmap/lib` 导入，禁止在各包内重复实现已有工具；新增通用函数时：多包消费的放入 `@trapmap/lib` 并补单元测试，单包专用留在包内；重复问题的历史分析见 TECH_DEBT_UTILS_TYPES_2026-08-08 与 TECH_DEBT_UTILS_FACTORY_2026-08-09 两份报告（已归档，路径冻结）
 - 通用第三方依赖（如 lodash）声明在 `@trapmap/lib` 内由各包经其消费，禁止各包直接散落声明
 - 类型断言规则：禁止新增 `@ts-ignore`/`@ts-expect-error`；禁止用裸 `as never`/`as unknown as` 桥接适配器类型——优先用 [`packages/contracts`](packages/contracts/src/index.ts) 的 Zod schema 运行时校验或显式窄化 helper；确因第三方库类型缺陷必须断言时，加 `// lib type gap:` 同行注释说明；能用类型收窄/type guard 解决的不用断言。该禁令已由 `pnpm check:asserts` 在 CI 与 pre-commit 拦截（豁免清单 [`docs/todos/assert-exemptions.md`](docs/todos/assert-exemptions.md) 已清零，新增裸断言视为回归）
 

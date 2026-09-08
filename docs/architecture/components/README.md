@@ -1,24 +1,15 @@
 # TrapMap 架构组件
 
-本目录包含系统各组件的详细架构文档。
+> 本目录收拢各组件的实现叙述，一组件一页。状态：Active。
 
-## 组件列表
-
-| 文档 | 描述 |
-|------|------|
-| [AI_PROVIDER.md](AI_PROVIDER.md) | AI 提供商抽象层 |
-| [ARTIFACTS.md](ARTIFACTS.md) | 技能工件系统 |
-| [ASYNC_MODEL.md](ASYNC_MODEL.md) | 异步事件与共享任务幂等/重试模型 |
-| [ASYNC_SHARED_JOB_CONTRACTS.md](ASYNC_SHARED_JOB_CONTRACTS.md) | 异步事件与共享任务契约目录 |
-| [CLIENT.md](CLIENT.md) | 客户端运行逻辑 |
-| [EVALUATION.md](EVALUATION.md) | 评估系统 |
-| [GOVERNANCE.md](GOVERNANCE.md) | 治理模型 (RBAC + 安全等级) |
-| [PERSISTENCE.md](PERSISTENCE.md) | 持久层实现 |
-| [RETRIEVAL.md](RETRIEVAL.md) | 检索管道 (v1/v2/v3) · v3 灵感 GraSP (2604.17870) + Experience Gene 灵感 Strategy Genes (2604.15097) |
-
-历史组件文档（AUTH、DECAY、DEDUPLICATION、DELETION、DEPENDENCY_ANALYSIS、FEEDBACK、INDEXING、INGESTION、KNOWLEDGE_LIFECYCLE、OPTIONAL_SERVICE_SPLIT_AND_MQ、REVIEW、UPDATE、ASYNC_INFRASTRUCTURE）已归档至 [`docs/archived/architecture/components/`](../../archived/architecture/components/)。
-
-## 相关文档
-
-- [主架构文档](../ARCHITECTURE.md)
-- [CLI 参考](../CLI.md)
+| 页 | 一句话 |
+|---|---|
+| [AI 提供商抽象层](AI_PROVIDER.md) | AI SDK 统一适配：chat 与 embedding 单路径 + fallback |
+| [检索系统](RETRIEVAL.md) | 检索管道 v1 / v2 / v3 与意图、组装、追踪 |
+| [治理模型](GOVERNANCE.md) | RBAC、多级安全与审核、冲突、decay 编排 |
+| [工件系统](ARTIFACTS.md) | Skill 工件聚合根、派生管线与修订 |
+| [持久化层](PERSISTENCE.md) | PostgreSQL 42 表分布、索引与事务 |
+| [异步模型](ASYNC_MODEL.md) | queue / outbox / workflow 异步模型 |
+| [Shared Async Job Contracts](ASYNC_SHARED_JOB_CONTRACTS.md) | 跨域派生任务契约表 |
+| [评估框架](EVALUATION.md) | smoke / core 评估分层与性能阈值 |
+| [客户端运行逻辑](CLIENT.md) | CLI、web-panel、mcp 三客户端 |
