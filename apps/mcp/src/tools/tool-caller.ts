@@ -13,7 +13,7 @@ export function makeToolCaller(role: Role = 'viewer') {
     assertRole(role, tool.requiredRole);
     return tool.handler(args as Record<string, unknown>, {
       config,
-      logger: { info: () => {}, error: () => {} },
+      logger: { toolSpan: () => ({ ok: () => {}, fail: () => {} }) },
       role,
     }) as Promise<unknown>;
   };

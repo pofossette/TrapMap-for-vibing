@@ -24,10 +24,12 @@ export const submitSkillDraftTool = defineTool({
   requiredRole: 'contributor',
   async handler(input, ctx) {
     const client = createGatewayClient(ctx.config);
+    if (!Array.isArray(input.files)) throw new Error(`Invalid files: ${String(input.files)}`);
+    const files = input.files as Array<{ path: string; content: string }>;
     const bundle = {
       slug: input.slug,
       title: input.title,
-      files: input.files.map((file) => ({
+      files: files.map((file) => ({
         path: file.path,
         content: file.content,
         kind: file.path.endsWith('.md') ? 'doc' : 'script',
