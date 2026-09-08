@@ -43,8 +43,7 @@
         "六服务归属边界",
         "Go 读服务",
         "HTTP 路由契约",
-        "DOCS_TRUTH_MATRIX.md",
-        "docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md"
+        "DOCS_TRUTH_MATRIX.md"
       ],
       "mustNotContain": ["Phase 1 server/backend-core boundary freeze", "store_snapshot"]
     },
