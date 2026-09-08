@@ -6,7 +6,7 @@
 
 你用两层验证系统正确性：smoke（快速）与 core（全面），覆盖检索质量、摘要生成、治理执行。CI 门禁是 `eval:smoke`。
 
-> **设计灵感：** Experience Gene 的评测门控直接汲取 *From Procedural Skills to Strategy Genes*（https://arxiv.org/html/2604.15097v2）的实证范式——Gene 在 45 scenarios / 4590 trials 上以 ~230 tokens 取得 +3.0pp 增益，而文档型 Skill 以 ~2500 tokens 反而 -1.1pp。本仓据此冻结 `evals/experience-gene/` 的 `smoke(3) / core(10)` 分层与 `safety=0、precision≥0.80、quality≥-2pp、pitfall不回退、overconstraint不增、cost≤+10%` 六门槛，并在 `docs/archived/archived-plans/experience-gene-governance-evaluation-rollout-archived.md` 中规定 live `baseline/shadow/serve` 同 seed 对比与 20-Gene 治理抽样方可 promotion。
+> **设计灵感：** Experience Gene 的评测门控直接汲取 *From Procedural Skills to Strategy Genes*（https://arxiv.org/html/2604.15097v2）的实证范式——Gene 在 45 scenarios / 4590 trials 上以 ~230 tokens 取得 +3.0pp 增益，而文档型 Skill 以 ~2500 tokens 反而 -1.1pp。本仓据此冻结 `evals/experience-gene/` 的 `smoke(3) / core(10)` 分层与 `safety=0、precision≥0.80、quality≥-2pp、pitfall不回退、overconstraint不增、cost≤+10%` 六门槛，并在 `docs/archived/archived-plans/experience-gene-governance-evaluation-rollout-archived.md（已归档，路径冻结）` 中规定 live `baseline/shadow/serve` 同 seed 对比与 20-Gene 治理抽样方可 promotion。
 
 ## 跑法
 

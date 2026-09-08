@@ -169,7 +169,7 @@ Trap-Map/
 ├── docs/                 # 项目文档
 ```
 
-`packages/server/` 兼容壳已于 2026-07-31 删除，引用它的旧命令一律失效，见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+`packages/server/` 兼容壳已于 2026-07-31 删除，引用它的旧命令一律失效，见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md（已归档，路径冻结）`。
 
 ## 7. 常见问题
 

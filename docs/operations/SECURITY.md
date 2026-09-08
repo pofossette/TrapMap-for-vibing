@@ -75,7 +75,7 @@ flowchart TB
 
 - `gateway only`：外部调用方只经网关进入，不直连内部 service
 - 内部 hop 依赖现有 runtime trust boundary、canonical error normalization、request 与 trace 传播、部署隔离
-- `service-to-service auth hardening` 仍是 deferred platform topic，历史依据见 `docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md`
+- `service-to-service auth hardening` 仍是 deferred platform topic，历史依据见 `docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md（已归档，路径冻结）`
 
 你写内部 hop 时只写"已有最小运行边界"，不写独立 service identity、mTLS、零信任策略默认值。
 
@@ -324,6 +324,6 @@ Langfuse 适配器可选，`LANGFUSE_ENABLED` 且凭证齐全才启用（相关�
 
 ## 相关文档
 
-- [TrapMap API 参考](../archived/architecture/API.md#-authentication)：认证 API 详情
+- [TrapMap API 契约表面](../reference/api-surface.md)：认证 API 详情
 - [环境变量](../reference/ENVIRONMENT.md)：完整变量列表
 - [TrapMap 部署指南](../architecture/DEPLOYMENT.md)：生产部署步骤

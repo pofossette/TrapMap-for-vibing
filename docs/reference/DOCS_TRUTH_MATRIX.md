@@ -27,7 +27,7 @@
 | 健康与就绪端点 | `packages/host-distributed/src/gateway/routes.ts`（`/health`、`/live`、`/ready`）+ `packages/host-distributed/src/gateway/server.ts`（`/metrics`） | `docs/architecture/DEPLOYMENT.md`、`docs/guides/GETTING_STARTED.md` | 描述性 |
 | 深层架构组件文档 | `packages/db/src/schema/*.ts` + 各 service owner 源码 | `docs/architecture/components/*.md` | 描述性 |
 | 仓库根 Markdown 白名单 | `docs/reference/REPO_STRUCTURE.md` | `README.md`、根 `plan.md`、`docs/README.md` | 结构性 |
-| 归档目录策略 | `docs/reference/REPO_STRUCTURE.md` + `docs/archived/README.md` | `docs/archived/**`、`docs/plans/**` | 结构性 |
+| 归档目录策略 | `docs/reference/REPO_STRUCTURE.md` + `docs/archived/README.md（已归档，路径冻结）` | `docs/archived/**`、`docs/plans/**` | 结构性 |
 | 评估目录布局 | `docs/reference/REPO_STRUCTURE.md` + `evals/README.md` | `docs/operations/TESTING.md`、`docs/architecture/components/EVALUATION.md` | 结构性 |
 
 ## 规则

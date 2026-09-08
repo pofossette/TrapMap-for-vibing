@@ -4,7 +4,7 @@
 > 状态：Queued（2026-09-08 收口暂列排队；恢复执行需 owner 另行确认；见根 `plan.md` 已排队节）。
 > Owner：Web Panel + gateway owner（恢复执行时确认）；入口见根 `plan.md` 已排队节。
 
-本细则承接 2026-08-23 启动、2026-08-25 暂停的首批实现。Experience Gene 主线已于 2026-09-03 完成 closeout 并归档（`docs/archived/archived-plans/experience-gene-program-mainline-archived.md`），本主线经 `git mv` 迁回 `docs/todos/` 恢复执行，后续执行顺序、owner、证据与问题池以本细则为准。
+本细则承接 2026-08-23 启动、2026-08-25 暂停的首批实现。Experience Gene 主线已于 2026-09-03 完成 closeout 并归档（`docs/archived/archived-plans/experience-gene-program-mainline-archived.md（已归档，路径冻结）`），本主线经 `git mv` 迁回 `docs/todos/` 恢复执行，后续执行顺序、owner、证据与问题池以本细则为准。
 
 ## Product Stance
 

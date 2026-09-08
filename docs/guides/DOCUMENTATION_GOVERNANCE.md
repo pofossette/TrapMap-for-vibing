@@ -76,7 +76,7 @@ retrieval、summary、governance、remediation、feedback 的真实失败走这�
 发现问题 -> 记录反馈 -> 补齐 query / 命中快照 / 期望结果 -> 判断是否导出 eval draft -> 纳入回归验证
 ```
 
-参考 `docs/archived/archived-plans/badcase-feedback-loop.md`、`GET /v1/operations/badcases/:feedbackId/export`、`scripts/archived/export-badcase-to-eval.ts`。
+参考 `docs/archived/archived-plans/badcase-feedback-loop.md（已归档，路径冻结）`、`GET /v1/operations/badcases/:feedbackId/export`、`scripts/archived/export-badcase-to-eval.ts`。
 
 ## 最小验证
 

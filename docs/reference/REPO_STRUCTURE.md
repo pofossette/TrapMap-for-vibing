@@ -2,7 +2,7 @@
 
 > 状态：Active。核对日期：2026-09-08。本文档是 TrapMap 仓库布局的权威来源。你看到其他文档描述的目录与本页不一致时，以本页为准。
 
-packages/server（Wave-10 已删除）。你在树里不再给它留位置；历史追溯见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+packages/server（Wave-10 已删除）。你在树里不再给它留位置；历史追溯见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md（已归档，路径冻结）`。
 
 ## 根目录
 

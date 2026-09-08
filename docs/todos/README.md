@@ -32,6 +32,6 @@
 
 ## 当前状态说明
 
-当前无 active mainline（2026-09-08 收口）。CLI 与 Web Panel 为排队项，Gene 为排队 spec（T0-T6 待 dispatch）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。Dead Code and Architecture Order Cleanup 已完成并归档，细则见 [dead-code-and-architecture-order-cleanup-archived.md](../archived/archived-plans/dead-code-and-architecture-order-cleanup-archived.md)（原 `docs/todos/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`），残余 Task 11-13 回写见长期登记册。
+当前无 active mainline（2026-09-08 收口）。CLI 与 Web Panel 为排队项，Gene 为排队 spec（T0-T6 待 dispatch）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。Dead Code and Architecture Order Cleanup 已完成并归档，细则原文存 `docs/archived/archived-plans/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`（原 `docs/todos/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`，全量重写时未迁移），残余 Task 11-13 回写见长期登记册。
 
-完整归档表见 [`../archived/README.md`](../archived/README.md)。
+完整归档表见 `docs/archived/README.md（已归档，路径冻结）`（全量重写时归档目录已删除，历史表冻结）。

@@ -4,9 +4,9 @@
 
 每个架构事实只认一个权威来源。二级文档不重复事实细节，只给链接。复述即漂移。
 
-> packages/server（Wave-10 已删除）。你不再把它当入口。唯一入口是 `packages/host-local`、`packages/host-distributed` 加 6 个 service owner 包和 `packages/backend-core`。历史追溯见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+> packages/server（Wave-10 已删除）。你不再把它当入口。唯一入口是 `packages/host-local`、`packages/host-distributed` 加 6 个 service owner 包和 `packages/backend-core`。历史追溯见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md（已归档，路径冻结）`。
 >
-> 历史 closeout 证据（如文档校验与可观测性平台主线 `docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md`）只作背景参考，不作执行入口。
+> 历史 closeout 证据（如文档校验与可观测性平台主线 `docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md（已归档，路径冻结）`）只作背景参考，不作执行入口。
 
 | 主题 | 权威来源 | 二级文档 |
 |---|---|---|

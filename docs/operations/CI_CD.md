@@ -2,7 +2,7 @@
 
 > 状态：Active。job 集合以 `.github/workflows/` 实测为准，你改流水线时同步改本页。
 
-`packages/server/` 兼容壳已于 2026-07-31 删除（提交 `a66d94e6`）。旧文档里指向它的路径只做概念参考，不再可执行，细节见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+`packages/server/` 兼容壳已于 2026-07-31 删除（提交 `a66d94e6`）。旧文档里指向它的路径只做概念参考，不再可执行，细节见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md（已归档，路径冻结）`。
 
 ## 概述
 

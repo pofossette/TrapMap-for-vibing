@@ -2,7 +2,7 @@
 
 > 状态：Active。本页定可观测性基础设施的运维参数，面向运维人员与平台工程师，只讲怎么运维，不讲怎么构建。
 
-`packages/server/` 兼容壳已于 2026-07-31 删除，旧实现路径只做概念参考，细节见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md`。
+`packages/server/` 兼容壳已于 2026-07-31 删除，旧实现路径只做概念参考，细节见 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md（已归档，路径冻结）`。
 
 ## 采样策略
 

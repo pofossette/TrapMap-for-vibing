@@ -119,7 +119,7 @@ pnpm check:fallow
 
 ## 相关链接
 
-- [TrapMap](../../README.md#--documentation)
-- [TrapMap API 参考](../archived/architecture/API.md)
+- [TrapMap 文档](../README.md)
+- [TrapMap API 契约表面](../reference/api-surface.md)
 - [数据模型](../reference/DATA_MODEL.md)
 - [TrapMap 评测工作区](../../evals/README.md)

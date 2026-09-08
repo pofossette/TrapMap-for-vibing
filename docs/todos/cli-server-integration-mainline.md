@@ -193,7 +193,7 @@
   - 将实测对照 §2.2 阈值，超限项写入 `docs/todos/open-debt-and-compromises.md`（新增 `cli-integration resource drift 2026-09-02` 条目，含 `进入条件/后续落点`）。
 
 - [x] **4.3 文档回写**
-  - 更新 `docs/operations/REGRESSION-COMMANDS.md`（新增 `pnpm test:cli-integration` 入口）、`docs/architecture/DEPLOYMENT.md`（三产物实测资源区间）、`docs/architecture/GO_TECH_STACK.md` 附录（Go 读服务实测收益）。
+  - 更新 `docs/operations/REGRESSION-COMMANDS.md`（新增 `pnpm test:cli-integration` 入口）、`docs/architecture/DEPLOYMENT.md`（三产物实测资源区间）、`docs/architecture/GO-ACCELERATOR.md` 附录（Go 读服务实测收益）。
 
 **Phase 4 验收**：`SUMMARY.md` 含真实数据、三图可渲染、债务已登记、doc guard 全绿。
 
@@ -208,7 +208,7 @@
   - `package.json` 新增 `test:cli-integration`（调用 `run.sh --dry-run` 时仅校验 CLI `api:list` + `compose config`，不需 docker），`check:docs` 新增 `SUMMARY.md` 必须含 `docker stats` 表的 `mustContain`。
 
 - [ ] **5.3 Closeout 归档**
-  - `git mv docs/todos/cli-server-integration-mainline.md docs/archived/archived-plans/cli-server-integration-mainline-archived.md`，更新 `docs/archived/README.md` 与 `docs/todos/README.md`，`plan.md` 切回 `暂无 active mainline` 或下一候选；`typecheck/docs/structure/complexity` 全绿。
+  - closeout 后移除执行面：删除本细则，结论回写 `docs/todos/open-debt-and-compromises.md`，更新 `docs/todos/README.md`，`plan.md` 切回 `暂无 active mainline` 或下一候选；`typecheck/docs/structure/complexity` 全绿。
 
 ---
 

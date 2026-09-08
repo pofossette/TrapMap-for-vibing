@@ -7,7 +7,7 @@
 ## 使用规则
 
 - 每项记录必须包含来源、影响、当前边界、进入条件和后续落点，缺要素的条目视为无效登记。
-- 2026-08-22 平台化主线 closeout 已关闭的条目已物理移除（历史见 `docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md` 与 git history）；本册为仍开放集。
+- 2026-08-22 平台化主线 closeout 已关闭的条目已物理移除（历史见 `docs/archived/archived-plans/debt-mcp-platformization-mainline-archived.md（已归档，路径冻结）` 与 git history）；本册为仍开放集。
 
 ## 长期问题池
 
@@ -29,7 +29,7 @@
 
 ### go-accelerator 退役语义冲突：DEPRECATED.md vs 410 Gone（2026-09-08 新立）
 
-- 来源：`services/go-accelerator/DEPRECATED.md` 称退役端点仍服务（带 `X-Deprecated: use knowledge-read-go` 头并记 `WARN deprecated`），归档文档（`docs/archived/archived-plans/go-service-gradual-migration-archived.md`、`architecture-remediation-phase3-go-convergence-archived.md`）称检索/排序端点已 410 Gone。`docs/architecture/GO-ACCELERATOR.md` 已标未知/待确认（2026-09-08），暂以 DEPRECATED.md 为准。
+- 来源：`services/go-accelerator/DEPRECATED.md` 称退役端点仍服务（带 `X-Deprecated: use knowledge-read-go` 头并记 `WARN deprecated`），归档文档（`docs/archived/archived-plans/go-service-gradual-migration-archived.md（已归档，路径冻结）`、`architecture-remediation-phase3-go-convergence-archived.md`）称检索/排序端点已 410 Gone。`docs/architecture/GO-ACCELERATOR.md` 已标未知/待确认（2026-09-08），暂以 DEPRECATED.md 为准。
 - 影响：读者无法确定 `POST /v1/retrieval/*` 到底返回 410 还是带退役头的 200；`POST /v1/retrieval/score` 的命运在架构页里也是两说。
 - 当前边界：以 DEPRECATED.md 为准；宣称 410 前必须先读 handler 与 `services/knowledge-read-go/internal/api/router.go` 确认。
 - 进入条件：有人通读退役 handler 实现并给出逐端点行为表时。
@@ -61,7 +61,7 @@
 
 ### 安全候选 CI advisory 补跑（2026-08-22 新拆，2026-08-30 已在线基线）
 
-- 来源：A13 人工矩阵 historical 3 候选 reachable=0 已关闭（见 `docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md`）；2026-08-30 本地在线补跑 `pnpm audit --prod --registry=https://registry.npmjs.org`（`.npmrc` 默认镜像源不支持 audit，需覆盖）。
+- 来源：A13 人工矩阵 historical 3 候选 reachable=0 已关闭（见 `docs/archived/reports/SECURITY_CANDIDATES_2026-08-22.md（已归档，路径冻结）`）；2026-08-30 本地在线补跑 `pnpm audit --prod --registry=https://registry.npmjs.org`（`.npmrc` 默认镜像源不支持 audit，需覆盖）。
 - 影响：基线 `22 advisories` / `23 instances` / `650 prod deps`（8 moderate / 15 high / 0 critical），新增 direct reachable 4（fastify find-my-way 1 + ip-address 3）；无 critical，但 direct high 未归零前不能关。
 - 当前边界：矩阵已回填报告（含可达性四档与处置列）；本机 JSON 已落 `/tmp/pnpm-audit-prod.json`。CI 仍需必跑 audit 作回归门控（本轮按分区约束只文档化，不改 CI）。
 - 进入条件：已满足（本地在线）；CI 持久化校验为常态。

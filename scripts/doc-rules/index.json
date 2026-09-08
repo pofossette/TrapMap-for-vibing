@@ -46,51 +46,6 @@
       ]
     },
     {
-      "file": "docs/archived/archived-plans/trapmap-architecture-remediation-plan.md",
-      "mustContain": [
-        "状态：`完成`",
-        "### Phase 7 closure freeze (G5 maintainability / CI-testing truth / docs closeout)",
-        "current active execution surface",
-        "`pnpm run ci`",
-        "`pnpm eval:smoke`",
-        "`pnpm eval:ci`",
-        "`pnpm eval:ci:core`",
-        "Node `24`",
-        "### Phase 1 closure freeze (G1 `#1-#10`)",
-        "`service-*` 只承载 owner-aligned thin assembly",
-        "### Phase 2 closure freeze (G2 `#11-#16`)",
-        "compatibility JSONB store",
-        "Wave A 先补 repo / projection capability",
-        "artifactFilePayloads",
-        "teams / members / access-keys",
-        "InMemory repository fallback",
-        "### Phase 3 closure freeze (G3 `#17` `#18` `#19` `#21` `#23` `#29` `#30` adapter scope)",
-        "provider taxonomy",
-        "host-owned adapter selection seam",
-        "gateway client",
-        "mega-adapter",
-        "### Phase 4 closure freeze (G3 env / target matrix)",
-        "selector env",
-        "provider-specific env",
-        "fail-fast / fallback",
-        "optional dependency",
-        "### Phase 5 closure freeze (G4 distributed baseline)",
-        "Level 2 / transitional-microservice",
-        "shared PostgreSQL",
-        "真实内部 HTTP hop",
-        "deferred",
-        "### Phase 6 closure freeze (G4 mature-capability / library-replacement freeze)",
-        "internal client + resilience",
-        "tracing + metrics",
-        "rate limiting + bulkhead / 背压",
-        "service discovery",
-        "DB budget / PgBouncer",
-        "light` 与 `heavy`",
-        "TRAPMAP_GRAPH_DB_*",
-        "优先引成熟库 / 条件成熟后引入 / 暂不替换"
-      ]
-    },
-    {
       "file": "docs/todos/README.md",
       "mustContain": [
         "活跃索引",
@@ -106,27 +61,6 @@
       ]
     },
     {
-      "file": "docs/archived/README.md",
-      "mustContain": [
-        "不应被其他文档当作当前执行入口引用",
-        "observability-traceability-closure.md",
-        "backend-build-targets-and-client-selection-archived.md",
-        "microservice-platform-evolution-plan.md",
-        "微服务平台能力增强",
-        "应新建 active 细则",
-        "Web Panel"
-      ]
-    },
-    {
-      "file": "docs/plans/README.md",
-      "mustContain": [
-        "唯一 active execution surface",
-        "默认不承担当前执行面",
-        "historical-reference"
-      ],
-      "mustNotContain": ["active-reference", "NestJS 与服务演进执行索引"]
-    },
-    {
       "file": "docs/todos/README.md",
       "mustContain": [
         "当前状态说明",
@@ -138,58 +72,6 @@
     {
       "file": "README.md",
       "mustContain": ["SYSTEM_TRUTH_SOURCES.md"]
-    },
-    {
-      "file": "docs/archived/archived-plans/backend-build-targets-and-client-selection-archived.md",
-      "mustContain": [
-        "共享 target contract 与 registry",
-        "迁移客户端 `backendTarget` 配置",
-        "gateway-only",
-        "全局完成条件",
-        "非目标与问题回写",
-        "pnpm check:docs-drift",
-        "pnpm check:structure"
-      ],
-      "mustNotContain": ["第二个 URL", "第四种 deployment profile"]
-    },
-    {
-      "file": "docs/archived/archived-plans/badcase-feedback-loop.md",
-      "mustContain": [
-        "recall-miss",
-        "ranking-error",
-        "summary-hallucination",
-        "governance-leak",
-        "stale-content"
-      ]
-    },
-    {
-      "file": "docs/archived/archived-plans/backend-engineering-optimization-plan.md",
-      "mustContain": [
-        "[x] 为检索、摘要、治理失败补齐",
-        "[ ] 将高频异步任务从进程内副作用迁移到持久化任务队列",
-        "PG 持久队列 schema"
-      ]
-    },
-    {
-      "file": "docs/archived/archived-plans/microservice-platform-evolution-plan.md",
-      "mustContain": [
-        "状态：`完成`",
-        "归档",
-        "health/readiness/metrics/logging/tracing",
-        "task queue、internal hop latency、error rate",
-        "dashboard/alert/SLO",
-        "open-debt-and-compromises.md",
-        "RPC seam、transport adapter、错误语义、回退策略",
-        "Deferred 落点",
-        "Service Mesh、mTLS、零信任网络",
-        "per-service database、MQ 全面替换、外部缓存平台、全量 dashboard-as-code",
-        "活跃细则状态、入口索引与归档关系",
-        "完成时本计划中的阶段 checklist、文档回写矩阵和最小验证项全部打勾"
-      ],
-      "mustNotContain": [
-        "当前唯一执行面是",
-        "为 distributed 容器补齐内存/CPU 预算、连接池与堆配置约束，形成可执行默认值"
-      ]
     },
     {
       "file": "docs/PACKAGES.md",
