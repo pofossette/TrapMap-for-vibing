@@ -144,7 +144,7 @@ curl -X POST http://127.0.0.1:4000/v1/retrieval/skills/search-by-content \
 ### 拉取并物化指定文件
 
 ```bash
-pnpm --filter @trapmap/cli dev -- operations activate \
+pnpm --filter @trapmap/cli dev -- activate \
   --artifact <artifact-id> \
   --paths SKILL.md,references/setup.md \
   --output ./.tmp/skills/<skill-slug>

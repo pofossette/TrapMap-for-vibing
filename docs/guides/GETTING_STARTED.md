@@ -50,6 +50,51 @@ createdb trapmap
 
 `createdb` 需要你本机装好 PostgreSQL 客户端并连上本地实例。
 
+迁移在网关启动时自动执行；手动跑用迁移组装包（实现见 `apps/migration/src/index.ts`，经 `@trapmap/host-distributed/migrate.js` 执行）：
+
+```bash
+pnpm --filter @trapmap/app-migration build
+pnpm --filter @trapmap/app-migration start
+```
+
+`db:generate`（OLD `pnpm --filter @trapmap/server db:generate`）暂无等效命令：工作树内无 `drizzle-kit` 依赖，待确认（2026-09-08）。
+
+### 可选：本地 Neo4j graph backend
+
+常规开发不需要 Neo4j，只在验证可选 graph DB 后端时启动。变量语义以 `packages/host-local/src/nest/config/graph-db-config.ts` 为准（默认关闭，`failOpen` 默认回退内存 `graphology` 后端）：
+
+```bash
+docker run --name trapmap-neo4j \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/neo4jpass \
+  -d neo4j:5
+
+export TRAPMAP_GRAPH_DB_ENABLED=true
+export TRAPMAP_GRAPH_DB_PROVIDER=neo4j
+export TRAPMAP_GRAPH_DB_URI=bolt://127.0.0.1:7687
+export TRAPMAP_GRAPH_DB_USERNAME=neo4j
+export TRAPMAP_GRAPH_DB_PASSWORD=neo4jpass
+export TRAPMAP_GRAPH_DB_DATABASE=neo4j
+export TRAPMAP_GRAPH_DB_FAIL_OPEN=true
+export TRAPMAP_GRAPH_DB_SYNC_ON_WRITE=true
+```
+
+OLD 的 `pnpm --filter @trapmap/server graph-db:check` 暂无等效命令，待确认（2026-09-08）。
+
+### AI 提供商配置（可选）
+
+自动解析：设 `OPENAI_API_KEY` 即用 OpenAI，也可用 `AI_PROVIDER` 显式指定。完整默认值见 `docs/reference/ENVIRONMENT.md` 的“AI 提供方与提示词模板”与“日志”两节：
+
+| 变量 | 说明 |
+|------|------|
+| `AI_PROVIDER` | 提供商类型，未指定时按 key 自动选择 |
+| `AI_BASE_URL` | 兼容接口的 Base URL |
+| `AI_API_KEY` | API 密钥（provider 专属 key 优先） |
+| `AI_CHAT_MODEL` | 聊天模型名称 |
+| `AI_EMBEDDING_MODEL` | Embedding 模型名称 |
+| `LOG_USER_OPS_ENABLED` / `LOG_RAG_ENABLED` | 用户操作日志 / RAG 检索日志开关 |
+
 ### JSON 文件存储（兼容回退）
 
 未设置数据库 URL 时，`local-agent` 回退到 `.data/skill-shareer.json` 文件存储。该默认值仍在 `packages/host-local/src/nest/config/config.ts` 里生效，只做兼容，不做推荐。

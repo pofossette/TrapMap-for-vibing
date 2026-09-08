@@ -57,6 +57,20 @@
 - `pnpm check:skills`：Skill 文档守卫，随 `doc-guardrails` job 运行。
 - `pnpm check:imports`：跨目录相对引用守卫，随 `doc-guardrails` job 运行。
 
+## 历史 marker 契约与冻结区豁免
+
+双 marker 分工（单源：`scripts/docs-surface.ts` 的 `HISTORY_MARKERS`）：
+
+- `（Wave-10 已删除）`：已删除包的存活引用。正文仍出现 `packages/server` 字样时，用它标注历史身份。
+- `（已归档，路径冻结）`：指向冻结归档路径的引用，如 `docs/archived/archived-plans/compatibility-shell-retirement-runtime-infra-ownership.md（已归档，路径冻结）`，表示目标路径不再移动、不再更新。
+
+豁免范围如实记录：
+
+- 仅 reference guard（`scripts/check-doc-references.ts` 经 `containsHistoryMarker`）认这两个 marker，跳过 link target 与反引号路径的存在性校验。
+- stale guard（`scripts/check-stale-package-refs.ts`）从同一 `HISTORY_MARKERS` 导入两个精确 marker，并保留行级模糊标记（如“兼容壳”“已于”“Wave-10”）以兼容既有标注行。字面整体替换会误报 `docs/guides/CODE_GUIDE.md:33`、`docs/operations/TESTING.md:61`、`docs/guides/CONTRIBUTING.md:64` 三处既有“兼容壳已于……删除”行（其所在节非历史节），故采用导入并集，行为不变。
+- drift（`scripts/check-doc-drift.ts`，规则在 `scripts/doc-rules/*.json`）不覆盖 `docs/archived` 与 `docs/plans` 冻结区：全部 rule 的 `file` 均落在活跃面，冻结区正确性不设 guard。
+- `docs/superpowers` 整目录退出 link 与 mermaid 扫描（冻结，见 `LINK_CHECK_EXCLUDED_REL` 与 `isExcludedDocsPath`）；`check:docs` 对其仅覆盖 `docs/superpowers/README.md` 的严格 lint（`CURRENT_LINT_GLOBS`，`md-lint:current`）。
+
 ## 复发性问题沉淀规则
 
 真实问题同时满足可复现或可稳定描述、未来可能再犯、影响结果正确性或治理安全或流程稳定时，你判断沉淀去向：
