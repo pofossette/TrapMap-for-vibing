@@ -98,6 +98,14 @@ const DEFAULT_INTERNAL_HOSTS: Record<ServiceName, string> = {
   'cron-scheduler': 'localhost',
 };
 
+/**
+ * Default knowledge-read base URL (localhost profile).
+ * Single point for the TRAPMAP_KNOWLEDGE_READ_URL fallback (also consumed by
+ * the gateway knowledge-read proxy in gateway/routes.ts). Value unchanged
+ * (`http://localhost:4002`).
+ */
+export const DEFAULT_KNOWLEDGE_READ_URL = `http://${DEFAULT_INTERNAL_HOSTS['knowledge-read']}:${DEFAULT_PORTS['knowledge-read']}`;
+
 const DISTRIBUTED_INTERNAL_HOSTS: Record<ServiceName, string> = {
   gateway: 'gateway',
   'identity-access': 'identity-access',
@@ -148,6 +156,10 @@ export interface InternalServiceTransports {
 }
 
 function defaultInternalUrls(): InternalServiceUrls {
+  // buildInternalUrls(DEFAULT_INTERNAL_HOSTS).knowledgeRead already equals
+  // DEFAULT_KNOWLEDGE_READ_URL (`http://localhost:4002`), so the builder
+  // output is returned directly; the exported constant above stays the
+  // canonical single point for the knowledge-read default.
   return buildInternalUrls(DEFAULT_INTERNAL_HOSTS);
 }
 

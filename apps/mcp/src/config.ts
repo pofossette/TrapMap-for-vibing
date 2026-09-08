@@ -1,12 +1,14 @@
 import { z } from 'zod';
 
+import { DEFAULT_GATEWAY_URL } from '@trapmap/client-core';
+
 /**
  * MCP server configuration (Task B2).
  * - `TRAPMAP_GATEWAY_URL`: gateway base URL (default local light profile).
  * - `TRAPMAP_ACCESS_TOKEN`: TrapMap access token used as Bearer credential.
  */
 const mcpConfigSchema = z.object({
-  gatewayUrl: z.string().url().default('http://127.0.0.1:4000'),
+  gatewayUrl: z.string().url().default(DEFAULT_GATEWAY_URL),
   accessToken: z.string().min(1),
 });
 

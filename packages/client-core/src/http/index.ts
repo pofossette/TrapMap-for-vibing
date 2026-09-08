@@ -3,6 +3,7 @@ export { apiRequest } from './api-request.js';
 export {
   CLIENT_MAX_RETRIES_ENV,
   CLIENT_TIMEOUT_ENV,
+  DEFAULT_GATEWAY_URL,
   resolveClientMaxRetries,
   resolveClientTimeoutMs,
 } from './client-config.js';

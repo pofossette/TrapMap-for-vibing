@@ -65,6 +65,7 @@ export const OUTBOX_FAIL_STATUS_SQL = `CASE WHEN attempts >= ${resolveOutboxMaxA
 
 /** Exponential backoff delay (ms) preserving the upstream retry shape. */
 function resolveRetryBackoffMs(attempts: number): number {
+  // NOTE: backoff base 2 differs from structured-generation (base 4) by design: job重试域与AI侧无关，历史选择，改前先压测
   return resolveRetryBaseDelayMs() * 2 ** (attempts - 1);
 }
 

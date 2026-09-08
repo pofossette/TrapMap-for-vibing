@@ -22,7 +22,11 @@ import {
   type ExperienceGeneSearchContext,
 } from '@trapmap/service-knowledge-read';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { getGoAcceleratorConfig, getKnowledgeReadGoConfig } from '../config/service-config.js';
+import {
+  DEFAULT_KNOWLEDGE_READ_URL,
+  getGoAcceleratorConfig,
+  getKnowledgeReadGoConfig,
+} from '../config/service-config.js';
 import { resolveGatewayHealthProbeTimeoutMs } from './config.js';
 import { breakerStatesSnapshot, type InternalServiceClients } from './internal-client.js';
 import { recordGatewayRateLimited } from './internal-observability.js';
@@ -212,7 +216,7 @@ export function registerGatewayRoutes(
     };
     const forwardNode = async () => {
       try {
-        const nodeUrl = `${process.env.TRAPMAP_KNOWLEDGE_READ_URL ?? 'http://localhost:4002'}/v1/knowledge/read`;
+        const nodeUrl = `${process.env.TRAPMAP_KNOWLEDGE_READ_URL ?? DEFAULT_KNOWLEDGE_READ_URL}/v1/knowledge/read`;
         const res = await fetch(nodeUrl, {
           method: 'POST',
           headers: { ...headers, 'content-type': 'application/json' },

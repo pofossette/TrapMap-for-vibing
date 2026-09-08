@@ -15,6 +15,9 @@ export const CLIENT_TIMEOUT_ENV = 'TRAPMAP_CLIENT_TIMEOUT_MS';
 /** Env var for extra retry attempts. Unset = no retries (legacy). */
 export const CLIENT_MAX_RETRIES_ENV = 'TRAPMAP_CLIENT_MAX_RETRIES';
 
+/** Single source of the default gateway URL; consumers must import this instead of hardcoding. No `CLIENT_` prefix because this constant is consumed cross-package. */
+export const DEFAULT_GATEWAY_URL = 'http://127.0.0.1:4000';
+
 /**
  * Resolve the per-attempt fetch timeout in ms.
  * Returns `undefined` when unset or invalid (= no timeout, legacy behavior).

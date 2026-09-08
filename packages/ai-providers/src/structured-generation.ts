@@ -108,6 +108,7 @@ export async function generateStructured<T>(options: {
     }
 
     if (attempts <= maxRetries) {
+      // NOTE: backoff base 4 differs from ai-parse (base 2) by design: 历史选择，默认参数下延迟序列一致，改前先压测
       await new Promise((resolve) => setTimeout(resolve, baseDelayMs * 4 ** (attempts - 1)));
     }
   }

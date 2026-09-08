@@ -45,6 +45,7 @@ export async function invokeWithParseRetry<T>(options: {
   // the exponential shape below stays hardcoded.
   const maxRetries = options.maxRetries ?? resolveParseMaxRetries();
   const retryBaseMs = resolveParseRetryBaseMs();
+  // NOTE: backoff base 2 differs from structured-generation (base 4) by design: 历史选择，默认参数下延迟序列一致，改前先压测
   const backoffMs = options.backoffMs ?? ((attempt: number) => retryBaseMs * 2 ** (attempt * 2));
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
