@@ -100,8 +100,88 @@ distributed profile 下内部地址默认走 compose Docker DNS；本地进程�
 | `OPENAI_API_KEY` | `packages/ai-providers/src/provider-config.ts:74` | OpenAI 密钥；缺失时回退到确定性 fallback 向量 | 未设置 |
 | `GEMINI_API_KEY` | `packages/ai-providers/src/provider-config.ts:77` | Google GenAI 密钥 | 未设置 |
 | `AI_PROMPT_TEMPLATE_FILE` | `packages/ai-providers/src/prompt-builder.ts:264` | 覆盖默认提示词槽位文件的路径 | `docs/reference/system-prompt-slots.default.json` |
+| `AI_BASE_URL` | `packages/ai-providers/src/provider-config.ts:133` | 兼容接口的 Base URL（openai 默认 `https://api.openai.com/v1`，随 provider 而异） | 提供商默认值 |
+| `AI_API_KEY` | `packages/ai-providers/src/provider-config.ts:94` | API 密钥（provider 专属 key 优先，其次该变量） | `OPENAI_API_KEY` |
+| `AI_CHAT_MODEL` | `packages/ai-providers/src/provider-config.ts:135` | 聊天模型名称 | `gpt-4o-mini`（openai 默认） |
+| `AI_EMBEDDING_MODEL` | `packages/ai-providers/src/provider-config.ts:136` | Embedding 模型名称 | `text-embedding-3-small`（openai 默认） |
+| `AI_PROMPT_PROVIDER` | `packages/ai-providers/src/prompt-builder.ts:261` | Prompt provider 选择：`anthropic`、`openai`、`deepseek`、`kimi`、`gemini`、`default` | 自动从模型 ID 推断 |
+| `EMBEDDING_PROVIDER` | `packages/ai-providers/src/provider-config.ts:99` | 独立 Embedding 提供商类型（未设置时不分离） | 与 `AI_PROVIDER` 相同 |
 
 `docs/reference/system-prompt-slots.default.json` 是运行期实时默认（`packages/ai-providers/src/prompt-builder.ts:40` 解析它）。你不要搬移该文件；覆盖需求走 `AI_PROMPT_TEMPLATE_FILE`，任务类型限定为 `boundary-extraction`、`knowledge-refinement`、`claim-verification`、`graph-extraction`、`graph-extraction-planner`、`label-alignment`。
+
+## 检索 Decay 开关
+
+| 变量 | 来源 | 说明 | 默认值 |
+|---|---|---|---|
+| `TRAPMAP_DECAY_ENABLED` | `packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts:15` | 是否启用 decay 状态计算 | `false`（非 `true` 即关） |
+| `TRAPMAP_DECAY_REVIEW_DUE_DAYS` | `packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts:12` | `review-due` 阈值天数 | `90` |
+| `TRAPMAP_DECAY_STALE_DAYS` | `packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts:13` | `stale` 阈值天数 | `180` |
+| `TRAPMAP_DECAY_EXPIRE_DAYS` | `packages/service-knowledge-read/src/knowledge-read-support-infra-default.ts:14` | `expired` 阈值天数 | `365` |
+
+decay 配置 schema 见 `packages/contracts/src/domain/decay.ts`，运行时由 knowledge-read 侧读取环境变量并做 Zod 校验。
+
+## 可选 Graph DB 查询后端
+
+PostgreSQL `graph_index_documents` 仍是图索引权威真相源；可选 graph DB 仅用于查询期图遍历与扩张。
+
+| 变量 | 来源 | 说明 | 默认值 |
+|---|---|---|---|
+| `TRAPMAP_GRAPH_DB_ENABLED` | `packages/host-local/src/nest/config/graph-db-config.ts:56` | 启用可选 graph DB 查询后端 | `false` |
+| `TRAPMAP_GRAPH_DB_PROVIDER` | `packages/host-local/src/nest/config/graph-db-config.ts:57` | 图查询后端提供者；当前仅支持 `neo4j` | `neo4j` |
+| `TRAPMAP_GRAPH_DB_URI` | `packages/host-local/src/nest/config/graph-db-config.ts:58` | Neo4j 连接地址；仅在启用 graph DB 时必填 | 未设置（`null`） |
+| `TRAPMAP_GRAPH_DB_USERNAME` | `packages/host-local/src/nest/config/graph-db-config.ts:59` | Neo4j 用户名；仅在启用 graph DB 时必填 | 未设置（`null`） |
+| `TRAPMAP_GRAPH_DB_PASSWORD` | `packages/host-local/src/nest/config/graph-db-config.ts:60` | Neo4j 密码；仅在启用 graph DB 时必填 | 未设置（`null`） |
+| `TRAPMAP_GRAPH_DB_DATABASE` | `packages/host-local/src/nest/config/graph-db-config.ts:61` | Neo4j database 名称 | `neo4j` |
+| `TRAPMAP_GRAPH_DB_FAIL_OPEN` | `packages/host-local/src/nest/config/graph-db-config.ts:62` | graph DB 不可用时是否自动回退到内存 `graphology` backend | `true` |
+| `TRAPMAP_GRAPH_DB_SYNC_ON_WRITE` | `packages/host-local/src/nest/config/graph-db-config.ts:63` | 图索引写入时是否同步刷新 graph DB 投影 | `true` |
+
+## 日志
+
+| 变量 | 来源 | 说明 | 默认值 |
+|---|---|---|---|
+| `LOG_LEVEL` | `packages/host-local/src/nest/observability/loki.service.ts:56` | 日志级别（light 侧 Loki 传输沿用该级别） | `info` |
+| `LOG_USER_OPS_ENABLED` | `packages/host-local/src/nest/config/user-ops-log.ts:47` | 启用用户操作日志 | `false`（非 `true` 即关） |
+| `LOG_RAG_ENABLED` | `packages/host-local/src/nest/config/rag-log.ts:8` | 启用 RAG 检索日志 | `false`（非 `true` 即关） |
+| `LOG_MAX_FILE_SIZE_MB` | `packages/host-local/src/nest/config/log-rotation.ts:7` | 单个日志文件最大大小（MB） | `10` |
+| `LOKI_HOST` | `packages/host-local/src/nest/observability/loki.service.ts:41` | Loki push API 地址；为空时 Loki 日志传输禁用 | 未设置（禁用） |
+| `NODE_ENV` | `packages/host-local/src/nest/observability/loki.service.ts:37`，另见 `packages/host-distributed/src/shared/telemetry.ts:81` | 运行环境（Sentry `environment`、OTel `environment` 的回退来源之一） | `development`（各消费点回退值） |
+
+## 可观测性：Langfuse、Sentry、OTel 与指标
+
+| 变量 | 来源 | 说明 | 默认值 |
+|---|---|---|---|
+| `LANGFUSE_ENABLED` | `packages/host-local/src/nest/observability/langfuse-sink.ts:48` | 是否启用 Langfuse 运行时 LLM 观测（`false` 时完全禁用） | 未设置（禁用） |
+| `LANGFUSE_BASE_URL` | `packages/host-local/src/nest/observability/langfuse-sink.ts:49` | Langfuse 实例 URL | 未设置（禁用） |
+| `LANGFUSE_PUBLIC_KEY` | `packages/host-local/src/nest/observability/langfuse-sink.ts:50` | Langfuse public key | 未设置（禁用） |
+| `LANGFUSE_SECRET_KEY` | `packages/host-local/src/nest/observability/langfuse-sink.ts:51` | Langfuse secret key | 未设置（禁用） |
+| `LANGFUSE_FLUSH_TIMEOUT_MS` | `packages/host-local/src/nest/observability/langfuse-sink.ts:52` | Bounded flush 超时毫秒数（范围 100-60000，见 `packages/contracts/src/domain/observability-config.ts:370`） | `5000` |
+| `LANGFUSE_PRIVACY_MODE` | `packages/host-local/src/nest/observability/langfuse-sink.ts:58` | 隐私模式：`strict`（仅 metadata/长度/哈希）或 `metadata-only` | `strict` |
+| `SENTRY_DSN` | `packages/host-local/src/nest/observability/sentry.service.ts:183` | Sentry DSN；为空时 Sentry 完全禁用（no-op） | 未设置（禁用） |
+| `SENTRY_ENVIRONMENT` | `packages/host-local/src/nest/observability/sentry.service.ts:184` | Sentry 环境标签 | `NODE_ENV` 或 `development` |
+| `SENTRY_RELEASE` | `packages/host-local/src/nest/observability/sentry.service.ts:185` | Sentry release 标识 | `npm_package_version` 或 `0.1.0` |
+| `SENTRY_TRACES_SAMPLE_RATE` | `packages/host-local/src/nest/observability/sentry.service.ts:186` | Sentry traces 采样率（0-1） | `0` |
+| `OTEL_DISABLED` | `packages/host-distributed/src/shared/telemetry.ts:76`，另见 `packages/host-local/src/nest/observability/otel.service.ts:35` | 是否禁用 OpenTelemetry SDK 初始化（`true` 时所有 OTel 操作为空操作） | `false` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `packages/host-distributed/src/shared/telemetry.ts:78`，另见 `packages/host-local/src/nest/observability/otel.service.ts:37` | OTLP exporter 端点 | `http://localhost:4318` |
+| `TRAPMAP_METRICS_ENABLED` | `packages/host-local/src/nest/observability/prometheus.service.ts:26` | 是否暴露 `/metrics` Prometheus 端点并收集 `prom-client` 指标 | `true` |
+| `TRAPMAP_JOB_RUNTIME_DATABASE_URL` | `packages/host-distributed/src/shared/database.ts:98` | job-runtime 可选隔离库；设置时 `job-runtime` 使用独立 PostgreSQL，缺省回退共享库；其余服务不读取该变量 | 未设置（回退共享库） |
+
+缺少任一 Langfuse 凭证时 observation 不加载、不传输，对请求零影响；缺少 `SENTRY_DSN` 时 Sentry 不加载、不传输，对请求和异步任务零影响。
+
+## 已退役/预留变量族（不收录）
+
+经代码核查，以下变量族在当前工作树无源码读取（`grep -rn` 覆盖 `packages/`、`apps/`、`services/`、`scripts/`，仅命中文档与注释），属预留/已退役，故不收录：
+
+| 变量族 | 说明 |
+|---|---|
+| `TRAPMAP_BULK_WRITE_*` | 经代码核查无引用，属预留/已退役，故不收录 |
+| `TRAPMAP_CACHE_INVALIDATION_*` | 经代码核查无引用，属预留/已退役，故不收录 |
+| `TRAPMAP_REMOTE_CACHE_*` | 经代码核查无引用，属预留/已退役，故不收录 |
+| `TRAPMAP_INTERNAL_*`（除主表已收录的 `TRAPMAP_INTERNAL_RETRY_MAX_ATTEMPTS`、`TRAPMAP_INTERNAL_BREAKER_THRESHOLD`、`TRAPMAP_INTERNAL_BREAKER_COOLDOWN_MS` 三项外） | 其余 MODE/URL/TIMEOUT/HEADERS/QUEUE 预留面经代码核查无引用，属预留/已退役，故不收录 |
+| `TRAPMAP_EVAL_PLATFORM*` | 经代码核查无引用（eval 平台启用走显式 `--platform` 参数），属预留/已退役，故不收录 |
+| `TRAPMAP_RETRIEVAL_*` 本地缓存/warmup | 经代码核查无引用，属预留/已退役，故不收录 |
+| `MINIO_ROOT_PASSWORD` | 经代码核查无引用（本地 Langfuse self-host compose 侧变量，非 TrapMap 读取），属预留/已退役，故不收录 |
+| `RUNTIME_MODE` | 经代码核查无引用，属预留/已退役，故不收录 |
+| `RETRIEVAL_CAPSULE_PG_*` | 经代码核查无引用，属预留/已退役，故不收录 |
 
 ## 核对命令
 
