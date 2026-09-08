@@ -1,104 +1,45 @@
+# `@trapmap/cli`
 
-# TrapMap Skills
+你用这个包操作 TrapMap，`trapmap` 二进制是唯一稳定的人机入口。
 
-Project-level skill artifacts that define AI agent workflows, CLI usage guides, and reference documentation for TrapMap operations. These skills are consumed by coding agents (Claude Code, Codex, OpenAI Codex, etc.) to enforce retrieval-gated planning, knowledge registration, feedback loops, and maintenance discipline.
+## 入口
 
-## Skills
+主入口为 `apps/cli/src/index.ts`，`bin` 把 `trapmap` 指向 `./dist/index.js`，命令按族注册在 `apps/cli/src/commands/` 下，共享逻辑落在 `apps/cli/src/lib/`，测试夹具见 `apps/cli/src/testing/`。
 
-### workflow-with-trapmap
+| 命令族 | 来源 |
+| --- | --- |
+| `audit` | `apps/cli/src/commands/audit.ts` |
+| `auth` | `apps/cli/src/commands/auth.ts` |
+| `cron` | `apps/cli/src/commands/cron.ts` |
+| `decay` | `apps/cli/src/commands/decay.ts` |
+| `evidence` | `apps/cli/src/commands/evidence.ts` |
+| `feedback` | `apps/cli/src/commands/feedback.ts`、`feedback-admin.ts` |
+| `knowledge` | `apps/cli/src/commands/knowledge.ts` |
+| `load` | `apps/cli/src/commands/load.ts` |
+| `maintenance` | `apps/cli/src/commands/maintenance.ts` |
 
-Workflow skill that gates TrapMap work behind retrieval, trap-priority planning, knowledge accumulation, feedback, and maintenance checks. Loaded when the agent needs to plan or implement TrapMap-related tasks.
-
-**Entry:** `workflow-with-trapmap/SKILL.md`
-
-**Control path:**
-
-1. Resolve CLI invocation (`trapmap` or `pnpm --filter @trapmap/cli dev -- <command>`)
-2. Pre-plan: skill search-by-content, then select 1-3 direct matches
-3. Pre-implementation: trap retrieval with risk/implementation seeds
-4. Compile trap-priority plan (blocking traps first, then mitigating skills, then verification)
-5. Accumulate compact lessons post-resolution; submit feedback on inaccurate results
-6. Check decay state before using potentially aging entries
-
-**References:**
-
-| File | Purpose |
-|------|---------|
-| `references/retrieval.md` | Auth pre-check, search commands, trap-priority selection |
-| `references/registration.md` | Trap submission, skill import, compact skill shape |
-| `references/review.md` | Review queue, approve/reject criteria, duplicate resolution |
-| `references/artifacts.md` | Export, selective activation, script policies |
-| `references/accumulation.md` | Strategy-gene capture (`MATCH/GOAL/STRATEGY/AVOID/VERIFY`) |
-| `references/feedback.md` | Feedback submission, queue viewing, batch processing |
-| `references/maintenance.md` | Decay lifecycle, maintenance operations, agent guidance |
-
-**Agent config:** `agents/openai.yaml` (OpenAI Codex interface definition)
-
-### trapmap-cli-usage-guide
-
-Compact CLI reference indexed by workflow stage. Loaded only when the agent needs to confirm command signatures, flags, command-family mappings, or output configuration. Not a workflow strategy -- defer to `workflow-with-trapmap` for "why/when" decisions.
-
-**Entry:** `trapmap-cli-usage-guide/SKILL.md`
-
-**References:**
-
-| File | Purpose |
-|------|---------|
-| `references/cli-index.md` | CLI commands organized by workflow stage (session, retrieval, registration, review, artifacts, feedback, decay, skill management, ops) |
-
-## Directory Structure
-
-```
-packages/skills/
-  README.md
-  workflow-with-trapmap/
-    SKILL.md                          # Workflow entry point
-    agents/
-      openai.yaml                     # OpenAI agent interface config
-    references/
-      retrieval.md                    # Retrieval gate rules
-      registration.md                 # Knowledge registration commands
-      review.md                       # Review queue and approval workflow
-      artifacts.md                    # Export and activation
-      accumulation.md                 # Compact experience capture
-      feedback.md                     # Feedback submission and management
-      maintenance.md                  # Decay lifecycle and maintenance
-  trapmap-cli-usage-guide/
-    SKILL.md                          # CLI guide entry point
-    references/
-      cli-index.md                    # Command index by workflow stage
-```
-
-## Skill Design Principles
-
-- **Trap-priority:** Blocking traps take precedence over skills in planning. If a trap conflicts with a skill, the trap wins until explicitly mitigated.
-- **Compact strategy-gene shape:** Skills use `MATCH / GOAL / STRATEGY / AVOID / VERIFY` control blocks. The `AVOID` line carries distilled failure warnings.
-- **Lazy loading:** Only load the reference file needed for the current operation. Do not bulk-read all references.
-- **Auth pre-check:** Always run `trapmap session --json` before retrieval if auth state is uncertain. Never fabricate empty results.
-- **Feedback loop:** Submit `trapmap feedback` when retrieved knowledge is inaccurate, outdated, or context-mismatched. Feedback does not block the current task.
-
-## Usage
-
-These skills are designed to be loaded by AI coding agents as part of their workflow. They are not executable packages -- they are structured markdown that agents consume as context.
-
-To import a skill into TrapMap's knowledge base:
+仓库内无内置二进制时，你用 `pnpm --filter @trapmap/cli dev -- <command>` 代替 `trapmap`。
 
 ```bash
-trapmap import --file packages/skills/workflow-with-trapmap --level 0 --json
-trapmap import --file packages/skills/trapmap-cli-usage-guide --level 0 --json
+pnpm --filter @trapmap/cli dev -- --help
+pnpm --filter @trapmap/cli build
+pnpm --filter @trapmap/cli typecheck
+pnpm --filter @trapmap/cli test
 ```
 
-To use the CLI commands referenced in these skills, install `@trapmap/cli` or run via the monorepo:
+## 行为
 
-```bash
-trapmap <command> [options]
-# or in dev mode:
-pnpm --filter @trapmap/cli dev -- <command> [options]
-```
+| 依赖 / 脚本 | 用途 |
+| --- | --- |
+| `commander` | 命令行解析与子命令分发 |
+| `@inquirer/prompts` | 交互式输入 |
+| `zod` | 输入校验 |
+| `@trapmap/client-core` | 网关传输 |
+| `@trapmap/contracts` | 共享契约类型 |
+| `@trapmap/lib` | 纯函数工具 |
+| `@trapmap/skill-registry` | skill 安装与版本管理命令 |
+| `dev` | `tsx src/index.ts` 本地运行 |
+| `build` / `typecheck` | `tsc -p tsconfig.json` 编译 / 校验 |
+| `test` | `vitest run --passWithNoTests` |
 
-## Dependencies
-
-This package has no runtime dependencies. It references the following TrapMap components:
-
-- `@trapmap/cli` -- CLI binary used by all referenced commands
-- TrapMap backend service -- authentication, retrieval, knowledge storage, review, feedback
+命令签名细节由 `packages/skills/trapmap-cli-usage-guide/SKILL.md` 承载，工作流取舍由 `packages/skills/workflow-with-trapmap/SKILL.md` 承载。
