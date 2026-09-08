@@ -1,6 +1,6 @@
 # 文档治理指南
 
-> 状态：Active。本页定分层、回写触发与沉淀规则，守卫符号以 CI 实测为准。
+> 状态：Active（2026-09-08）。本页定分层、回写触发与沉淀规则，守卫符号以 CI 实测为准。
 
 ## 文档分层
 
@@ -50,7 +50,7 @@
 
 以下守卫已接入 CI `doc-guardrails` job 与 `scripts/run-ci.ts`。你新增表、改表清单、改 evals 或服务包导入关系时保持它们通过：
 
-- `pnpm check:table-schema`：表清单守卫。以 `packages/db/src/schema/` 的 `pgTable`（42 张）为权威，diff `docs/reference/DATABASE_SCHEMA.md`。新增表同步更新文档。
+- `pnpm check:table-schema`：表清单守卫。以 `packages/db/src/schema/` 的 `pgTable` 为权威，对照 `docs/reference/DATABASE_SCHEMA.md` 校验。新增表同步更新文档。
 - `pnpm check:pgtable-single-source`：pgTable 单源守卫。`packages/service-*` src 禁止直接 `pgTable(...)`，schema 只 re-export `@trapmap/db`。
 - `pnpm check:eval-imports`：eval import 边界守卫。evals 经 `@trapmap/*` 包名、`packages/contracts/**`、host-local eval allowlist 或 `@eval-only` 模块接入 packages，其余深路径直连失败。
 - `pnpm check:eval-only`：`@eval-only` 标记守卫。只被 evals 引用、无产品消费者、不经包 index 导出的模块带头注释。
@@ -76,7 +76,7 @@ retrieval、summary、governance、remediation、feedback 的真实失败走这�
 发现问题 -> 记录反馈 -> 补齐 query / 命中快照 / 期望结果 -> 判断是否导出 eval draft -> 纳入回归验证
 ```
 
-参考 `docs/archived/archived-plans/badcase-feedback-loop.md（已归档，路径冻结）`、`GET /v1/operations/badcases/:feedbackId/export`、`scripts/archived/export-badcase-to-eval.ts`。
+历史闭环曾记录于 `docs/archived/archived-plans/badcase-feedback-loop.md（已归档，路径冻结）` ，当时配套了 `GET /v1/operations/badcases/:feedbackId/export` 与 `scripts/archived/export-badcase-to-eval.ts` 。
 
 ## 最小验证
 
@@ -88,3 +88,47 @@ pnpm check:structure
 ```
 
 改动触及 truth source、架构事实或对应 smoke 用例时，再补相关最小测试。
+
+## 统一文档结构标准
+
+你 写新页面前先对齐本节模板，你 不复述权威页已有的事实。
+
+### 页面模板
+
+指南类页面用 目标 / 前置 / 步骤 / 验证 / 排错五段：
+
+- 目标回答页面解决什么问题。
+- 前置列出必读文档与仓库根前置命令。
+- 步骤给出可执行动作序列。
+- 验证给出闭环命令。
+- 排错收敛已知失败与定位命令。
+
+规范类页面用 目标 / 规则 / 执行方式 / 违反后果四段，实例见 `docs/guides/CODE_STYLE.md` 。
+
+包级 README 用 职责 / 入口 / 行为 / 常见用法四段：
+
+- 职责用一句话界定本包。
+- 入口列出导出与命令。
+- 行为给出与 `package.json` 一致的依赖与脚本表。
+- 常见用法给出 2 到 3 个短配方，链到 `docs/` 对应层，不复制跨包结论。
+
+架构页面在职责 / 入口 / 行为之外追加常见用法：
+
+- 你 追加常见用法时只给链路与入口，不重述 `docs/reference/` 已有的端点、表、命令事实。
+- 事实变化时，你 只改 `docs/reference/` 权威页，架构页跟随改链，不跟随抄数。
+
+### 分目录上手要求
+
+每个目录的入口文档与常见用法如下，你 接到对应任务时从入口进：
+
+| 目录 | 入口文档 | 常见用法 |
+| --- | --- | --- |
+| `docs/reference` | `docs/reference/SYSTEM_TRUTH_SOURCES.md` | 你 先查裁决源，再读 `docs/reference/REPO_STRUCTURE.md` 、 `docs/reference/api-surface.md` |
+| `docs/architecture` | `docs/architecture/ARCHITECTURE.md` | 你 先读总览，再按需进 `docs/architecture/BOUNDARIES.md` 、 `docs/architecture/OBSERVABILITY.md` 、 `docs/architecture/SERVICE-DISCOVERY.md` |
+| `docs/guides` | `docs/guides/GETTING_STARTED.md` | 你 先走上手页，再读 `docs/guides/CODE_STYLE.md` 、 `docs/guides/DEV_WORKFLOW.md` 、 `docs/guides/CONTRIBUTING.md` |
+| `docs/operations` | `docs/operations/TESTING.md` | 你 先读测试页，再按需进 `docs/operations/CI_CD.md` 、 `docs/operations/SECURITY.md` 、 `docs/operations/REGRESSION-COMMANDS.md` |
+| `docs/todos` | `docs/todos/README.md` | 你 先确认执行面，再跟随其链接进入主线细则 |
+| `evals` | `evals/retrieval/README.md` | 你 先读跑法与结果读法，再按需进 `evals/summary/README.md` |
+| `packages/skills` | `packages/skills/README.md` | 你 先读 Skill 总表，再进 `packages/skills/workflow-with-trapmap/SKILL.md` |
+
+你 新增目录时同步补齐该行，你 不留无入口目录。

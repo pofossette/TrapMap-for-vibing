@@ -91,6 +91,14 @@
 - 进入条件：CLI `--v2` 或 capsule retrieval 产品需求启动时处理 v2；host-local/v3 parity 纳入下一个 gateway surface reconciliation tranche。
 - 后续落点：优先决定实现 endpoint 还是收缩 CLI/docs surface，然后按 RouteDef 工厂补齐并更新 api-surface。
 
+### test:observability-closeout 引了不存在的测试路径（2026-09-08 新立）
+
+- 来源：`package.json:51` 的 `test:observability-closeout` 引用 `packages/ai-providers/src/observability.test.ts`，该文件不存在；真实文件在 `packages/ai-providers/test/observability.test.ts`。
+- 影响：直接跑该 closeout 命令会因缺文件失败；常规 `test:coverage` 不走这条命令，不受影响。
+- 当前边界：仅该一条命令受影响，不改源码行为。
+- 进入条件：另起 tranche，把脚本路径改到 `test/` 目录并跑通该命令。
+- 后续落点：`docs/operations/TESTING.md` 的 closeout 命令表（路径修正后复核）。
+
 ## 审核检查表
 
 - [x] 2026-08-22 closeout：关闭条目物理移除，净收缩核对完成。

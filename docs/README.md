@@ -10,7 +10,7 @@
 
 - [reference/](reference/) — 真相源：目录结构、表结构、API 表面、术语、环境变量。先读 [系统权威事实源](reference/SYSTEM_TRUTH_SOURCES.md)。
 - [architecture/](architecture/) — 架构说明：宿主、内核、服务边界、部署。入口见 [TrapMap 架构](architecture/ARCHITECTURE.md)。
-- [guides/](guides/) — 上手与集成：[快速上手指南](guides/GETTING_STARTED.md)、[TrapMap 代码导读](guides/CODE_GUIDE.md)、[投稿指南](guides/CONTRIBUTING.md)。
+- [guides/](guides/) — 上手与集成：[快速上手指南](guides/GETTING_STARTED.md)、[TrapMap 代码导读](guides/CODE_GUIDE.md)、[投稿指南](guides/CONTRIBUTING.md)、[代码风格指南](guides/CODE_STYLE.md)、[开发工作流](guides/DEV_WORKFLOW.md)。
 - [operations/](operations/) — 运行与质量：[测试指南](operations/TESTING.md)、[CI/CD 流水线](operations/CI_CD.md)、[安全指南](operations/SECURITY.md)。
 - [todos/](todos/README.md) — 执行面：当前主线、债务登记、排队 spec。
 - [PACKAGES.md](PACKAGES.md) — 包总表：全包一行一条，细节链各包 README。
