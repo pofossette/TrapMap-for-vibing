@@ -154,10 +154,13 @@ export function matchesBoundaryDescription(
   );
 }
 
+/** Max length of a normalized boundary label (slug truncation bound). */
+export const BOUNDARY_LABEL_MAX_LENGTH = 64;
+
 export function normalizeBoundaryLabel(label: string): string {
   return label
     .toLowerCase()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '')
-    .slice(0, 64);
+    .slice(0, BOUNDARY_LABEL_MAX_LENGTH);
 }

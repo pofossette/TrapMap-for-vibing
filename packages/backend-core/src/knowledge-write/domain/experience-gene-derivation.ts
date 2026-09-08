@@ -12,6 +12,15 @@ import { scanExperienceGeneSafety } from './experience-gene-safety.js';
 export const EXPERIENCE_GENE_RULE_PROMPT_VERSION = 'experience-gene-rule-v1';
 const RULE_PROMPT_VERSION = EXPERIENCE_GENE_RULE_PROMPT_VERSION;
 
+/** Hex chars of the idempotency hash embedded in `geneId` (value-preserving). */
+export const EXPERIENCE_GENE_ID_HASH_LENGTH = 24;
+/** Control-array budgets for compactness gate (value-preserving). */
+export const EXPERIENCE_GENE_SIGNALS_MATCH_BUDGET = 20;
+export const EXPERIENCE_GENE_STRATEGY_BUDGET = 7;
+export const EXPERIENCE_GENE_AVOID_BUDGET = 7;
+/** Cap on surfaced schema issues per candidate (value-preserving). */
+export const EXPERIENCE_GENE_SCHEMA_ISSUE_LIMIT = 20;
+
 export type RuleExtractionResult =
   | { gene: ExperienceGene }
   | { status: 'insufficient-structure'; reason: 'insufficient-structure' };
@@ -166,7 +175,7 @@ function makeGene(input: RuleGeneInput): ExperienceGene {
   });
 
   return experienceGeneSchema.parse({
-    geneId: `gene_${idempotencyKey.slice(0, 24)}`,
+    geneId: `gene_${idempotencyKey.slice(0, EXPERIENCE_GENE_ID_HASH_LENGTH)}`,
     status: 'candidate',
     ...geneContent,
     lineage: {
@@ -255,9 +264,9 @@ export type ExperienceGeneDuplicateMatch =
 
 export function checkExperienceGeneCompactness(candidate: ExperienceGene): ValidationIssue[] {
   const withinBudget =
-    candidate.signalsMatch.length <= 20 &&
-    candidate.strategy.length <= 7 &&
-    candidate.avoid.length <= 7;
+    candidate.signalsMatch.length <= EXPERIENCE_GENE_SIGNALS_MATCH_BUDGET &&
+    candidate.strategy.length <= EXPERIENCE_GENE_STRATEGY_BUDGET &&
+    candidate.avoid.length <= EXPERIENCE_GENE_AVOID_BUDGET;
   if (withinBudget) return [];
 
   return [
@@ -272,7 +281,7 @@ export function checkExperienceGeneCompactness(candidate: ExperienceGene): Valid
 function schemaIssues(candidate: ExperienceGene): ValidationIssue[] {
   const result = experienceGeneSchema.safeParse(candidate);
   if (result.success) return [];
-  return result.error.issues.slice(0, 20).map((problem) => ({
+  return result.error.issues.slice(0, EXPERIENCE_GENE_SCHEMA_ISSUE_LIMIT).map((problem) => ({
     code: 'schema-invalid',
     field: problem.path.join('.') || 'gene',
     message: problem.message,

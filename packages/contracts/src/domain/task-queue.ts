@@ -66,6 +66,11 @@ export interface TaskWorkerConfig<TPool = unknown> {
 }
 
 export function createTaskWorkerController(config: TaskWorkerControllerConfig) {
+  // NOTE: pollIntervalMs=1000 / concurrency=1 are the *task-worker* loop
+  // defaults (per-type dequeue polling). They intentionally differ from
+  // backend-core OUTBOX_POLL_INTERVAL_MS=2000, which governs the *outbox
+  // relay* claim batch loop — different loop, different purpose. Do not
+  // "unify" the values; that would change runtime behavior.
   const { queue, handlers, pollIntervalMs = 1000, concurrency = 1, ownsWork = true } = config;
   const handlerMap = new Map(handlers.map((handler) => [handler.type, handler]));
   const activeTasks = new Set<Promise<void>>();

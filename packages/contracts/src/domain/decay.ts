@@ -76,6 +76,27 @@ export type VolatileDecayConfig = z.infer<typeof volatileDecayConfigSchema>;
 export type FreshnessDecayConfig = z.infer<typeof freshnessDecayConfigSchema>;
 
 /**
+ * Canonical default freshness-decay configuration (single source of truth).
+ *
+ * Values mirror the zod schema defaults above (volatile 30/90/0.3,
+ * versioned step 1.0/0.5, evergreen disabled). Consumers (e.g.
+ * backend-core `knowledge-read/domain/ranking.ts`) must reference this
+ * constant instead of re-declaring the literal so defaults stay unified.
+ */
+export const DEFAULT_FRESHNESS_DECAY_CONFIG: FreshnessDecayConfig =
+  freshnessDecayConfigSchema.parse({
+    evergreen: { enabled: false },
+    versioned: { enabled: true, mode: 'step', matchMultiplier: 1.0, mismatchMultiplier: 0.5 },
+    volatile: {
+      enabled: true,
+      mode: 'exponential',
+      halfLifeDays: 30,
+      zeroDays: 90,
+      floor: 0.3,
+    },
+  });
+
+/**
  * Decay state for knowledge lifecycle management.
  *
  * States transition based on age and configuration thresholds:

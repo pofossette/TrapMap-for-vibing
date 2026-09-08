@@ -36,6 +36,11 @@ export function normalizeQuery(query: string): string[] {
 // ---------------------------------------------------------------------------
 // Keyword scoring weights
 // ---------------------------------------------------------------------------
+// Single source of truth for keyword field weights. The deprecated
+// @trapmap/infra `go-accelerator/fallback.ts` `keywordScoreWithFallback`
+// duplicates these values as locals (infra does not depend on backend-core,
+// so a direct import would invert layering) — keep both sides in sync; see
+// the cross-pointer comment there.
 
 export const KEYWORD_LABEL_WEIGHT = 3.0;
 export const KEYWORD_SHORTCUT_WEIGHT = 2.0;
