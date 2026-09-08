@@ -26,6 +26,20 @@
 
 批准 / 拒绝后的投影刷新、工件跟进等动作全部走异步队列，job-runtime 拥有传输、租约与死信。
 
+路由（定义见 `src/routes/`，`maintenance`/`feedback`/`admin`/`queue`/`json-edit`/`runtime`）：
+
+| 方法+路径 | 用途 |
+| --- | --- |
+| `POST /internal/review/approve`、`/reject`、`/maintenance`、`/decay` | 批准/拒绝/维护/衰减决策 |
+| `POST /internal/review/return-for-correction` | 待核实（OLD 未列，当前代码存在） |
+| `POST /internal/review/artifact`、`POST /internal/conflicts/detect` | 工件评审、冲突检测 |
+| `POST /internal/feedback`、`GET /internal/feedback/admin` 等 | 反馈提交与管理后台 |
+| `POST /internal/feedback/async/*` | 补救激活、badcase 导出草稿 |
+| `POST /internal/governance-review/retrieval-projection` | 按 entry IDs 列反馈与冲突 |
+| `GET /internal/health`、`/live`、`/readiness`、`/ready`、`/ownership`、`/operator-status` | 健康/就绪/归属/运营诊断 |
+
+错误分类（`InvocationError`，与 knowledge-write 统一）：`validation`→400、`forbidden`→403、`not-found`→404、`conflict`→409、`unavailable`→503、`timeout`→504。
+
 ## 常见用法
 
 ### 跑本包测试

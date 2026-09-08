@@ -26,6 +26,17 @@ await handle.close();
 
 部署形态（`local-agent` / `team-monolith`）由 `TRAPMAP_DEPLOYMENT_PROFILE` 选择，运行模式按 profile 与 preset 推导，不直接读环境变量。
 
+端点面（定义见 `src/nest/gateway/gateway.route-defs.ts`，健康见 `src/nest/health/`）：
+
+| 方法+路径 | 用途 |
+| --- | --- |
+| `GET /health`、`/ready`、`/live`、`GET /metrics` | 健康/就绪/存活探针与指标 |
+| `GET /v1/knowledge/:entryId`、`GET /v1/knowledge/mine` | 取单条、按用户列条目 |
+| `POST /v1/retrieval/search`、`/v3/retrieval/search`、`POST /v1/retrieval/skills/search-by-content` | 检索搜索、v3 别名、按内容搜技能 |
+| `GET /v1/knowledge/projection-status` | 读投影状态诊断 |
+| `POST /v1/candidates/:candidateId/manual-result`、`/apply-resolution` | 人工结果、应用决议 |
+| `GET /v1/knowledge/review-queue`、`POST /v1/knowledge/review` | 治理审核队列、审核决策 |
+
 ## 常见用法
 
 ### 本地起网关（开发）

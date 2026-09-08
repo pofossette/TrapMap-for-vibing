@@ -24,6 +24,16 @@ import { createJobRuntimeDeps } from '@trapmap/service-job-runtime';
 
 业务服务经内部 job-runtime 端口调度后续工作，不直接操作队列运行时写能力。claim、租约、重试、死信语义归本包，业务事实归各聚合 owner。
 
+工厂与端点（`src/deps.ts`/`server.ts`/`routes.ts`/`async-runtime.ts`）：
+
+| 签名 | 用途 |
+| --- | --- |
+| `createJobRuntimeDeps(deps: JobRuntimePortDeps)` | 组装队列端口/审计/handlers 依赖束 |
+| `createJobRuntimeServiceModule(deps: JobRuntimeDeps)` | 建核心 `JobRuntimePort` 模块 |
+| `createJobRuntimeServer(config, deps): Promise<JobRuntimeServer>` | 建 Fastify 服务（`start()`/`close()`） |
+| `createJobRuntimeAsyncTransport({ config, pool })` | 建 postgres/rabbitmq 异步传输束 |
+| `POST /internal/jobs`、`GET /internal/jobs/:jobId`、`/queue`、`GET /internal/health` | 调度/查状态/队列快照/健康 |
+
 ## 常见用法
 
 ### 跑本包测试

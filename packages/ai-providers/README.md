@@ -30,7 +30,17 @@ import { parseJsonWithSchema } from '@trapmap/ai-providers/ai-parse.js';
 | `build` / `typecheck` | `tsc -p tsconfig.json` 编译 / 校验 |
 | `test` | vitest `ai-providers` 项目 |
 
-供应商标识的完整取值见 `packages/ai-providers/src/provider-config.ts`，Ollama 与 Anthropic 相关行径未经本轮核实，取用前你亲自确认，未知/待确认（2026-09-08）。
+供应商标识的完整取值见 `packages/ai-providers/src/provider-config.ts`（默认值见下表，`openai-compatible` 需自配；Ollama 默认值见该文件 `:37-41`）。
+
+| 供应商 | 类型标识 | 默认聊天模型 | 默认嵌入模型 |
+| --- | --- | --- | --- |
+| OpenAI | `openai` | `gpt-4o-mini` | `text-embedding-3-small` |
+| Ollama | `ollama` | `llama3` | `nomic-embed-text` |
+| Google GenAI | `google-genai` | `gemini-2.0-flash` | `text-embedding-004` |
+| OpenAI 兼容 | `openai-compatible` | （需配置） | （需配置） |
+| Fallback | `fallback` | （无） | 确定性哈希嵌入 |
+
+环境变量（与 `docs/reference/ENVIRONMENT.md` AI 一节对照，落点 `provider-config.ts`）：`AI_PROVIDER`、`AI_BASE_URL`、`AI_API_KEY`、`AI_CHAT_MODEL`、`AI_EMBEDDING_MODEL`、`OPENAI_API_KEY`、`GEMINI_API_KEY`、`EMBEDDING_PROVIDER`、`EMBEDDING_BASE_URL`、`EMBEDDING_API_KEY`、`EMBEDDING_MODEL`。缺 key 时走确定性 fallback 向量，不抛错。
 
 ## 常见用法
 
@@ -49,4 +59,4 @@ import { loadAiProviderConfig } from '@trapmap/ai-providers';
 const config = loadAiProviderConfig();
 ```
 
-你传环境变量进进程后再调它，变量清单见 `docs/reference/ENVIRONMENT.md` 的 AI 一节。缺 key 时走确定性 fallback 向量，不抛错。
+你传环境变量进进程后再调它，变量清单见本文行为一节（全表）。缺 key 时走确定性 fallback 向量，不抛错。

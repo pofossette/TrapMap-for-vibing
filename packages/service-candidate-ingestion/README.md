@@ -23,6 +23,20 @@
 
 候选发布经 `KnowledgeWritePort.publishCandidateResult` 委托给写侧，后续工作经 job-runtime 调度，本服务不直写任务队列表。
 
+端点（定义见 `src/routes.ts`，`createCandidateIngestionRouteDefs`）：
+
+| 方法+路径 | 用途 |
+| --- | --- |
+| `POST /internal/candidates` | 提交新候选 |
+| `GET /internal/candidates` | 按状态列候选（默认 `received`） |
+| `GET /internal/candidates/:candidateId` | 取候选详情 |
+| `POST /internal/candidates/:candidateId/resolution` | 提交解决决策（需 trusted actor） |
+| `POST /internal/candidates/:candidateId/manual-result` | 提交人工审查结果（需 trusted actor） |
+| `POST /internal/candidates/:candidateId/publish` | 发布候选结果（需 trusted actor） |
+| `GET /internal/health` | 健康检查 |
+
+Trusted actor 端点需 `x-trapmap-actor-id` 请求头，且 body 内 `actorId` 必须与之一致，不一致按 `InvocationError`（`forbidden`/`validation`）拒绝。
+
 ## 常见用法
 
 ### 跑本包测试

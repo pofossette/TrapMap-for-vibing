@@ -39,6 +39,8 @@ pnpm --filter @trapmap/service-knowledge-read test
 pnpm --filter @trapmap/service-knowledge-read typecheck
 ```
 
+本包 `build` 用 `tsc -b tsconfig.json`（增量项目引用构建），与 `tsc -p` 单发编译语义不同，改 `tsconfig` 引用链后必跑 `build` 验证。
+
 ### 从网关打一次检索（要 token）
 
 ```bash
