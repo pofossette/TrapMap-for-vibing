@@ -24,7 +24,11 @@ export function createJobRuntimeOutboxConsumer(params: {
   onError?: (error: unknown, event?: { eventName: string; aggregateId: string }) => void;
 }): JobRuntimeOutboxConsumer {
   const handlers = new Map(params.handlers.map((handler) => [handler.eventName, handler]));
-  const pollIntervalMs = params.pollIntervalMs ?? OUTBOX_POLL_INTERVAL_MS;
+  const pollIntervalMs =
+    params.pollIntervalMs ??
+    Number(process.env.TRAPMAP_JOB_OUTBOX_POLL_MS ?? OUTBOX_POLL_INTERVAL_MS);
+  const claimBatchSize = () =>
+    Number(process.env.TRAPMAP_JOB_OUTBOX_CLAIM_BATCH_SIZE ?? OUTBOX_CLAIM_BATCH_SIZE);
   let running = false;
   let loop: Promise<void> | null = null;
   let wakePoll: (() => void) | null = null;
@@ -49,7 +53,7 @@ export function createJobRuntimeOutboxConsumer(params: {
       loop = (async () => {
         while (running) {
           try {
-            const events = await params.outbox.claimBatch(OUTBOX_CLAIM_BATCH_SIZE);
+            const events = await params.outbox.claimBatch(claimBatchSize());
             for (const event of events) {
               const handler = handlers.get(event.eventName);
               if (handler === undefined) {

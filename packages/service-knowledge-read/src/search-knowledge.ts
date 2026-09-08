@@ -33,6 +33,9 @@ import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
 
+/** Default max results when the caller omits an explicit limit. */
+export const RETRIEVAL_DEFAULT_LIMIT = Number(process.env.TRAPMAP_RETRIEVAL_DEFAULT_LIMIT ?? 10);
+
 function buildRoutingTrace(
   services: SkillShareerServices,
   routingDecision: ReturnType<ReturnType<typeof getRetrievalInfra>['routing']['selectStrategy']>,
@@ -359,7 +362,7 @@ export async function searchKnowledge(
         mode: query.mode ?? 'semantic',
         includeSummary: query.includeSummary ?? false,
         includeRefinement: query.includeRefinement ?? false,
-        maxResults: query.maxResults ?? 10,
+        maxResults: query.maxResults ?? RETRIEVAL_DEFAULT_LIMIT,
         filters: query.filters,
         routingTrace: buildRoutingTrace(services, failRouting),
       }),

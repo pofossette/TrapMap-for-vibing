@@ -27,10 +27,18 @@ import type { LabelRepository } from './repository.js';
 // ---------------------------------------------------------------------------
 
 /** Maximum retry attempts for LLM alignment calls. */
-const MAX_RETRIES = 2;
+const MAX_RETRIES = Number(process.env.TRAPMAP_LABEL_ALIGN_MAX_RETRIES ?? 2);
 
 /** Base delay for exponential backoff (ms). */
-const BACKOFF_BASE_MS = 100;
+export const BACKOFF_BASE_MS = Number(process.env.TRAPMAP_LABEL_ALIGN_BACKOFF_BASE_MS ?? 100);
+
+/** Default candidate table size for the LLM prompt. */
+export const DEFAULT_MAX_CANDIDATES = Number(process.env.TRAPMAP_LABEL_ALIGN_MAX_CANDIDATES ?? 5);
+
+/** Default auto-merge confidence gate (0 = accept any LLM decision). */
+const DEFAULT_AUTO_MERGE_THRESHOLD = Number(
+  process.env.TRAPMAP_LABEL_ALIGN_AUTO_MERGE_THRESHOLD ?? 0,
+);
 
 /** Default source context for alignment events. */
 const DEFAULT_SOURCE_CONTEXT = 'extraction';
@@ -87,8 +95,8 @@ export async function alignLabel(
   options?: AlignLabelOptions,
 ): Promise<LabelAlignmentResult> {
   const sourceContext = options?.sourceContext ?? DEFAULT_SOURCE_CONTEXT;
-  const maxCandidates = options?.maxCandidates ?? 5;
-  const autoMergeThreshold = options?.autoMergeThreshold ?? 0;
+  const maxCandidates = options?.maxCandidates ?? DEFAULT_MAX_CANDIDATES;
+  const autoMergeThreshold = options?.autoMergeThreshold ?? DEFAULT_AUTO_MERGE_THRESHOLD;
   const embeddings = options?.embeddings;
   const generateEventId = options?.generateEventId ?? defaultEventId;
 

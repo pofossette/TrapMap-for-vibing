@@ -133,7 +133,8 @@ export async function judgeDuplicateWithLLM(
 ): Promise<LlmDuplicateJudgment | null> {
   if (!chat.isConfigured) return null;
 
-  const maxRetries = 2;
+  const maxRetries = Number(process.env.TRAPMAP_DEDUP_LLM_MAX_RETRIES ?? 2);
+  const backoffBaseMs = Number(process.env.TRAPMAP_DEDUP_LLM_BACKOFF_BASE_MS ?? 100);
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -143,8 +144,8 @@ export async function judgeDuplicateWithLLM(
       return parseDuplicateJudgmentResponse(response);
     } catch {
       if (attempt < maxRetries) {
-        // Exponential backoff: 100ms, 400ms
-        await new Promise((r) => setTimeout(r, 100 * 2 ** (attempt * 2)));
+        // Exponential backoff: base * 2 ** (attempt * 2) (default base 100ms: 100ms, 400ms)
+        await new Promise((r) => setTimeout(r, backoffBaseMs * 2 ** (attempt * 2)));
       }
     }
   }

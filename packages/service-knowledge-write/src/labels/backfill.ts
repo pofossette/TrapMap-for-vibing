@@ -11,7 +11,7 @@
 import type { ChatProvider, EmbeddingsProvider } from '@trapmap/ai-providers';
 import { normalizeLabel, prefixedId, uniqBy } from '@trapmap/lib';
 
-import { alignLabel } from './llm-align.js';
+import { alignLabel, DEFAULT_MAX_CANDIDATES } from './llm-align.js';
 import type { CanonicalLabelRecord, LabelRepository } from './repository.js';
 
 // ---------------------------------------------------------------------------
@@ -75,7 +75,12 @@ export async function backfillLabels(
   rawLabelSources: RawLabelSource[],
   options: BackfillOptions,
 ): Promise<BackfillReport> {
-  const { chat, sourceContext = 'backfill', dryRun = false, autoMergeThreshold = 0.8 } = options;
+  const {
+    chat,
+    sourceContext = 'backfill',
+    dryRun = false,
+    autoMergeThreshold = Number(process.env.TRAPMAP_LABEL_BACKFILL_AUTO_MERGE_THRESHOLD ?? 0.8),
+  } = options;
 
   const report: BackfillReport = {
     examined: 0,
@@ -124,7 +129,7 @@ export async function backfillLabels(
       // Use LLM alignment
       const result = await alignLabel(repository, chat, entry.label, '', entry.kind, {
         sourceContext,
-        maxCandidates: 5,
+        maxCandidates: DEFAULT_MAX_CANDIDATES,
         autoMergeThreshold,
         generateEventId: () => prefixedId('backfill'),
       });

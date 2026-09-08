@@ -21,12 +21,21 @@ import {
 } from './knowledge-vector-search-port.js';
 import { artifactVersionOf, type RecallCandidate, type ScoredEntry } from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
+import { RETRIEVAL_OVERFETCH_MULT } from './retrieval-types.js';
 
 const freshnessConfig: FreshnessDecayConfig = DEFAULT_FRESHNESS_DECAY_CONFIG;
 const queryEmbeddings = new Map<string, number[]>();
 
+/** Hash-embedding vector width — centralized name, value unchanged. */
+const EMBEDDING_DIMENSIONS = 384;
+/** Default max required level for vector-search filters — centralized name, value unchanged. */
+const DEFAULT_MAX_REQUIRED_LEVEL = 0;
+/** Graph-assist score curve: base plus per-strength scale — centralized names, values unchanged. */
+const GRAPH_BASE_SCORE = 0.3;
+const GRAPH_STRENGTH_SCALE = 0.01;
+
 function embed(text: string): number[] {
-  const vector = Array.from({ length: 384 }, () => 0);
+  const vector = Array.from({ length: EMBEDDING_DIMENSIONS }, () => 0);
   for (const token of normalizeQuery(text)) {
     const hash = createHash('sha256').update(token).digest();
     for (let index = 0; index < hash.length; index += 1) {
@@ -56,7 +65,7 @@ async function vectorSimilaritySearch(
   const port = injectedPort ?? createKnowledgeEmbeddingsVectorSearchPort(pool);
   const filters: KnowledgeEmbeddingVectorSearchFilters = {
     ...(options.teamId !== undefined ? { teamId: options.teamId } : {}),
-    maxRequiredLevel: options.maxLevel ?? 0,
+    maxRequiredLevel: options.maxLevel ?? DEFAULT_MAX_REQUIRED_LEVEL,
     scopes: options.scope ? [options.scope] : ['global', 'project'],
     ...(options.entryIds ? { sourceIds: options.entryIds } : {}),
   };
@@ -104,7 +113,7 @@ async function keywordRecall(
   conditions.push(`tokens && $${paramIndex}::text[]`);
   params.push(tokens);
   paramIndex += 1;
-  params.push(limit * 2);
+  params.push(limit * RETRIEVAL_OVERFETCH_MULT);
   const result = await pool.query<{
     entry_id: string;
     tokens: string[];
@@ -162,7 +171,7 @@ async function graphRecall(
               .then((strength) => ({
                 entry,
                 channel: 'graph' as const,
-                score: Math.min(1, 0.3 + strength * 0.01),
+                score: Math.min(1, GRAPH_BASE_SCORE + strength * GRAPH_STRENGTH_SCALE),
                 tokenMatches: [],
               })),
           ]
@@ -228,7 +237,8 @@ export function createDefaultKnowledgeReadRetrievalInfra(
         }),
     },
     pgRecall: {
-      isEnabled: () => process.env.USE_DB_SEARCH === 'true',
+      isEnabled: () =>
+        (process.env.TRAPMAP_RETRIEVAL_USE_DB_SEARCH ?? process.env.USE_DB_SEARCH) === 'true',
       getPool: (store) => store.getPool?.() ?? null,
       vectorSimilaritySearch: (pool, request) =>
         vectorSimilaritySearch(pool, request, options.vectorSearchPort),

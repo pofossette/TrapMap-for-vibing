@@ -17,6 +17,11 @@ import type { Pool } from 'pg';
 
 import { withExperienceGeneSearchMetrics } from './experience-gene-metrics.js';
 
+const GENE_BROAD_MATCH_THRESHOLD = Number(process.env.TRAPMAP_GENE_BROAD_MATCH_THRESHOLD ?? 0.35);
+/** Confidence bucket cutoffs — centralized names, values unchanged. */
+const GENE_CONFIDENCE_HIGH_CUTOFF = 0.7;
+const GENE_CONFIDENCE_MEDIUM_CUTOFF = 0.4;
+
 type Queryable = Pick<Pool, 'query'>;
 
 export interface ExperienceGeneDbContext {
@@ -202,7 +207,9 @@ function mergeRecallRows(
         [...queryTokens].some((token) => aggregate.summary.toLowerCase().includes(token)),
       boundaryMatch: [...queryTokens].some((token) => boundaryText.includes(token)),
       freshValidation: aggregate.validation.length > 0,
-      broadMatch: number(row.semantic_score) < 0.35 && number(row.keyword_score) < 0.35,
+      broadMatch:
+        number(row.semantic_score) < GENE_BROAD_MATCH_THRESHOLD &&
+        number(row.keyword_score) < GENE_BROAD_MATCH_THRESHOLD,
     });
   }
   return [...candidatesById.values()];
@@ -237,7 +244,12 @@ function toSearchResponse(
       channelsUsed: usedVector ? ['keyword', 'semantic'] : ['keyword'],
       fallbackTarget: null,
       confidenceScore: primary.score,
-      confidenceBucket: primary.score >= 0.7 ? 'high' : primary.score >= 0.4 ? 'medium' : 'low',
+      confidenceBucket:
+        primary.score >= GENE_CONFIDENCE_HIGH_CUTOFF
+          ? 'high'
+          : primary.score >= GENE_CONFIDENCE_MEDIUM_CUTOFF
+            ? 'medium'
+            : 'low',
     },
   };
 }

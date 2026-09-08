@@ -11,6 +11,7 @@ import {
   getDbSearchConfig,
   rerankRecallResults,
   versionMultiplierFor,
+  RETRIEVAL_OVERFETCH_MULT,
 } from './recall-helpers.js';
 
 // fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B
@@ -39,14 +40,14 @@ export async function hybridRecall(
             isSystemAdmin: auth.subjectType === 'system-admin',
             scopes: parsed.filters?.scopes?.length ? parsed.filters.scopes : ['global', 'project'],
           },
-          parsed.maxResults * 2,
+          parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
         ),
       ]);
       const dbScopeFilter =
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbVectorResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
-        limit: parsed.maxResults * 2,
+        limit: parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
         teamId: auth.activeTeamId,
         maxLevel: auth.securityLevel,
         ...(dbScopeFilter ? { scope: dbScopeFilter } : {}),

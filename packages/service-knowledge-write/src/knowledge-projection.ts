@@ -15,6 +15,11 @@ type Queryable = {
   query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
 };
 
+const KNOWLEDGE_LIST_MAX_LIMIT = Number(process.env.TRAPMAP_KNOWLEDGE_LIST_MAX_LIMIT ?? 100);
+const KNOWLEDGE_LIST_DEFAULT_LIMIT = Number(
+  process.env.TRAPMAP_KNOWLEDGE_LIST_DEFAULT_LIMIT ?? 100,
+);
+
 function readKnowledgeRowFields(row: Record<string, unknown>) {
   return {
     content: String(row.detail ?? ''),
@@ -168,7 +173,7 @@ export function createKnowledgeOwnerProjection(
       return row ? toKnowledgeIndexingEntry(row) : null;
     },
     async listIndexingEntries({ offset, limit }) {
-      const boundedLimit = Math.max(1, Math.min(limit, 100));
+      const boundedLimit = Math.max(1, Math.min(limit, KNOWLEDGE_LIST_MAX_LIMIT));
       const result = await pool.query(
         `SELECT ke.*, COALESCE(kr.index_revision, 0)::int AS index_revision
          FROM knowledge_entries ke
@@ -199,7 +204,7 @@ export function createKnowledgeOwnerProjection(
     },
     async listByFilter(filter, page) {
       const offset = page?.offset ?? 0;
-      const limit = page?.limit ?? 100;
+      const limit = page?.limit ?? KNOWLEDGE_LIST_DEFAULT_LIMIT;
       const { where, values } = buildKnowledgeProjectionWhere(filter);
       const result = await pool.query(
         `SELECT ke.*, COUNT(*) OVER() AS __total FROM knowledge_entries ke ${where} ORDER BY ke.updated_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`,

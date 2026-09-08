@@ -12,6 +12,7 @@ import {
   getDbSearchConfig,
   toScoredEntry,
   versionMultiplierFor,
+  RETRIEVAL_OVERFETCH_MULT,
 } from './recall-helpers.js';
 
 // fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B
@@ -31,7 +32,7 @@ export async function semanticRecall(
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
-        limit: parsed.maxResults * 2,
+        limit: parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
         teamId: auth.activeTeamId,
         maxLevel: auth.securityLevel,
         ...(scopeFilter ? { scope: scopeFilter } : {}),

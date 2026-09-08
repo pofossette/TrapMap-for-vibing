@@ -8,14 +8,18 @@ import type { RetrievalReadModel } from './read-model.js';
 const READ_MODEL_CACHE_KEY = 'retrieval-read-model:global';
 const READ_MODEL_CACHE_NAMESPACE = 'retrieval-read-model';
 
+/** Single-entry global read-model cache — size centralized, value unchanged. */
+const READ_MODEL_CACHE_MAX_SIZE = 1;
+const READ_MODEL_CACHE_TTL_MS = Number(process.env.TRAPMAP_RETRIEVAL_READMODEL_TTL_MS ?? 60_000);
+
 let listenerRegistered = false;
 let readModelCache: KnowledgeReadProjectionCache<RetrievalReadModel> | null = null;
 
 function getReadModelCache() {
   if (!readModelCache) {
     readModelCache = getDefaultKnowledgeReadSupportInfra().cache.createRetrievalReadModelCache({
-      maxSize: 1,
-      ttlMs: 60_000,
+      maxSize: READ_MODEL_CACHE_MAX_SIZE,
+      ttlMs: READ_MODEL_CACHE_TTL_MS,
       namespace: READ_MODEL_CACHE_NAMESPACE,
     });
   }

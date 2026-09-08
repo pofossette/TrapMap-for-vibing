@@ -40,7 +40,10 @@ import {
   semanticRecall,
 } from './retrieval-recall-coordinator.js';
 import { semanticChannel } from './retrieval-semantic.js';
-import { searchKnowledge } from './search-knowledge.js';
+import { searchKnowledge, RETRIEVAL_DEFAULT_LIMIT } from './search-knowledge.js';
+
+/** Skill-lookup fan-out cap — centralized name, value unchanged. */
+const SKILL_LOOKUP_LIMIT = Number(process.env.TRAPMAP_RETRIEVAL_SKILL_LOOKUP_LIMIT ?? 50);
 import type { FeedbackQueueRecord } from './store.js';
 
 type SearchKnowledgeServices = Parameters<typeof searchKnowledge>[0];
@@ -371,7 +374,7 @@ export function createKnowledgeReadRetrievalQuery(
         includeRefinement: false,
         includeSummary: false,
         mode: options.mode ?? 'hybrid',
-        maxResults: params.limit ?? 10,
+        maxResults: params.limit ?? RETRIEVAL_DEFAULT_LIMIT,
       });
     },
   };
@@ -386,7 +389,7 @@ export function createKnowledgeReadSkillLookupQuery(
 }) => Promise<SkillLookupResponse> {
   return async (params) => {
     const auth = options.resolveAuthContext(params) as ResolvedAuthContext;
-    const maxResults = params.maxResults ?? 10;
+    const maxResults = params.maxResults ?? RETRIEVAL_DEFAULT_LIMIT;
     const artifactRepository = options.services.repos.artifact;
     if (!artifactRepository?.listForRetrieval) {
       throw new Error('skill lookup requires the knowledge-read artifact retrieval projection');
@@ -402,7 +405,7 @@ export function createKnowledgeReadSkillLookupQuery(
         includeRefinement: false,
         includeSummary: false,
         mode: options.mode ?? 'hybrid',
-        maxResults: 50,
+        maxResults: SKILL_LOOKUP_LIMIT,
       }),
       artifactRepository.listForRetrieval({}),
     ]);
