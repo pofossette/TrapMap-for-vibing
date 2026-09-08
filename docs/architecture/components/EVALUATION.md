@@ -37,7 +37,7 @@ pnpm --filter @trapmap/evals eval:retrieval:smoke
 
 ## 性能阈值
 
-`docs/architecture/performance/` 下三文件已完成并归档（2026-09-08）；毫秒阈值与实测耗时属易变数字，本页不收录。你看现网值时以 CI 压测输出（`benchmarks/results/`）为准。
+毫秒阈值与实测耗时属易变数字，本页不收录。历史基线见 git 历史（`git show ec0e4c99:docs/architecture/performance/`），现网值以 CI 压测输出（`benchmarks/results/`）为准。
 
 ## 常见用法
 
