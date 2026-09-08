@@ -6,7 +6,6 @@
         "SYSTEM_TRUTH_SOURCES.md",
         "微服务平台能力增强细则",
         "历史背景输入，不再作为当前根计划执行面",
-        "已归档",
         "已完成并归档",
         "background 或 deferred reference",
         "`pnpm run ci`",

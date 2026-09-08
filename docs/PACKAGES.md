@@ -1,44 +1,36 @@
-# TrapMap 包结构
+# TrapMap 包总表
 
-各包职责与入口，技术栈选择见 [PACKAGE_STACK_RATIONALE.md（已归档）](archived/PACKAGE_STACK_RATIONALE.md)。
+> 状态：Active（2026-09-08）。全包一行一条，职责一句话；细节链各包 README。
 
 ## 包概览
 
-| 包 | 入口 | 职责 |
+| 包 | 职责 | 细则 |
 |---|---|---|
-| `packages/contracts` | `src/index.ts` | 共享 Zod Schema 与类型，唯一契约真源 |
-| `packages/backend-core` | `src/index.ts` | 后端核心内核：六 bounded-context 的 `domain` 纯规则 + `application` + `ports` + `RouteDef` |
-| `packages/db` | `src/schema/` | 42 表 Drizzle schema 真源（owner-local） |
-| `packages/assembly` | `src/index.ts` | 统一组装中心（cordis TS 组合器） |
-| `packages/lib` | `src/index.ts` | 纯函数工具（time/hash/string/collection） |
-| `packages/ai-providers` | `src/index.ts` | AI provider 工厂与 prompt 模板；唯一 AI SDK 接入面 `src/adapters/aisdk.ts`（`AiSdkChat`/`AiSdkEmbeddings`，`@langchain/*` 已移除） |
-| `packages/client-core` | `src/index.ts` | Gateway HTTP SDK、会话与错误模型 |
-| `packages/service-identity-access` | `src/index.ts` | identity-access 服务（含路由与 repo） |
-| `packages/service-knowledge-write` | `src/index.ts` | knowledge-write 服务（权威写路径） |
-| `packages/service-knowledge-read` | `src/index.ts` | knowledge-read 服务（检索读侧） |
-| `packages/service-candidate-ingestion` | `src/index.ts` | candidate-ingestion 服务 |
-| `packages/service-governance-review` | `src/index.ts` | governance-review 服务（审核/feedback/conflict） |
-| `packages/service-job-runtime` | `src/index.ts` | job-runtime 服务（queue/outbox/workflow） |
-| `packages/service-cron` | `src/index.ts` | cron 调度服务 |
-| `packages/host-local` | `src/index.ts` | light 宿主（`local-agent`/`team-monolith` → `apps/light`） |
-| `packages/host-distributed` | `src/index.ts` | heavy 宿主（`distributed` → `apps/distributed`） |
-| `apps/cli` | `src/index.ts` | CLI 客户端 |
-| `apps/web-panel` | `src/main.tsx` | 运维面板（仅 gateway） |
-| `apps/mcp` | `src/index.ts` | MCP 薄封装（经 gateway） |
-| `services/knowledge-read-go` | `main.go` | Go 读加速（`chi+pgx+lru+singleflight`，绞杀 `TRAPMAP_READ_IMPL`） |
-| `services/collection-mgmt-go` | `main.go` | Go 集合管理加速 |
+| [`packages/backend-core`](packages/backend-core/README.md) | 后端核心：端口、能力模型、用例与六上下文入口（Nest/Fastify 适配层） | [README](packages/backend-core/README.md) |
+| [`packages/contracts`](packages/contracts/README.md) | 共享 Zod Schema 与类型，跨包契约真源 | [README](packages/contracts/README.md) |
+| [`packages/db`](packages/db/README.md) | PostgreSQL 表定义与迁移运行器，42 表唯一真源 | [README](packages/db/README.md) |
+| [`packages/assembly`](packages/assembly/README.md) | cordis 程序化组装内核 | [README](packages/assembly/README.md) |
+| [`packages/lib`](packages/lib/README.md) | 纯函数工具集 | [README](packages/lib/README.md) |
+| [`packages/infra`](packages/infra/README.md) | pgvector 构造器、回退 embedding、治理过滤器 | [README](packages/infra/README.md) |
+| [`packages/ai-providers`](packages/ai-providers/README.md) | AI 提供商统一入口（AI SDK），prompt 构建与解析 | [README](packages/ai-providers/README.md) |
+| [`packages/client-core`](packages/client-core/README.md) | 网关 HTTP 客户端（fetch 传输、会话、错误模型） | [README](packages/client-core/README.md) |
+| [`packages/skill-registry`](packages/skill-registry/README.md) | Skill 版本管理、diff/merge、安装 | [README](packages/skill-registry/README.md) |
+| [`packages/skills`](packages/skills/README.md) | 随仓 Skill 工件（workflow-with-trapmap、cli-usage-guide） | [README](packages/skills/README.md) |
+| [`packages/host-local`](packages/host-local/README.md) | light 宿主库（NestJS 单进程，`local-agent`/`team-monolith`） | [README](packages/host-local/README.md) |
+| [`packages/host-distributed`](packages/host-distributed/README.md) | heavy 宿主库（网关 + 6 服务装配） | [README](packages/host-distributed/README.md) |
+| [`packages/service-identity-access`](packages/service-identity-access/README.md) | 身份与访问服务 | [README](packages/service-identity-access/README.md) |
+| [`packages/service-candidate-ingestion`](packages/service-candidate-ingestion/README.md) | 候选摄取与去重服务 | [README](packages/service-candidate-ingestion/README.md) |
+| [`packages/service-knowledge-read`](packages/service-knowledge-read/README.md) | 检索读侧服务 | [README](packages/service-knowledge-read/README.md) |
+| [`packages/service-knowledge-write`](packages/service-knowledge-write/README.md) | 权威写侧服务 | [README](packages/service-knowledge-write/README.md) |
+| [`packages/service-governance-review`](packages/service-governance-review/README.md) | 审核与治理服务 | [README](packages/service-governance-review/README.md) |
+| [`packages/service-job-runtime`](packages/service-job-runtime/README.md) | 异步任务运行时服务 | [README](packages/service-job-runtime/README.md) |
+| [`packages/service-cron`](packages/service-cron/README.md) | 定时调度服务 | [README](packages/service-cron/README.md) |
+| [`apps/cli`](apps/cli/README.md) | 命令行客户端 | [README](apps/cli/README.md) |
+| [`apps/light`](apps/light/README.md) | light 可执行装配 | [README](apps/light/README.md) |
+| [`apps/distributed`](apps/distributed/README.md) | distributed 可执行装配 | [README](apps/distributed/README.md) |
+| [`apps/mcp`](apps/mcp/README.md) | MCP stdio 服务装配 | [README](apps/mcp/README.md) |
+| [`apps/migration`](apps/migration/README.md) | 数据库迁移进程 | [README](apps/migration/README.md) |
+| [`apps/web-panel`](apps/web-panel/README.md) | 运维审核 Web 控制台 | [README](apps/web-panel/README.md) |
+| `services/knowledge-read-go` | Go 读加速（chi + pgx + lru + singleflight），见 [GO 加速服务](architecture/GO-ACCELERATOR.md) |
 
-> 旧兼容层已删除，原 Fastify 兼容层现由 `host-local`/`host-distributed` 承接。
-
-## 架构要点
-
-- **宿主**：`host-local`（Nest `src/nest/` 六模块）与 `host-distributed` 为唯一运行入口；gateway 为统一外部适配层。
-- **内核**：`backend-core` 承载 `identity-access / knowledge-write / knowledge-read / governance-review / candidate-ingestion / job-runtime` 六上下文的纯规则与端口。
-- **服务**：各 `service-*` 为 thin assembly（`deps.ts` / `routes.ts` / `server.ts`），通过 `RouteDef` 暴露路由，经宿主消费。
-- **契约**：`contracts` 为 SSOT，经 `check:go-contract` 驱动 Go 类型生成。
-- **持久化**：42 表按 owner 在 `packages/service-*/drizzle/` 设 baseline，见 [DATABASE_SCHEMA.md](reference/DATABASE_SCHEMA.md)。
-- **依赖方向**：`Apps/Hosts → Services → Core (backend-core/contracts/db)`，由 `fallow` 守护。
-
-## 历史演进
-
-Phase 0-6 的冻结结论与 owner 矩阵已归档，仅保留背景参考：`docs/archived/archived-plans/trapmap-architecture-remediation-plan.md`、`nestjs-service-evolution-00-target-architecture.md` 等。当前架构以 [ARCHITECTURE.md](architecture/ARCHITECTURE.md) 与 [SYSTEM_TRUTH_SOURCES.md](reference/SYSTEM_TRUTH_SOURCES.md) 为准。
+跨包结论上收至 `docs/architecture/` 或 `docs/reference/` 对应权威页，不进本表。
