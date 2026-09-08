@@ -1,96 +1,90 @@
 # 文档治理指南
 
-本文档定义 TrapMap 的文档分层、回写触发条件，以及真实问题如何沉淀为长期资产。
+> 状态：Active。本页定分层、回写触发与沉淀规则，守卫符号以 CI 实测为准。
 
 ## 文档分层
 
-- [`README.md`](../../README.md)：给人读的项目入口，负责背景、价值、快速开始、主要导航
-- [`AGENTS.md`](../../AGENTS.md)：给 agent 读的执行入口，负责任务分流、最小验证、回写要求
-- [`CLAUDE.md`](../../CLAUDE.md)：Claude Code 兼容入口，只指向 `AGENTS.md`
-- `docs/reference/*`：权威事实源，负责定义“什么是真的”
-- `docs/guides/*`：开发、贡献、集成、文档治理等操作流程
+- `README.md`：给人读的项目入口，讲背景、价值、快速开始、主要导航
+- `AGENTS.md`：给 agent 读的执行入口，讲任务分流、最小验证、回写要求
+- `CLAUDE.md`：Claude Code 兼容入口，只指向 `AGENTS.md`
+- `docs/reference/*`：权威事实源，定义什么是真的
+- `docs/guides/*`：开发、贡献、集成、文档治理的操作流程
 - `docs/operations/*`：测试、CI、环境、安全、部署运维规则
-- `docs/architecture/*`：架构说明、组件职责、API/CLI/部署设计
+- `docs/architecture/*`：架构说明、组件职责、接口设计
 
-出现事实冲突时，以 [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md) 和具体权威源码入口为准。
+事实冲突时以 `docs/reference/SYSTEM_TRUTH_SOURCES.md` 与具体权威源码入口为准。
 
 ## 什么时候必须回写文档
 
-以下任一类变更发生时，必须判断并更新对应文档：
+以下任一类变更发生时，你判断并更新对应文档：
 
-- 新增、删除或重命名启动命令、开发命令、测试命令、评测命令
+- 新增、删除或重命名启动、开发、测试、评测命令
 - 新增目录、包职责变化、文档落点变化、归档规则变化
 - 新增或修改 API、共享契约、状态枚举、数据模型、持久化事实
 - 新增或修改环境变量、权限模型、安全等级、部署默认值、运行时 profile
-- 新增工程强约束，例如测试入口规则、目录结构守护、类型组织约定
-- 修复一次真实且可能复发的问题，需要判断是否沉淀为测试、文档规则、Skill 或 badcase
+- 新增工程强约束，如测试入口规则、目录结构守护、类型组织约定
+- 修了一次真实且可能复发的问题，判断是否沉淀为测试、文档规则、Skill 或 badcase
 
 ## 回写到哪里
 
-- 影响项目认知、使用方式、快速开始：更新 [`README.md`](../../README.md)
-- 影响 agent 路由、最小验证、任务入口：更新 [`AGENTS.md`](../../AGENTS.md)
-- 影响架构事实、目录事实、命令真相、数据真相：更新 `docs/reference/*` 或对应权威页
-- 影响具体开发/贡献/集成步骤：更新 `docs/guides/*`
-- 影响测试、CI、安全、环境、部署运维规则：更新 `docs/operations/*`
-- 影响组件边界、运行时行为、接口设计：更新 `docs/architecture/*`
+- 影响项目认知与使用：`README.md`
+- 影响 agent 路由与任务入口：`AGENTS.md`
+- 影响架构、目录、命令、数据事实：`docs/reference/*` 或对应权威页
+- 影响开发与集成步骤：`docs/guides/*`
+- 影响测试、CI、安全、环境、运维规则：`docs/operations/*`
+- 影响组件边界与运行时行为：`docs/architecture/*`
 
 ## 回写顺序
 
 1. 先更新权威事实源或源码真相
 2. 再更新二级说明文档
-3. 最后更新入口索引，例如 `README.md`、`AGENTS.md`、`docs/README.md`
+3. 最后更新入口索引（`README.md`、`AGENTS.md`、`docs/README.md`）
 
-如果某类文档漂移可能反复出现，优先补守卫而不是只补文字说明：
+某类漂移反复出现时，你优先补守卫而不是只补文字：
 
-- 文本漂移：优先补 `pnpm check:docs`
-- 目录落点漂移：优先补 `pnpm check:structure`
-- 事实一致性漂移：优先补 truth smoke 或对应测试
+- 文本漂移：补 `pnpm check:docs`
+- 目录落点漂移：补 `pnpm check:structure`
+- 事实一致性漂移：补 truth smoke 或对应测试
 
 ## 数据与架构防复发守卫
 
-以下守卫已接入 CI（`doc-guardrails` job 与 `scripts/run-ci.ts`），新增表、修改表清单、或改动 evals/服务包导入关系时必须保持其通过：
+以下守卫已接入 CI `doc-guardrails` job 与 `scripts/run-ci.ts`。你新增表、改表清单、改 evals 或服务包导入关系时保持它们通过：
 
-- `pnpm check:table-schema`：表清单守卫。以 `packages/db/src/schema/` 的 `pgTable` 为权威，diff `docs/reference/DATABASE_SCHEMA.md` 表清单（缺表 / 幽灵表 / 分节计数 / 总表数不一致即失败）。新增表必须同步更新文档；迁移 SQL 里的历史残留表（如 `store_snapshot`）不在守卫范围内。
-- `pnpm check:pgtable-single-source`：pgTable 单源守卫。`packages/service-*` src 内禁止直接 `pgTable(...)` 定义；schema.ts 只允许 `export * from '@trapmap/db'` re-export。
-- `pnpm check:eval-imports`：eval import 边界守卫。evals 只能经 `@trapmap/*` 包名、`packages/contracts/**`、host-local eval allowlist 或带 `@eval-only` 标记的模块接入 packages；其余深路径直连即失败。新增 evals→packages 导入前先确认是否属于上述四类表面。
-- `pnpm check:eval-only`：`@eval-only` 标记守卫。仅被 evals 引用、无产品消费者且不经包 index 导出的模块必须带 `@eval-only` 头注释；新增此类模块必须同步加标记。
+- `pnpm check:table-schema`：表清单守卫。以 `packages/db/src/schema/` 的 `pgTable`（42 张）为权威，diff `docs/reference/DATABASE_SCHEMA.md`。新增表同步更新文档。
+- `pnpm check:pgtable-single-source`：pgTable 单源守卫。`packages/service-*` src 禁止直接 `pgTable(...)`，schema 只 re-export `@trapmap/db`。
+- `pnpm check:eval-imports`：eval import 边界守卫。evals 经 `@trapmap/*` 包名、`packages/contracts/**`、host-local eval allowlist 或 `@eval-only` 模块接入 packages，其余深路径直连失败。
+- `pnpm check:eval-only`：`@eval-only` 标记守卫。只被 evals 引用、无产品消费者、不经包 index 导出的模块带头注释。
+- `pnpm check:skills`：Skill 文档守卫，随 `doc-guardrails` job 运行。
+- `pnpm check:imports`：跨目录相对引用守卫，随 `doc-guardrails` job 运行。
 
 ## 复发性问题沉淀规则
 
-当一次真实问题同时满足以下条件时，提交者必须判断其是否需要沉淀：
+真实问题同时满足可复现或可稳定描述、未来可能再犯、影响结果正确性或治理安全或流程稳定时，你判断沉淀去向：
 
-- 可以复现或可以稳定描述触发条件
-- 未来有较大概率再次发生
-- 会影响结果正确性、治理安全性、开发流程稳定性或文档判断
+- 测试用例：防代码或契约回归
+- 文档规则：防操作方式与流程约定漂移
+- Skill 或 Trap 条目：沉淀工作流、经验、复发坑点
+- badcase：沉淀 retrieval、summary、governance、feedback 的真实失败样本
 
-需要显式判断沉淀到哪一类资产：
-
-- 测试用例：适合防止代码或契约回归
-- 文档规则：适合防止操作方式、流程约定或入口判断再次漂移
-- Skill / Trap 条目：适合沉淀工作流、经验或复发坑点
-- badcase：适合沉淀 retrieval、summary、governance、feedback 等真实失败样本
-
-如果判断“不需要沉淀”，在 PR 描述或变更说明中写出原因。
+判断不沉淀时，在 PR 描述或变更说明里写原因。
 
 ## Badcase 回流
 
-对 retrieval、summary、governance、remediation、feedback 相关真实失败，优先遵循现有 badcase 闭环：
+retrieval、summary、governance、remediation、feedback 的真实失败走这个闭环：
 
-`发现问题 -> 记录反馈 -> 补齐 query/命中快照/期望结果 -> 判断是否导出为 eval draft -> 纳入回归验证`
+```text
+发现问题 -> 记录反馈 -> 补齐 query / 命中快照 / 期望结果 -> 判断是否导出 eval draft -> 纳入回归验证
+```
 
-参考：
-
-- [`docs/archived/archived-plans/badcase-feedback-loop.md`](../archived/archived-plans/badcase-feedback-loop.md)
-- `GET /v1/operations/badcases/:feedbackId/export`
-- `scripts/archived/export-badcase-to-eval.ts`
+参考 `docs/archived/archived-plans/badcase-feedback-loop.md`、`GET /v1/operations/badcases/:feedbackId/export`、`scripts/archived/export-badcase-to-eval.ts`。
 
 ## 最小验证
 
-文档、入口、结构规则变更完成后，至少运行：
+文档、入口、结构规则改完后，你至少跑：
 
 ```bash
 pnpm check:docs
 pnpm check:structure
 ```
 
-如果改动触及 truth source、架构事实或对应 smoke 用例，再补跑相关最小测试。
+改动触及 truth source、架构事实或对应 smoke 用例时，再补相关最小测试。

@@ -1,38 +1,33 @@
 # 投稿指南
 
-感谢你对 TrapMap 的贡献！本文档说明代码规范、提交流程和审核注意事项。
+> 状态：Active。你照这页走，PR 能一次过守卫。
 
 ## 开发环境
 
-详细搭建步骤请参阅 [GETTING_STARTED.md](./GETTING_STARTED.md)。
+搭建步骤见 `docs/guides/GETTING_STARTED.md`。日常命令都在仓库根跑：
 
 ```bash
-# 安装依赖
 pnpm install
 
-# 构建所有包
 pnpm build
 
-# 运行测试
 pnpm test
 
-# 类型检查
 pnpm typecheck
 
-# 代码风格检查
 pnpm lint
 ```
 
 ## 分支管理
 
-- `main` — 主分支，所有功能合并至此
-- 功能开发在独立分支进行，命名格式：`feat/<功能名>` 或 `fix/<问题描述>`
+- `main` 是主分支，功能合入这里
+- 功能分支命名：`feat/<功能名>` 或 `fix/<问题描述>`
 
 ## 提交规范
 
-### 格式
+格式：
 
-```
+```text
 <类型>(<范围>): <简短描述>
 
 [可选的详细正文]
@@ -40,178 +35,91 @@ pnpm lint
 [可选的脚注]
 ```
 
-### 类型前缀
-
-| 前缀 | 说明 |
-|------|------|
-| `feat` | 新功能 |
-| `fix` | 错误修复 |
-| `docs` | 文档变更 |
-| `chore` | 构建/工具变更 |
-| `refactor` | 重构（不修复问题也不加功能） |
-| `test` | 测试相关 |
-| `perf` | 性能优化 |
-
-### 示例
-
-```
-feat(retrieval): add graph-assisted retrieval mode
-
-Implement hybrid semantic + keyword + graph expansion pipeline.
-Add Hit@K, MRR, nDCG metrics computation.
-
-Closes #123
-```
-
-```
-fix(eval): add graphIndexDocuments to scenario schema
-
-Without this field, the CI eval was failing on v3-graph-plan
-cases because the graph index wasn't populated.
-```
+类型前缀取 `feat`、`fix`、`docs`、`chore`、`refactor`、`test`、`perf` 之一。
 
 ## 代码规范
 
 ### TypeScript
 
-- 所有新代码使用 TypeScript
-- 严格模式（`strict: true`）
-- 避免使用 `any`，优先使用 `unknown` + 类型守卫
-- 导出类型而非接口（`type` vs `interface`）
+- 新代码一律 TypeScript，`strict: true`
+- 少用 `any`，先用 `unknown` 加类型守卫
+- 导出类型用 `type`，不用 `interface`
 
 ### Schema 定义
 
-- 使用 `packages/contracts` 中的 Zod Schema
-- 不要在业务代码中直接使用原始对象，使用 Schema 验证
-- Schema 变更需要向后兼容
+- 用 `packages/contracts` 里的 Zod Schema
+- 业务代码不直接造裸对象，先过 Schema 验证
+- Schema 变更保持向后兼容
 
 ### 测试
 
 - 核心业务逻辑必须有测试覆盖
-- 使用 Vitest 作为测试框架
-- 测试文件与源文件在同一目录下，命名 `*.test.ts`
+- 测试框架是 Vitest，文件与源码同目录，命名 `*.test.ts`
+- 跑单文件用 `pnpm test:file -- <仓库根相对路径>`，它把路径映射到唯一 project，避免跨 project 误命中
 
 ## 数据库迁移
 
-数据库表结构通过 Drizzle ORM 管理，所有 DDL 变更必须通过迁移文件交付：
+表结构变更走迁移文件交付，不在 repository 里运行时建表。迁移基线按 service owner 划分（约定路径 `packages/service-*/drizzle/`，该目录布局未在此轮核对，落点以 `docs/reference/DATABASE_SCHEMA.md` 为准），distributed host 在启动时按依赖顺序执行。迁移只支持空库，已有开发数据库需重建。
 
-```bash
-# 每个 service owner 在自己的 drizzle/ 目录维护 baseline
-# distributed host 负责按依赖顺序执行六个 owner runner
-```
-
-- 迁移文件位于各 `packages/service-*/drizzle/` 目录
-- migration runner 只接受自身 owner 的目录；服务器启动不会隐式迁移数据库
-- baseline 只支持空数据库；已有开发数据库需重建
-- 禁止在 repository 中通过 `ensureSchema()` 等运行时方法建表
+`packages/server/` 兼容壳已于 2026-07-31 删除，任何 `pnpm --filter @trapmap/server db:*` 写法都已失效，不要再写进文档或脚本。
 
 ## Gitignore 与构建产物
 
-仓库根目录的 `.gitignore` 已配置忽略以下目录和文件：
-
-| 类别 | 忽略项 |
-|------|--------|
-| 构建输出 | `dist/`、`build/`、`*.tsbuildinfo` |
-| 依赖 | `node_modules/` |
-| 测试覆盖率 | `coverage/`、`*.lcov`、`.nyc_output/` |
-| 环境变量 | `.env`、`.env.*`（保留 `.env.example`） |
-| 运行时数据 | `data/`、`.data/`、`logs/` |
-
-**注意事项：**
-
-- `pnpm build` 生成的 `dist/` 目录不得提交到版本控制
-- 提交前运行 `git status` 确认无构建产物被暂存
-- 如需添加新的忽略规则，修改根目录 `.gitignore`（而非各包内的 `.gitignore`）
-- AI 工具目录（`.claude/`、`.agent/` 等）大部分已忽略，仅保留 `workflow-with-trapmap` 与 `trapmap-cli-usage-guide` Skill 文件
+根 `.gitignore` 忽略 `dist/`、`build/`、`*.tsbuildinfo`、`node_modules/`、`coverage/`、`*.lcov`、`.nyc_output/`、`.env` 与 `.env.*`（保留 `.env.example`）、运行时数据目录。新忽略规则改根 `.gitignore`，不进各包。
 
 ## Pull Request 流程
 
-1. **创建分支**：`git checkout -b feat/my-feature`
-2. **开发并测试**：确保 `pnpm test` 和 `pnpm typecheck` 通过
-3. **提交**：遵循提交规范
-4. **Push**：`git push origin feat/my-feature`
-5. **创建 PR**：描述变更内容和动机
-6. **审核**：至少一名维护者审核后合并
-
-## 评审注意事项
+1. 建分支：`git checkout -b feat/my-feature`
+2. 开发并验证：`pnpm test` 与 `pnpm typecheck` 通过
+3. 按提交规范提交
+4. Push 并开 PR，写清变更内容与动机
+5. 至少一名维护者审核后合并
 
 ### 需要审核的变更
 
-- 任何 Schema 变更（`packages/contracts`）
-- API 端点变更
-- 认证/权限逻辑变更
-- 数据存储变更
+Schema（`packages/contracts`）、API 端点、认证与权限逻辑、数据存储，四类必须有人看。
 
 ### 评估相关变更
 
-- 评估用例添加/修改后，运行 `pnpm --filter @trapmap/evals eval:smoke` 验证
-- CI 评估变更需确保 `pnpm --filter @trapmap/evals eval:ci` 通过
-
-### 评测质量门
-
-PR 修改以下路径时，`eval.yml` 的 smoke tier 会自动触发：
-
-- `packages/contracts/src/domain/evals/**`
-- `evals/**`
-- `packages/service-*/src/**`
-
-评测结果会以 PR 评论形式展示。若检测到回归（regression），PR 合并前需确认回归是否可接受。
-
-详见 [`docs/operations/CI_CD.md`](../operations/CI_CD.md)。
+- 用例增改后跑 `pnpm --filter @trapmap/evals eval:smoke` 验证
+- CI 评估变更保证 `pnpm --filter @trapmap/evals eval:ci` 通过
+- PR 改动 `packages/contracts/src/domain/evals/**`、`evals/**`、`packages/service-*/src/**` 时，`eval.yml` 的 smoke tier 自动触发，结果以 PR 评论呈现
 
 ## 文档贡献
 
-- 新功能需同步更新相关文档
-- 文档位于 `docs/` 目录
-- 保持文档语言一致性（简体中文）
-- 文档分层、回写触发条件与 badcase 沉淀规则见 [`DOCUMENTATION_GOVERNANCE.md`](./DOCUMENTATION_GOVERNANCE.md)
+- 新功能同步更新相关文档，语言用简体中文
+- 分层、回写触发、badcase 沉淀规则见 `docs/guides/DOCUMENTATION_GOVERNANCE.md`
 
 ## 复发性问题沉淀规则
 
-当一次真实问题满足“可复现或可稳定描述”、“未来可能再次发生”、“会影响结果正确性、治理安全性或开发流程稳定性”时，提交者必须判断是否要把它沉淀为长期资产。
-
-需要显式判断的资产类型：
-
-- 测试用例
-- 文档规则
-- Skill / Trap 条目
-- badcase / eval case
-
-如果判断不需要沉淀，也要在 PR 描述或变更说明里写出原因。
+真实问题同时满足可复现或可稳定描述、未来可能再犯、影响结果正确性或治理安全或流程稳定时，你必须判断沉淀去向：测试用例、文档规则、Skill 或 Trap 条目、badcase 或 eval case。不沉淀也在 PR 描述里写原因。
 
 ## 文档影响检查清单
 
-如果你的变更涉及以下任何一项，你**必须**检查并更新相关文档：
+变更涉及对应项时，你同步更新对应文档：
 
-- [ ] **持久化架构**：检查 `docs/reference/DOCS_TRUTH_MATRIX.md` 中的持久化相关行
-- [ ] **启动流程或命令**：更新 `docs/README.md` 和 `docs/guides/GETTING_STARTED.md` 中的命令示例
-- [ ] **入口职责变化**：检查 `README.md`、`AGENTS.md`、`CLAUDE.md` 与 `docs/guides/DOCUMENTATION_GOVERNANCE.md`
-- [ ] **CI/CD 流水线**：更新 `docs/operations/CI_CD.md` 和 `docs/operations/TESTING.md`
-- [ ] **数据库 Schema**：更新 `docs/reference/DATABASE_SCHEMA.md` 中的表计数
-- [ ] **部署配置**：更新 `docs/architecture/DEPLOYMENT.md`
-- [ ] **复发性真实问题**：判断是否需要沉淀为 test/docs/skill/badcase，并在 PR 描述说明结论
+- [ ] 持久化架构：`docs/reference/DOCS_TRUTH_MATRIX.md` 相关行
+- [ ] 启动或命令：`docs/README.md` 与 `docs/guides/GETTING_STARTED.md` 的命令示例
+- [ ] 入口职责：`README.md`、`AGENTS.md`、`CLAUDE.md`、`docs/guides/DOCUMENTATION_GOVERNANCE.md`
+- [ ] CI 或测试：`docs/operations/CI_CD.md`、`docs/operations/TESTING.md`
+- [ ] 数据库 Schema：`docs/reference/DATABASE_SCHEMA.md` 的表计数
+- [ ] 部署配置：`docs/architecture/DEPLOYMENT.md`
 
 ### 验证命令
 
 ```bash
-# 检查文档守卫（含 doc-drift / mermaid / md-lint 阻断层）
 pnpm check:docs
 
-# 检查复杂度预算
 pnpm check:complexity
 
-# 重复代码诊断（jscpd，阈值 6%）
 pnpm duplication
 
-# 全仓 fallow 质量门
 pnpm check:fallow
 ```
 
-详见 [`docs/reference/DOCS_TRUTH_MATRIX.md`](../reference/DOCS_TRUTH_MATRIX.md) 和 [`docs/reference/SYSTEM_TRUTH_SOURCES.md`](../reference/SYSTEM_TRUTH_SOURCES.md)。
-
 ## 相关链接
 
-- [项目文档索引](../../README.md#--documentation)
-- [API 文档（已归档）](../archived/architecture/API.md)
+- [TrapMap](../../README.md#--documentation)
+- [TrapMap API 参考](../archived/architecture/API.md)
 - [数据模型](../reference/DATA_MODEL.md)
-- [评估系统](../../evals/README.md)
+- [TrapMap 评测工作区](../../evals/README.md)

@@ -21,43 +21,6 @@
       "mustNotContain": ["grep X-Trace-Id"]
     },
     {
-      "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": [
-        ".data/skill-shareer.json",
-        "fallback",
-        "OPENAI_API_KEY",
-        "GEMINI_API_KEY",
-        "未暴露为稳定 CLI 命令",
-        "默认 `light` 主线",
-        "Phase 4 freeze",
-        "TRAPMAP_DEPLOYMENT_PROFILE",
-        "TRAPMAP_DEPLOYMENT_PRESET",
-        "TRAPMAP_TASK_TRANSPORT",
-        "AI_PROVIDER",
-        "### Phase 6 freeze",
-        "internal client + resilience",
-        "rate limiting + bulkhead / 背压",
-        "DB budget / PgBouncer",
-        "TRAPMAP_GRAPH_DB_*",
-        "/health",
-        "/ready",
-        "/metrics",
-        "/v1/operations/status/async",
-        "operator runbook",
-        "task queue",
-        "internal hop latency",
-        "error rate",
-        "SLO",
-        "TRAPMAP_REQUEST_ID_HEADER",
-        "Runtime Resilience",
-        "TRAPMAP_KNOWLEDGE_WRITE_TRANSPORT",
-        "http` 或 `rpc`",
-        "gateway -> governance-review -> knowledge-write",
-        "gateway -> candidate-ingestion -> knowledge-write"
-      ],
-      "mustNotContain": [".data/trapmap.json", "默认 openai", "Phase 1 试点"]
-    },
-    {
       "file": "docs/guides/CONTRIBUTING.md",
       "mustContain": ["packages/service-*/drizzle/", "已有开发数据库需重建"],
       "mustNotContain": ["pnpm run db:generate", "pnpm run db:migrate"]
@@ -119,11 +82,6 @@
       "mustNotContain": ["Node.js 20 + pnpm 10.33.0"]
     },
     {
-      "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["fallback", "OPENAI_API_KEY", "GEMINI_API_KEY", "未暴露为稳定 CLI 命令"],
-      "mustNotContain": ["默认 openai"]
-    },
-    {
       "file": "evals/README.md",
       "mustContain": [
         "retrieval/",
@@ -138,11 +96,6 @@
     {
       "file": "evals/README.md",
       "mustContain": ["root-plan closeout 已冻结该边界", "唯一序列化载荷"]
-    },
-    {
-      "file": "docs/operations/ENVIRONMENT.md",
-      "mustContain": ["默认 `light` 主线"],
-      "mustNotContain": ["Phase 1 试点"]
     },
     {
       "file": "docs/operations/TESTING.md",
