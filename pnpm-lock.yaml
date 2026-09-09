@@ -1026,6 +1026,9 @@ importers:
       '@trapmap/lib':
         specifier: workspace:*
         version: link:../lib
+      commander:
+        specifier: ^15.0.0
+        version: 15.0.0
       zod:
         specifier: ^4.5.4
         version: 4.5.4

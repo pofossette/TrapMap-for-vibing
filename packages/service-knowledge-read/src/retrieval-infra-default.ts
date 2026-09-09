@@ -19,9 +19,13 @@ import {
   type KnowledgeEmbeddingVectorSearchFilters,
   type KnowledgeEmbeddingVectorSearchPort,
 } from './knowledge-vector-search-port.js';
-import { artifactVersionOf, type RecallCandidate, type ScoredEntry } from './retrieval-types.js';
+import {
+  artifactVersionOf,
+  RETRIEVAL_OVERFETCH_MULT,
+  type RecallCandidate,
+  type ScoredEntry,
+} from './retrieval-types.js';
 import type { KnowledgeRecord } from './store.js';
-import { RETRIEVAL_OVERFETCH_MULT } from './retrieval-types.js';
 
 const freshnessConfig: FreshnessDecayConfig = DEFAULT_FRESHNESS_DECAY_CONFIG;
 const queryEmbeddings = new Map<string, number[]>();

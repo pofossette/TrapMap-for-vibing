@@ -8,9 +8,8 @@
 
 import { DynamicDiscovery } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
-
-import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
 import { resolveConsulHttpTimeoutMs, resolveDiscoveryCacheTtlMs } from './config.js';
+import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
 import { DiscoveryResolver } from './discovery-resolver.js';
 
 export interface GatewayDiscovery {

@@ -1,14 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os, { tmpdir } from 'node:os';
 import path from 'node:path';
-
+import { DEFAULT_GATEWAY_URL } from '@trapmap/client-core';
 import {
   type ActiveSession,
   type BackendTarget,
   normalizeBackendTarget,
   type ScriptActivationPolicy,
 } from '@trapmap/contracts';
-import { DEFAULT_GATEWAY_URL } from '@trapmap/client-core';
 
 /**
  * Script policy override for local activation control.

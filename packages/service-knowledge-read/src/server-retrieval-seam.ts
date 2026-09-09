@@ -40,10 +40,11 @@ import {
   semanticRecall,
 } from './retrieval-recall-coordinator.js';
 import { semanticChannel } from './retrieval-semantic.js';
-import { searchKnowledge, RETRIEVAL_DEFAULT_LIMIT } from './search-knowledge.js';
+import { RETRIEVAL_DEFAULT_LIMIT, searchKnowledge } from './search-knowledge.js';
 
 /** Skill-lookup fan-out cap — centralized name, value unchanged. */
 const SKILL_LOOKUP_LIMIT = Number(process.env.TRAPMAP_RETRIEVAL_SKILL_LOOKUP_LIMIT ?? 50);
+
 import type { FeedbackQueueRecord } from './store.js';
 
 type SearchKnowledgeServices = Parameters<typeof searchKnowledge>[0];

@@ -14,10 +14,12 @@ import type {
   GraphQueryRuntimeState,
   RetrievalQuery,
 } from '@trapmap/contracts';
+
 // Single source of truth for the default decay config lives in
 // @trapmap/contracts (domain/decay.ts); re-exported here so existing
 // consumers keep a stable import path with zero behavior change.
 export { DEFAULT_FRESHNESS_DECAY_CONFIG } from '@trapmap/contracts';
+
 import { cosineSimilarity as sharedCosineSimilarity } from '@trapmap/lib';
 
 import { type BoundaryEntryView, computeBoundaryScoreDelta } from './boundary.js';

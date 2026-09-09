@@ -6,9 +6,8 @@ import {
   SpanStatusCode,
   trace,
 } from '@opentelemetry/api';
-
-import { recordDistributedInternalHopMetric } from '../internal-observability.js';
 import { resolveGatewayDefaultTimeoutMs } from '../config.js';
+import { recordDistributedInternalHopMetric } from '../internal-observability.js';
 import {
   CircuitBreaker,
   resolveBreakerCooldownMs,

@@ -2,9 +2,9 @@ import {
   Inject,
   Injectable,
   Logger,
-  Optional,
   type OnModuleDestroy,
   type OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -16,13 +16,13 @@ import {
   type HealthCheckResult,
   type ServiceRegistration,
 } from '@trapmap/backend-core';
-import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 import {
   DEFAULT_CONSUL_CHECK_INTERVAL,
   DEFAULT_CONSUL_CHECK_TIMEOUT,
   HOST_LOCAL_CONFIG_TOKEN,
   type HostLocalConfig,
 } from '../config/index.js';
+import { LifecycleManagerService } from '../lifecycle/lifecycle-manager.service.js';
 
 /**
  * Parse an optional positive-int ms env value, falling back to `defaultMs`

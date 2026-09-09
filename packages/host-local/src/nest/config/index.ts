@@ -10,5 +10,5 @@ export function loadHostLocalConfig(): HostLocalConfig {
 }
 
 export const HOST_LOCAL_CONFIG_TOKEN = 'HOST_LOCAL_CONFIG';
-export { DEFAULT_CONSUL_CHECK_INTERVAL, DEFAULT_CONSUL_CHECK_TIMEOUT };
 export type { HostLocalConfig };
+export { DEFAULT_CONSUL_CHECK_INTERVAL, DEFAULT_CONSUL_CHECK_TIMEOUT };

@@ -6,13 +6,12 @@
  */
 
 import { createHash } from 'node:crypto';
-
-import { trackCacheHit, trackCacheMiss } from './metrics.js';
 import {
   DEFAULT_SECTION_CACHE_MAX,
   DEFAULT_SECTION_CACHE_TTL_MS,
   resolveSectionCacheOptions,
 } from '../provider-config.js';
+import { trackCacheHit, trackCacheMiss } from './metrics.js';
 
 // ---------------------------------------------------------------------------
 // Types

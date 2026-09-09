@@ -10,9 +10,9 @@ import type { KnowledgeRecord } from '../store.js';
 import {
   finalizeSemanticResults,
   getDbSearchConfig,
+  RETRIEVAL_OVERFETCH_MULT,
   toScoredEntry,
   versionMultiplierFor,
-  RETRIEVAL_OVERFETCH_MULT,
 } from './recall-helpers.js';
 
 // fallow-ignore-next-line complexity -- B1 channel logic, behavior-preserving, tracked in B

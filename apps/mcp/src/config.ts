@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import { DEFAULT_GATEWAY_URL } from '@trapmap/client-core';
+import { z } from 'zod';
 
 /**
  * MCP server configuration (Task B2).
