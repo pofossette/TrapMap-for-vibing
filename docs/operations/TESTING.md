@@ -266,6 +266,14 @@ pnpm --filter @trapmap/evals eval:retrieval:core
 pnpm --filter @trapmap/evals eval:summary:smoke
 pnpm --filter @trapmap/evals eval:summary:core
 
+# 仅图提取（--tier smoke；dry-run 离线可跑）
+pnpm --filter @trapmap/evals eval:graph-extraction:smoke
+pnpm --filter @trapmap/evals eval:graph-extraction:dry-run
+
+# 仅摄取（--tier smoke；dry-run 离线可跑）
+pnpm --filter @trapmap/evals eval:ingestion:smoke
+pnpm --filter @trapmap/evals eval:ingestion:dry-run
+
 # Dry-run（验证用例格式，不执行，离线可跑）
 pnpm exec tsx evals/scripts/eval-all.ts --tier smoke --dry-run --allow-empty
 ```
@@ -419,19 +427,19 @@ pnpm check:structure
 
 ```bash
 # 健康检查，确认索引状态
-trapmap operations capsule-index health
+trapmap capsule-index health
 
 # 定点重建某 artifact 索引
-trapmap operations capsule-index rebuild --mode artifact --artifact-id <artifact-id>
+trapmap capsule-index rebuild --mode artifact --artifact-id <artifact-id>
 
 # 全量重建
-trapmap operations capsule-index rebuild
+trapmap capsule-index rebuild
 
 # 孤立清理
-trapmap operations capsule-index cleanup-orphans
+trapmap capsule-index cleanup-orphans
 ```
 
-`missingKeywords` 高走定点重建，`failedKeywords` 看 `lastError` 修完再重建，`orphanKeywords` 高走清理。
+`health` 返回 `report` 中的三组计数（`missing*` / `failed*` / `orphan*`，各含 keywords 与 embeddings，字段见 `apps/cli/src/commands/operations/capsule-index.ts:37-49`）：`missing` 高走定点重建，`failed` 高走排查后重建，`orphan` 高走清理。
 
 ## Badcase Export 与 Decision Metrics
 

@@ -8,7 +8,7 @@
 
 import { DynamicDiscovery } from '@trapmap/backend-core';
 import type { ServiceConfig } from '@trapmap/host-distributed/config/index.js';
-
+import { resolveConsulHttpTimeoutMs, resolveDiscoveryCacheTtlMs } from './config.js';
 import { ConsulDiscoveryAdapter } from './consul-discovery-adapter.js';
 import { DiscoveryResolver } from './discovery-resolver.js';
 
@@ -36,12 +36,15 @@ export function createGatewayDiscovery(
 
   const adapter = new ConsulDiscoveryAdapter({
     consulAddress: config.consulAddress,
+    timeoutMs: resolveConsulHttpTimeoutMs(process.env),
     logger,
   });
 
   // DynamicDiscovery wraps the adapter with TTL cache + round-robin.
   // DiscoveryResolver provides the static-URL fallback layer.
-  const dynamicDiscovery = new DynamicDiscovery(adapter, { cacheTTLMs: 30_000 });
+  const dynamicDiscovery = new DynamicDiscovery(adapter, {
+    cacheTTLMs: resolveDiscoveryCacheTtlMs(process.env),
+  });
 
   const resolver = new DiscoveryResolver({
     discovery: dynamicDiscovery,

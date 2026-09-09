@@ -43,6 +43,11 @@ export function calculateReviewQueueRiskScore(agentReview: KnowledgeEntry['agent
   );
 }
 
+/** Minimum aggregate risk score for the `high` risk bucket (3 signals × max weight 3 = 9). */
+export const REVIEW_RISK_HIGH_THRESHOLD = 8;
+/** Minimum aggregate risk score for the `medium` risk bucket. */
+export const REVIEW_RISK_MEDIUM_THRESHOLD = 4;
+
 function matchesRiskLevel(
   agentReview: KnowledgeEntry['agentReview'],
   riskLevel: ReviewQueueQuery['riskLevel'],
@@ -50,9 +55,10 @@ function matchesRiskLevel(
   if (!riskLevel) return true;
 
   const score = calculateReviewQueueRiskScore(agentReview);
-  if (riskLevel === 'high') return score >= 8;
-  if (riskLevel === 'medium') return score >= 4 && score < 8;
-  return score < 4;
+  if (riskLevel === 'high') return score >= REVIEW_RISK_HIGH_THRESHOLD;
+  if (riskLevel === 'medium')
+    return score >= REVIEW_RISK_MEDIUM_THRESHOLD && score < REVIEW_RISK_HIGH_THRESHOLD;
+  return score < REVIEW_RISK_MEDIUM_THRESHOLD;
 }
 
 export function decodeReviewQueueOffset(cursor?: string): number {

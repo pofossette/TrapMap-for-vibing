@@ -11,6 +11,7 @@ export interface DbSearchConfig {
   enabled: boolean;
   pool: Pool | null;
 }
+export { RETRIEVAL_OVERFETCH_MULT } from '../retrieval-types.js';
 export function getDbSearchConfig(services: SkillShareerServices): DbSearchConfig {
   const infra = getRetrievalInfra(services);
   const enabled = infra.pgRecall.isEnabled();

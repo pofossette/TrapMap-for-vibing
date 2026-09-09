@@ -53,6 +53,47 @@ docker compose --profile distributed up -d
 docker compose ps
 ```
 
+## 健康检查端点
+
+实现见 `packages/host-local/src/nest/health/health.controller.ts`。探针均无需认证。
+
+| 端点 | 语义 |
+|------|------|
+| `GET /health` | 综合健康（含依赖状态、profile/preset、readiness/liveness 快照） |
+| `GET /ready` | 就绪探针：未就绪或关键依赖 unhealthy 时返回 `503`，degraded 时返回 `200` |
+| `GET /live` | 存活探针：进程存活即返回 `alive` |
+| `GET /metrics` | Prometheus scrape；`TRAPMAP_METRICS_ENABLED=false` 时返回 `503` |
+
+```bash
+curl http://127.0.0.1:4000/health
+curl http://127.0.0.1:4000/ready
+curl http://127.0.0.1:4000/live
+curl http://127.0.0.1:4000/metrics | head -20
+```
+
+`/ready` 的 `503` 只表示“暂未就绪”（`readiness === "not-ready"` 或关键依赖 unhealthy），不是故障定论；其余探针语义见 `docs/operations/OBSERVABILITY-OPERATIONS.md`。
+
+## L3 验收命令块（压缩版）
+
+当前成熟度为 `Level 2 + L3 verification pending`；`Level 3` 需 live 环境验证后方可宣称。完整判据见 git 历史 `ec0e4c99:docs/architecture/DEPLOYMENT.md` 的 “Platform L3 operational verification” 节。
+
+```bash
+# 1. 离线 plumbing（本机可跑）
+pnpm exec tsx scripts/verify-l3-platform.ts --check all
+kubectl apply --dry-run=client --validate=true -f k8s/base/
+
+# 2. kind 烟囱（需 kind + kubectl + docker）
+kind create cluster --name trapmap-l3
+kubectl apply -f k8s/base/
+kubectl wait --for=condition=Ready pod --all -n trapmap --timeout=180s
+curl -f http://127.0.0.1:4000/ready
+kind delete cluster --name trapmap-l3
+
+# 3. amqp live smoke（需 compose + rabbitmq profile）
+TRAPMAP_TASK_TRANSPORT=amqp TRAPMAP_RABBITMQ_URL=amqp://guest:guest@127.0.0.1:5672 \
+  docker compose --profile distributed --profile mq up -d --build
+```
+
 ## 常见用法
 
 ### 你本地直起 `team-monolith`

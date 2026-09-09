@@ -31,6 +31,18 @@ export interface RequestOptions {
    * without mutating global fetch, so concurrent requests remain isolated.
    */
   credentials?: RequestCredentials;
+  /**
+   * Per-attempt fetch timeout in ms for this request.
+   * Falls back to `TRAPMAP_CLIENT_TIMEOUT_MS`. Unset = no timeout
+   * (legacy behavior).
+   */
+  timeoutMs?: number;
+  /**
+   * Extra retry attempts after the first for this request.
+   * Falls back to `TRAPMAP_CLIENT_MAX_RETRIES`. Unset = no retries
+   * (legacy behavior). Retries cover network failures and HTTP 5xx.
+   */
+  maxRetries?: number;
 }
 
 /** Wrapper returned by {@link apiRequest} on success. */

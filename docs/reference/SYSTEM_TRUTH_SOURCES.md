@@ -67,3 +67,6 @@ pnpm typecheck
 ```
 
 规则见 `scripts/complexity-budgets.json`；矩阵见 [文档真相矩阵](DOCS_TRUTH_MATRIX.md)。
+
+> 退役注记：2026-09-01 基线快照已按 triage 删除退役（回滚锚点见 git 历史 `dc4523d5`／`9e94d74d`，用 `git show` 取回）。
+> 退役注记：旧 standard-prompt XML 已删除退役（全仓无引用，2026-09-08 已 grep 确认），运行期真相以 `docs/reference/system-prompt-slots.default.json` 为准。

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { loadAiProviderConfig } from '../src/provider-config.js';
+import { loadAiProviderConfig, resolveAiRequestTimeoutMs } from '../src/provider-config.js';
 
 const ENV_KEYS = [
   'AI_PROVIDER',
@@ -8,6 +8,7 @@ const ENV_KEYS = [
   'AI_API_KEY',
   'AI_CHAT_MODEL',
   'AI_EMBEDDING_MODEL',
+  'AI_REQUEST_TIMEOUT_MS',
   'EMBEDDING_PROVIDER',
   'EMBEDDING_BASE_URL',
   'EMBEDDING_API_KEY',
@@ -159,5 +160,37 @@ describe('loadAiProviderConfig', () => {
     process.env.AI_PROMPT_TEMPLATE_FILE = '';
 
     expect(loadAiProviderConfig().promptTemplateFile).toBeNull();
+  });
+});
+
+describe('resolveAiRequestTimeoutMs', () => {
+  let saved: Record<string, string | undefined>;
+
+  beforeEach(() => {
+    saved = saveEnv();
+  });
+
+  afterEach(() => {
+    restoreEnv(saved);
+  });
+
+  it('returns undefined when unset (legacy: no timeout)', () => {
+    expect(resolveAiRequestTimeoutMs({})).toBeUndefined();
+  });
+
+  it('parses a valid millisecond value', () => {
+    expect(resolveAiRequestTimeoutMs({ AI_REQUEST_TIMEOUT_MS: '15000' })).toBe(15000);
+  });
+
+  it('returns undefined for invalid values (legacy: no timeout)', () => {
+    expect(resolveAiRequestTimeoutMs({ AI_REQUEST_TIMEOUT_MS: 'abc' })).toBeUndefined();
+    expect(resolveAiRequestTimeoutMs({ AI_REQUEST_TIMEOUT_MS: '' })).toBeUndefined();
+    expect(resolveAiRequestTimeoutMs({ AI_REQUEST_TIMEOUT_MS: '0' })).toBeUndefined();
+    expect(resolveAiRequestTimeoutMs({ AI_REQUEST_TIMEOUT_MS: '-100' })).toBeUndefined();
+  });
+
+  it('reads process.env by default', () => {
+    process.env.AI_REQUEST_TIMEOUT_MS = '15000';
+    expect(resolveAiRequestTimeoutMs()).toBe(15000);
   });
 });

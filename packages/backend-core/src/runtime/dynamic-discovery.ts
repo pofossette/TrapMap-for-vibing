@@ -6,6 +6,13 @@ import type { DiscoveredService, DiscoveryPort } from '../ports/discovery-ports.
  * This is a framework-free utility that wraps any DiscoveryPort
  * with a TTL-based cache and simple load balancing.
  */
+/**
+ * Default discovery-cache TTL (ms). backend-core never reads process.env;
+ * hosts override via the `cacheTTLMs` option (to be wired to env by a later
+ * host-side task). Value-preserving.
+ */
+export const DEFAULT_DISCOVERY_CACHE_TTL_MS = 30_000;
+
 export class DynamicDiscovery {
   private cache = new Map<string, { services: DiscoveredService[]; expiresAt: number }>();
   private roundRobinCounters = new Map<string, number>();
@@ -15,7 +22,7 @@ export class DynamicDiscovery {
     private discoveryPort: DiscoveryPort,
     options?: { cacheTTLMs?: number },
   ) {
-    this.cacheTTL = options?.cacheTTLMs ?? 30_000;
+    this.cacheTTL = options?.cacheTTLMs ?? DEFAULT_DISCOVERY_CACHE_TTL_MS;
   }
 
   async getServiceAddress(serviceName: string): Promise<DiscoveredService> {

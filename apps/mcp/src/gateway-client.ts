@@ -33,7 +33,11 @@ export function createGatewayClient(config: McpConfig): GatewayClient {
   };
 
   return {
-    async request(method, path, opts = {}) {
+    async request<T>(
+      method: 'GET' | 'POST' | 'PATCH',
+      path: string,
+      opts: { body?: unknown; query?: Record<string, string> } = {},
+    ): Promise<T> {
       const query =
         opts.query && Object.keys(opts.query).length > 0
           ? `?${new URLSearchParams(opts.query).toString()}`

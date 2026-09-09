@@ -5,6 +5,9 @@ import type { KnowledgeRecord } from './store.js';
 export type RecallChannel = string;
 export type RoutingChannel = string;
 
+/** DB recall overfetch multiplier applied to maxResults before eligibility filtering. */
+export const RETRIEVAL_OVERFETCH_MULT = Number(process.env.TRAPMAP_RETRIEVAL_OVERFETCH_MULT ?? 2);
+
 export interface TokenMatchDetail {
   token: string;
   fields: Array<'shortcut' | 'detail' | 'labels'>;

@@ -27,6 +27,10 @@ import type {
 // PostgreSQL implementation
 // ---------------------------------------------------------------------------
 
+const LABEL_REPO_SEARCH_LIMIT = Number(process.env.TRAPMAP_LABEL_REPO_SEARCH_LIMIT ?? 5);
+/** Fallback alias confidence when the stored record carries none — centralized, value unchanged. */
+const DEFAULT_ALIAS_CONFIDENCE = 1.0;
+
 export class PgLabelRepository implements LabelRepository {
   private readonly db;
 
@@ -139,7 +143,7 @@ export class PgLabelRepository implements LabelRepository {
         normalizedAlias: normalized,
         canonicalLabelId: alias.canonicalLabelId,
         source: alias.source ?? 'manual',
-        confidence: alias.confidence ?? 1.0,
+        confidence: alias.confidence ?? DEFAULT_ALIAS_CONFIDENCE,
         createdAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -148,7 +152,7 @@ export class PgLabelRepository implements LabelRepository {
           alias: alias.alias,
           canonicalLabelId: alias.canonicalLabelId,
           source: alias.source ?? 'manual',
-          confidence: alias.confidence ?? 1.0,
+          confidence: alias.confidence ?? DEFAULT_ALIAS_CONFIDENCE,
         },
       });
   }
@@ -156,7 +160,7 @@ export class PgLabelRepository implements LabelRepository {
   async searchCandidates(
     normalizedQuery: string,
     kind?: string,
-    limit = 5,
+    limit = LABEL_REPO_SEARCH_LIMIT,
   ): Promise<
     Array<{
       label: CanonicalLabelRecord;
@@ -243,7 +247,7 @@ export class PgLabelRepository implements LabelRepository {
   async searchCandidatesByEmbedding(
     embedding: number[],
     kind?: string,
-    limit = 5,
+    limit = LABEL_REPO_SEARCH_LIMIT,
   ): Promise<Array<{ label: CanonicalLabelRecord; distance: number }>> {
     // Use pgvector cosine distance operator
     const vectorStr = `[${embedding.join(',')}]`;

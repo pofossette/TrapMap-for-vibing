@@ -11,6 +11,14 @@ import { validateOtelPolicy } from '@trapmap/contracts';
 export const OTEL_SHUTDOWN_TIMEOUT_MS = 5_000;
 
 /**
+ * Default OTLP metric export interval (ms) for the periodic metric reader.
+ * backend-core never reads process.env; hosts override via the
+ * `metricExportIntervalMs` option of bootstrapOtelSdk (to be wired to env by
+ * a later host-side task). Value-preserving.
+ */
+export const OTEL_METRIC_EXPORT_INTERVAL_MS = 15_000;
+
+/**
  * Shutdown handle for the OTel SDK. Framework-agnostic.
  */
 export interface OtelSdkHandle {
@@ -39,7 +47,15 @@ export interface BootstrappedOtel {
  *   no OTLP exporters;
  * - team-monolith / distributed load OTLP trace + metric exporters.
  */
-export async function bootstrapOtelSdk(input: OtelPolicyInput): Promise<BootstrappedOtel> {
+export interface OtelBootstrapOptions {
+  /** OTLP metric export interval in ms (default OTEL_METRIC_EXPORT_INTERVAL_MS). */
+  metricExportIntervalMs?: number;
+}
+
+export async function bootstrapOtelSdk(
+  input: OtelPolicyInput,
+  options?: OtelBootstrapOptions,
+): Promise<BootstrappedOtel> {
   const policy = validateOtelPolicy(input);
 
   if (!policy.enabled) {
@@ -82,7 +98,7 @@ export async function bootstrapOtelSdk(input: OtelPolicyInput): Promise<Bootstra
 
       sdkConfig.metricReader = new PeriodicExportingMetricReader({
         exporter: metricExporter,
-        exportIntervalMillis: 15_000,
+        exportIntervalMillis: options?.metricExportIntervalMs ?? OTEL_METRIC_EXPORT_INTERVAL_MS,
       });
     }
 
@@ -98,13 +114,20 @@ export async function bootstrapOtelSdk(input: OtelPolicyInput): Promise<Bootstra
 
 /**
  * Shut down an OTel SDK handle with a bounded timeout to prevent process hangs.
+ *
+ * Hosts override the bound via `options.shutdownTimeoutMs` (to be wired to
+ * env by a later host-side task); default is OTEL_SHUTDOWN_TIMEOUT_MS.
  */
-export async function boundedOtelShutdown(sdk: OtelSdkHandle): Promise<void> {
+export async function boundedOtelShutdown(
+  sdk: OtelSdkHandle,
+  options?: { shutdownTimeoutMs?: number },
+): Promise<void> {
+  const shutdownTimeoutMs = options?.shutdownTimeoutMs ?? OTEL_SHUTDOWN_TIMEOUT_MS;
   try {
     await Promise.race([
       sdk.shutdown(),
       new Promise<void>((_, reject) =>
-        setTimeout(() => reject(new Error('OTel shutdown timed out')), OTEL_SHUTDOWN_TIMEOUT_MS),
+        setTimeout(() => reject(new Error('OTel shutdown timed out')), shutdownTimeoutMs),
       ),
     ]);
   } catch {

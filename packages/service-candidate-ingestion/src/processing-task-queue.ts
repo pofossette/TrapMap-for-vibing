@@ -12,7 +12,7 @@ type QueueTask = {
   max_attempts: number;
 };
 
-const POLL_INTERVAL_MS = 100;
+const POLL_INTERVAL_MS = Number(process.env.TRAPMAP_CANDIDATE_QUEUE_POLL_MS ?? 100);
 
 export function createCandidateProcessingTaskQueue(
   pool: TransactionPool,
@@ -32,8 +32,8 @@ export function createCandidateProcessingTaskQueue(
           id,
           type,
           JSON.stringify(payload),
-          options.priority ?? 0,
-          options.maxAttempts ?? 3,
+          options.priority ?? Number(process.env.TRAPMAP_CANDIDATE_DEFAULT_PRIORITY ?? 0),
+          options.maxAttempts ?? Number(process.env.TRAPMAP_CANDIDATE_MAX_ATTEMPTS ?? 3),
           options.dedupeKey ?? null,
         ],
       );
@@ -100,11 +100,12 @@ export function createCandidateProcessingTaskQueue(
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
               const dead = isDeadLetter(task.attempts, task.max_attempts);
+              const retryDelayMs = Number(process.env.TRAPMAP_CANDIDATE_RETRY_DELAY_MS ?? 5000);
               await pool.query(
                 `UPDATE task_queue
-                 SET status = $2, last_error = $3, updated_at = NOW(), process_after = NOW() + INTERVAL '5 seconds'
+                 SET status = $2, last_error = $3, updated_at = NOW(), process_after = NOW() + $4 * INTERVAL '1 millisecond'
                  WHERE id = $1`,
-                [task.id, dead ? 'dead' : 'pending', message],
+                [task.id, dead ? 'dead' : 'pending', message, retryDelayMs],
               );
               if (dead)
                 await handler.onDead?.({

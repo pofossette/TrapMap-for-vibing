@@ -38,6 +38,15 @@ export interface LangfuseClientLike {
 }
 
 // ---------------------------------------------------------------------------
+// Langfuse client tuning
+// ---------------------------------------------------------------------------
+
+/** Flush after every event: observations must not sit buffered in memory. */
+export const LANGFUSE_SINK_FLUSH_AT = 1;
+/** Keep the SDK queue in memory; observation payloads are never persisted to disk. */
+export const LANGFUSE_SINK_PERSISTENCE = 'memory' as const;
+
+// ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
 
@@ -81,8 +90,8 @@ export async function createLangfuseSinkFromEnv(): Promise<LlmObservationSink | 
       baseUrl: policy.baseUrl,
       publicKey: policy.publicKey,
       secretKey: policy.secretKey,
-      flushAt: 1,
-      persistence: 'memory',
+      flushAt: LANGFUSE_SINK_FLUSH_AT,
+      persistence: LANGFUSE_SINK_PERSISTENCE,
     }) as unknown as LangfuseClientLike; // lib type gap: the langfuse
     // SDK client type does not structurally match the minimal local client
     // surface used by the sink adapter

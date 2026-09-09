@@ -202,7 +202,10 @@ function checkCountByExpected(
  * Exported so tests assert against the same rule set the guard enforces.
  */
 export function loadDocRules(configPath: string): DocRule[] {
-  const shardDir = join(resolve(configPath, '..'), 'doc-rules');
+  const parent = resolve(configPath, '..');
+  // The anchor lives inside the shard directory itself
+  // (scripts/doc-rules/index.json); otherwise shards sit next to the anchor.
+  const shardDir = parent.endsWith('doc-rules') ? parent : join(parent, 'doc-rules');
   let entries: string[] = [];
   try {
     entries = readdirSync(shardDir)
@@ -226,7 +229,9 @@ export function loadDocRules(configPath: string): DocRule[] {
  * Pure function — no side effects beyond reading files.
  *
  * Shards live in <root>/scripts/doc-rules/<layer>.json
- * (reference / architecture / ops / index). The legacy monolith
+ * (reference / architecture / ops / index). The anchor is
+ * scripts/doc-rules/index.json so a deleted shard directory falls back to
+ * the anchor's own docRules; the legacy monolith
  * scripts/complexity-budgets.json no longer carries docRules.
  */
 export function checkDocDrift(configPath: string, root?: string): CheckResult {
@@ -253,7 +258,7 @@ export function checkDocDrift(configPath: string, root?: string): CheckResult {
 // ── CLI entry point ──────────────────────────────────────────────────
 
 const ROOT = resolve(import.meta.dirname, '..');
-const CONFIG_PATH = resolve(ROOT, 'scripts/complexity-budgets.json');
+const CONFIG_PATH = resolve(ROOT, 'scripts/doc-rules/index.json');
 
 function main(): void {
   const result = checkDocDrift(CONFIG_PATH, ROOT);

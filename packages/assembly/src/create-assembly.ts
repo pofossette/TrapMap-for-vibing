@@ -1,6 +1,7 @@
 import { Context, type Fiber, type Plugin } from '@deepseek-ai/cordis';
 import {
   createShutdownController,
+  DEFAULT_SHUTDOWN_TIMEOUT_MS,
   type ShutdownController,
   type ShutdownControllerOptions,
 } from './shutdown-controller.js';
@@ -12,6 +13,12 @@ import { AssemblyStartupError } from './types.js';
 export interface AssemblyOptions {
   /** Contract registry used for contract-first build-time checks. */
   contracts?: readonly ContractDescriptor[];
+  /**
+   * Default dispose grace period (ms) for shutdown controllers built from the
+   * booted assembly. Per-call `timeoutMs` overrides it. Defaults to
+   * `DEFAULT_SHUTDOWN_TIMEOUT_MS` (5000); intentionally not env-driven.
+   */
+  shutdownTimeoutMs?: number;
 }
 
 /** A running, cordis-backed assembly. */
@@ -61,6 +68,7 @@ function toCordisPlugin(node: CapabilityNode<any>): Plugin.Object<any> {
  */
 export function createAssembly(options: AssemblyOptions = {}): AssemblyBuilder {
   const contracts = options.contracts ?? [];
+  const shutdownTimeoutMs = options.shutdownTimeoutMs ?? DEFAULT_SHUTDOWN_TIMEOUT_MS;
   const entries: BuilderEntry[] = [];
 
   return {
@@ -102,7 +110,10 @@ export function createAssembly(options: AssemblyOptions = {}): AssemblyBuilder {
             ctx,
             dispose,
             createShutdownController(controllerOptions?: ShutdownControllerOptions) {
-              return createShutdownController(dispose, controllerOptions);
+              return createShutdownController(dispose, {
+                ...controllerOptions,
+                timeoutMs: controllerOptions?.timeoutMs ?? shutdownTimeoutMs,
+              });
             },
           };
         },

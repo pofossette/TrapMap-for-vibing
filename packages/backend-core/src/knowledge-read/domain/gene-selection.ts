@@ -25,6 +25,14 @@ export const GENE_SOURCE_AUTHORITY_CAPSULE_BOOST = 0.01;
 export const GENE_MISSING_VALIDATION_PENALTY = 0.05;
 export const GENE_BROAD_MATCH_PENALTY = 0.1;
 
+/**
+ * Floor on the ranked-candidate window in selectExperienceGenes: the primary
+ * gene plus up to three distinct-source avoid cues need at least four ranked
+ * candidates (see supplementaryAvoid cap below). Value-preserving; named so
+ * hosts/tests can reference the bound without a bare literal.
+ */
+export const GENE_MIN_RESULTS = 4;
+
 export interface ExperienceGeneRecallCandidate {
   gene: ExperienceGene;
   semanticScore: number;
@@ -168,7 +176,7 @@ export function selectExperienceGenes(
   supplementaryAvoid: GeneAvoidWarning[];
 } {
   const ranked = rerankExperienceGeneCandidates(candidates, {
-    maxResults: Math.max(options.maxResults ?? 1, 4),
+    maxResults: Math.max(options.maxResults ?? 1, GENE_MIN_RESULTS),
   });
   const primaryGene = ranked[0] ?? null;
   if (!primaryGene) return { primaryGene: null, supplementaryAvoid: [] };

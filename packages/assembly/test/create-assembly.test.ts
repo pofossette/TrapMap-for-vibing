@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
 import { createAssembly } from '../src/create-assembly.js';
@@ -149,5 +149,66 @@ describe('createAssembly', () => {
     expect(controller.state).toBe('idle');
     await controller.shutdown();
     expect(controller.state).toBe('done');
+  });
+
+  it('forwards assembly shutdownTimeoutMs to the controller when per-call timeout is absent', async () => {
+    const warnings: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
+      warnings.push(String(message));
+    });
+    try {
+      const hanging = defineNode({
+        id: 'a',
+        apply: () => async (): Promise<void> => {
+          await new Promise<void>(() => {});
+        },
+      });
+      const running = await createAssembly({ shutdownTimeoutMs: 20 }).add(hanging).build().boot();
+      const controller = running.createShutdownController();
+      await controller.shutdown();
+      expect(controller.state).toBe('done');
+      expect(warnings.some((message) => message.includes('within 20ms'))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  }, 10000);
+
+  it('prefers per-call timeoutMs over assembly shutdownTimeoutMs', async () => {
+    const hanging = defineNode({
+      id: 'a',
+      apply: () => async (): Promise<void> => {
+        await new Promise<void>(() => {});
+      },
+    });
+    const running = await createAssembly({ shutdownTimeoutMs: 60_000 }).add(hanging).build().boot();
+    const controller = running.createShutdownController({ timeoutMs: 20 });
+    await controller.shutdown();
+    expect(controller.state).toBe('done');
+  }, 10000);
+
+  it('defaults shutdown timeout to 5000ms when neither assembly nor controller options specify it', async () => {
+    vi.useFakeTimers();
+    const warnings: string[] = [];
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
+      warnings.push(String(message));
+    });
+    try {
+      const hanging = defineNode({
+        id: 'a',
+        apply: () => async (): Promise<void> => {
+          await new Promise<void>(() => {});
+        },
+      });
+      const running = await createAssembly().add(hanging).build().boot();
+      const controller = running.createShutdownController();
+      const pending = controller.shutdown();
+      await vi.advanceTimersByTimeAsync(5000);
+      await pending;
+      expect(controller.state).toBe('done');
+      expect(warnings.some((message) => message.includes('within 5000ms'))).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });

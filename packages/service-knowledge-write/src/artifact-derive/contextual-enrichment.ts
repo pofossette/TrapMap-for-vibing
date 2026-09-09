@@ -13,6 +13,8 @@
 import type { ChatProvider } from '@trapmap/ai-providers';
 import type { DerivedSkillCapsuleRecord } from '@trapmap/contracts';
 
+import { BACKOFF_BASE_MS as LABEL_ALIGN_BACKOFF_BASE_MS } from '../labels/llm-align.js';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -43,14 +45,14 @@ interface CapsuleContentResult {
 // Prompt builders
 // ---------------------------------------------------------------------------
 
-const MAX_CONTEXTUAL_PREFIX_LENGTH = 300;
+const MAX_CONTEXTUAL_PREFIX_LENGTH = Number(process.env.TRAPMAP_ARTIFACT_PREFIX_MAX_CHARS ?? 300);
 
 /**
  * Maximum document content length (chars) included in LLM prompts.
  * Documents longer than this are truncated to avoid excessive token usage.
  * ~8000 chars ≈ 2000 tokens — sufficient context for manifest/prefix generation.
  */
-const MAX_DOCUMENT_CONTENT_LENGTH = 8000;
+const MAX_DOCUMENT_CONTENT_LENGTH = Number(process.env.TRAPMAP_ARTIFACT_DOC_MAX_CHARS ?? 8000);
 
 /**
  * Truncate document content to a reasonable length for LLM prompts.
@@ -248,7 +250,7 @@ async function generateSingleCapsuleContent(
   labels: string[],
   documentContent: string,
   manifestItem: CapsuleManifestItem,
-  maxRetries = 2,
+  maxRetries = Number(process.env.TRAPMAP_ARTIFACT_ENRICH_MAX_RETRIES ?? 2),
 ): Promise<CapsuleContentResult> {
   if (!chat.isConfigured) {
     return { capsuleIndex: manifestItem.capsuleIndex, contextualPrefix: null };
@@ -266,8 +268,8 @@ async function generateSingleCapsuleContent(
       return { capsuleIndex: manifestItem.capsuleIndex, contextualPrefix: prefix || null };
     } catch {
       if (attempt < maxRetries) {
-        // Exponential backoff: 100ms, 400ms
-        await new Promise((r) => setTimeout(r, 100 * 2 ** (attempt * 2)));
+        // Exponential backoff reusing the shared label-align base: base, 4x base
+        await new Promise((r) => setTimeout(r, LABEL_ALIGN_BACKOFF_BASE_MS * 2 ** (attempt * 2)));
       }
     }
   }
@@ -291,7 +293,7 @@ async function generateCapsuleContents(
   labels: string[],
   documentContent: string,
   manifestItems: CapsuleManifestItem[],
-  maxConcurrent = 3,
+  maxConcurrent = Number(process.env.TRAPMAP_ARTIFACT_ENRICH_MAX_CONCURRENT ?? 3),
 ): Promise<CapsuleContentResult[]> {
   const results: CapsuleContentResult[] = [];
 

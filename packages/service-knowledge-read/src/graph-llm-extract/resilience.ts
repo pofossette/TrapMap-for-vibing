@@ -13,6 +13,9 @@ export interface ResilienceOptions {
   maxAttempts?: number;
 }
 
+/** Linear retry delay step (ms) — centralized name, value unchanged. */
+const RESILIENCE_RETRY_DELAY_STEP_MS = 1000;
+
 /**
  * Execute an async function with timeout protection.
  * Retries once on timeout or transient failure.
@@ -22,8 +25,10 @@ export async function executeWithResilience<T>(
   fn: () => Promise<T>,
   options: ResilienceOptions = {},
 ): Promise<T> {
-  const timeoutMs = options.timeoutMs ?? 30_000;
-  const maxAttempts = options.maxAttempts ?? 2;
+  const timeoutMs =
+    options.timeoutMs ?? Number(process.env.TRAPMAP_GRAPH_EXTRACT_TIMEOUT_MS ?? 30_000);
+  const maxAttempts =
+    options.maxAttempts ?? Number(process.env.TRAPMAP_GRAPH_EXTRACT_MAX_ATTEMPTS ?? 2);
 
   let lastError: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -33,7 +38,9 @@ export async function executeWithResilience<T>(
       lastError = error;
       if (attempt < maxAttempts - 1) {
         // Brief backoff before retry
-        await new Promise((resolve) => setTimeout(resolve, 1000 * (attempt + 1)));
+        await new Promise((resolve) =>
+          setTimeout(resolve, RESILIENCE_RETRY_DELAY_STEP_MS * (attempt + 1)),
+        );
       }
     }
   }

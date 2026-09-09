@@ -8,7 +8,9 @@
  * - docs/archived/**
  * - docs/plans/**
  * - docs/superpowers/**
- * - Lines containing "已删除" or "已退役" or "Wave-10" or "historical"
+ * - Lines carrying a shared HISTORY_MARKERS entry from ./docs-surface.js
+ *   ("（Wave-10 已删除）" / "（已归档，路径冻结）") or a legacy fuzzy marker
+ *   such as "已删除", "已退役", "Wave-10", "historical"
  *
  * Reports references to packages/server that appear to describe it as
  * current/active authority rather than historical context.
@@ -17,7 +19,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
-import { EXCLUDED_DOCS_SUBDIRS } from './docs-surface.js';
+import { EXCLUDED_DOCS_SUBDIRS, HISTORY_MARKERS } from './docs-surface.js';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 
@@ -31,7 +33,13 @@ const EXCLUDED_DIRS = [
   'dist',
 ];
 
-const HISTORICAL_MARKERS = [
+// Exact history markers are single-sourced from ./docs-surface.js (shared
+// with the reference guard via containsHistoryMarker). The stale guard keeps
+// its legacy line-level fuzzy markers below so existing annotated lines
+// (e.g. "兼容壳已于 … 删除") keep passing; both exact markers are matched
+// explicitly through the shared import.
+const HISTORICAL_MARKERS: readonly string[] = [
+  ...HISTORY_MARKERS,
   '已删除',
   '已退役',
   'Wave-10',

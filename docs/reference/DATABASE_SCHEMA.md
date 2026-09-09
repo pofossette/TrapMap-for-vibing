@@ -116,6 +116,8 @@
 |---|---|---|---|
 | `cron_jobs` | 定时任务 | `id` | `packages/db/src/schema/cron.ts:11` |
 
+> `conflict_relations` 仅 `service-governance-review` 迁移拥有（旧 `drizzle/` 路径，现 raw SQL 见 `packages/service-governance-review/src/pg-ports.ts:124`），无 `packages/db` 建模，属双源例外，现状保留加文档标注。
+
 ## 核心关系图
 
 ```mermaid

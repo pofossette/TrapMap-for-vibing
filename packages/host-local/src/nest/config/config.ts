@@ -64,6 +64,26 @@ const AsyncTaskTransportSchema = z
     }
   });
 
+// Pool defaults preserve the previous effective behavior (only connectionString
+// was passed, i.e. node-pg defaults max=10/idle=10s, no timeouts). Every knob
+// is tunable via TRAPMAP_HOST_LOCAL_* (fallback TRAPMAP_SERVICE_*); timeouts
+// stay unset unless explicitly configured.
+const PoolSchema = z.object({
+  poolSize: z.coerce.number().int().min(1).default(10),
+  idleTimeoutMs: z.coerce.number().int().min(1).default(10_000),
+  connectionTimeoutMs: z.coerce.number().int().min(0).optional(),
+  statementTimeoutMs: z.coerce.number().int().min(0).optional(),
+  queryTimeoutMs: z.coerce.number().int().min(0).optional(),
+  idleInTransactionTimeoutMs: z.coerce.number().int().min(0).optional(),
+});
+
+export const DEFAULT_CONSUL_CHECK_INTERVAL = '10s';
+export const DEFAULT_CONSUL_CHECK_TIMEOUT = '5s';
+const ConsulSchema = z.object({
+  checkInterval: z.string().min(1).default(DEFAULT_CONSUL_CHECK_INTERVAL),
+  checkTimeout: z.string().min(1).default(DEFAULT_CONSUL_CHECK_TIMEOUT),
+});
+
 const DeploymentSchema = z.object({
   profile: z.enum(['local-agent', 'team-monolith', 'distributed']).nullable().default(null),
   preset: z
@@ -134,6 +154,8 @@ export interface HostLocalConfig {
   };
   deployment: z.infer<typeof DeploymentSchema>;
   asyncTaskTransport: z.infer<typeof AsyncTaskTransportSchema>;
+  pool: z.infer<typeof PoolSchema>;
+  consul: z.infer<typeof ConsulSchema>;
   experienceGeneMode: ExperienceGeneMode;
   experienceGenesMode: ExperienceGeneMode;
   userOpsLog: z.infer<typeof UserOpsLogSchema>;
@@ -150,7 +172,46 @@ function normalizeOptionalEnvValue(value: string | undefined): string | undefine
   return normalized.length > 0 ? normalized : undefined;
 }
 
+// Additive aliases for env vars that predate the TRAPMAP_ prefix convention.
+// Each entry is [oldName, aliasName]. The old name always wins: the alias is
+// only copied across when the old name is unset, so behavior is unchanged
+// when aliases are absent. This runs at the top of loadConfig(), so the
+// LOG_* file loaders (called below) and the LANGFUSE_*/SENTRY_* observability
+// readers (constructed after config load) all honor the aliases without any
+// change to their own read sites. Note: 未调 `loadConfig` 即读 `LANGFUSE_*/SENTRY_*`
+// 的路径别名不生效. OTEL_* intentionally has no alias
+// (see packages/contracts/src/domain/observability-config.ts).
+const NON_PREFIXED_ENV_ALIASES: ReadonlyArray<readonly [oldName: string, aliasName: string]> = [
+  ['LOG_RAG_ENABLED', 'TRAPMAP_LOG_RAG_ENABLED'],
+  ['LOG_RAG_DIR', 'TRAPMAP_LOG_RAG_DIR'],
+  ['LOG_USER_OPS_ENABLED', 'TRAPMAP_LOG_USER_OPS_ENABLED'],
+  ['LOG_USER_OPS_DIR', 'TRAPMAP_LOG_USER_OPS_DIR'],
+  ['LOG_MAX_FILE_SIZE_MB', 'TRAPMAP_LOG_MAX_FILE_SIZE_MB'],
+  ['LOG_MAX_BACKUP_FILES', 'TRAPMAP_LOG_MAX_BACKUP_FILES'],
+  ['LANGFUSE_ENABLED', 'TRAPMAP_LANGFUSE_ENABLED'],
+  ['LANGFUSE_BASE_URL', 'TRAPMAP_LANGFUSE_BASE_URL'],
+  ['LANGFUSE_PUBLIC_KEY', 'TRAPMAP_LANGFUSE_PUBLIC_KEY'],
+  ['LANGFUSE_SECRET_KEY', 'TRAPMAP_LANGFUSE_SECRET_KEY'],
+  ['LANGFUSE_FLUSH_TIMEOUT_MS', 'TRAPMAP_LANGFUSE_FLUSH_TIMEOUT_MS'],
+  ['LANGFUSE_PRIVACY_MODE', 'TRAPMAP_LANGFUSE_PRIVACY_MODE'],
+  ['SENTRY_DSN', 'TRAPMAP_SENTRY_DSN'],
+  ['SENTRY_ENVIRONMENT', 'TRAPMAP_SENTRY_ENVIRONMENT'],
+  ['SENTRY_RELEASE', 'TRAPMAP_SENTRY_RELEASE'],
+  ['SENTRY_TRACES_SAMPLE_RATE', 'TRAPMAP_SENTRY_TRACES_SAMPLE_RATE'],
+  ['SENTRY_SAMPLE_RATE', 'TRAPMAP_SENTRY_SAMPLE_RATE'],
+  ['SENTRY_MAX_BREADCRUMBS', 'TRAPMAP_SENTRY_MAX_BREADCRUMBS'],
+];
+
+function applyNonPrefixedEnvAliases(): void {
+  for (const [oldName, aliasName] of NON_PREFIXED_ENV_ALIASES) {
+    if (process.env[oldName] === undefined && process.env[aliasName] !== undefined) {
+      process.env[oldName] = process.env[aliasName];
+    }
+  }
+}
+
 export function loadConfig(): HostLocalConfig {
+  applyNonPrefixedEnvAliases();
   const userOpsLog = loadUserOpsLogConfig();
   const ragLog = loadRagLogConfig();
   const graphDb = loadGraphDbConfig();
@@ -227,6 +288,28 @@ export function loadConfig(): HostLocalConfig {
     },
     experienceGeneMode,
     experienceGenesMode,
+    pool: {
+      poolSize: process.env.TRAPMAP_HOST_LOCAL_POOL_SIZE ?? process.env.TRAPMAP_SERVICE_POOL_SIZE,
+      idleTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_IDLE_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_IDLE_TIMEOUT_MS,
+      connectionTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_CONNECTION_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_CONNECTION_TIMEOUT_MS,
+      statementTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_STATEMENT_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_STATEMENT_TIMEOUT_MS,
+      queryTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_QUERY_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_QUERY_TIMEOUT_MS,
+      idleInTransactionTimeoutMs:
+        process.env.TRAPMAP_HOST_LOCAL_IDLE_IN_TRANSACTION_TIMEOUT_MS ??
+        process.env.TRAPMAP_SERVICE_IDLE_IN_TRANSACTION_TIMEOUT_MS,
+    },
+    consul: {
+      checkInterval: process.env.TRAPMAP_CONSUL_CHECK_INTERVAL?.trim() || undefined,
+      checkTimeout: process.env.TRAPMAP_CONSUL_CHECK_TIMEOUT?.trim() || undefined,
+    },
     userOpsLog,
     ragLog,
     graphDb,
@@ -246,6 +329,8 @@ export function loadConfig(): HostLocalConfig {
       runtime: RuntimeConfigSchema,
       deployment: DeploymentSchema,
       asyncTaskTransport: AsyncTaskTransportSchema,
+      pool: PoolSchema,
+      consul: ConsulSchema,
       experienceGeneMode: experienceGeneModeSchema,
       experienceGenesMode: experienceGeneModeSchema,
       userOpsLog: UserOpsLogSchema,

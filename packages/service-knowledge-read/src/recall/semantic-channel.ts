@@ -10,6 +10,7 @@ import type { KnowledgeRecord } from '../store.js';
 import {
   finalizeSemanticResults,
   getDbSearchConfig,
+  RETRIEVAL_OVERFETCH_MULT,
   toScoredEntry,
   versionMultiplierFor,
 } from './recall-helpers.js';
@@ -31,7 +32,7 @@ export async function semanticRecall(
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
       const dbResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
         queryVector,
-        limit: parsed.maxResults * 2,
+        limit: parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
         teamId: auth.activeTeamId,
         maxLevel: auth.securityLevel,
         ...(scopeFilter ? { scope: scopeFilter } : {}),

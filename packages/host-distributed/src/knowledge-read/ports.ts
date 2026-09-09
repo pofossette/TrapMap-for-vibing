@@ -9,6 +9,9 @@
 import type { KnowledgeEntryRecord, KnowledgeReadProjectionPort } from '@trapmap/backend-core';
 import type { LifecycleState } from '@trapmap/contracts';
 
+/** Default page size for knowledge-read list queries (no env override by design). */
+export const READ_DEFAULT_PAGE_LIMIT = 100;
+
 /** Minimal pool seam used by the knowledge-read pg projection (query-only). */
 export interface KnowledgeReadPool {
   query(sql: string, values?: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
@@ -65,7 +68,7 @@ export function createPgKnowledgeReadProjection(
 
       const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
       const { rows } = await pool.query(
-        `SELECT * FROM knowledge_entries ${whereClause} ORDER BY created_at DESC LIMIT 100`,
+        `SELECT * FROM knowledge_entries ${whereClause} ORDER BY created_at DESC LIMIT ${READ_DEFAULT_PAGE_LIMIT}`,
         params,
       );
       return rows.map((row) => mapKnowledgeRow(row as Record<string, unknown>));
@@ -81,7 +84,7 @@ export function createPgKnowledgeReadProjection(
       };
     },
     async listByFilter(_filter: Record<string, never>, page?: { offset: number; limit: number }) {
-      const limit = page?.limit ?? 100;
+      const limit = page?.limit ?? READ_DEFAULT_PAGE_LIMIT;
       const offset = page?.offset ?? 0;
       const { rows } = await pool.query(
         'SELECT *, COUNT(*) OVER() AS __total FROM knowledge_entries ORDER BY created_at DESC LIMIT $1 OFFSET $2',

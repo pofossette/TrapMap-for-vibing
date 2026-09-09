@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import os, { tmpdir } from 'node:os';
 import path from 'node:path';
-
+import { DEFAULT_GATEWAY_URL } from '@trapmap/client-core';
 import {
   type ActiveSession,
   type BackendTarget,
@@ -50,8 +50,8 @@ export interface OutputProfile {
   includeRawHints: boolean;
 }
 
-const DEFAULT_GATEWAY_URL =
-  process.env.TRAPMAP_GATEWAY_URL ?? process.env.TRAPMAP_SERVER_URL ?? 'http://127.0.0.1:4000';
+const CLI_DEFAULT_GATEWAY_URL =
+  process.env.TRAPMAP_GATEWAY_URL ?? process.env.TRAPMAP_SERVER_URL ?? DEFAULT_GATEWAY_URL;
 
 function getConfigPath(): string {
   let base: string;
@@ -65,7 +65,7 @@ function getConfigPath(): string {
 
 function getDefaultState(): CliState {
   return {
-    gatewayUrl: DEFAULT_GATEWAY_URL,
+    gatewayUrl: CLI_DEFAULT_GATEWAY_URL,
     backendTarget: 'light',
     sessionToken: null,
     session: null,
@@ -81,7 +81,7 @@ function normalizeGatewayUrl(parsed: Partial<CliState>): string {
     return parsed.serverUrl;
   }
 
-  return DEFAULT_GATEWAY_URL;
+  return CLI_DEFAULT_GATEWAY_URL;
 }
 
 export function resolveCliGatewayUrl(state: Pick<CliState, 'gatewayUrl' | 'serverUrl'>): string {
@@ -93,7 +93,7 @@ export function resolveCliGatewayUrl(state: Pick<CliState, 'gatewayUrl' | 'serve
     return state.serverUrl;
   }
 
-  return DEFAULT_GATEWAY_URL;
+  return CLI_DEFAULT_GATEWAY_URL;
 }
 
 export function getDefaultOutputProfile(): OutputProfile {

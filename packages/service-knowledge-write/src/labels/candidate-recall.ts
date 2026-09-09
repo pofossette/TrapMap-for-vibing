@@ -21,13 +21,17 @@ import type { LabelRepository } from './repository.js';
 // ---------------------------------------------------------------------------
 
 /** Recommended max candidates for the LLM prompt. */
-export const RECOMMENDED_MAX_CANDIDATES = 5;
+export const RECOMMENDED_MAX_CANDIDATES = Number(
+  process.env.TRAPMAP_LABEL_RECALL_RECOMMENDED_MAX ?? 5,
+);
 
 /** Hard max candidates for the LLM prompt. */
-export const HARD_MAX_CANDIDATES = 8;
+export const HARD_MAX_CANDIDATES = Number(process.env.TRAPMAP_LABEL_RECALL_HARD_MAX ?? 8);
 
 /** Minimum embedding similarity distance to consider (cosine distance, lower = more similar). */
-const EMBEDDING_DISTANCE_THRESHOLD = 0.5;
+const EMBEDDING_DISTANCE_THRESHOLD = Number(
+  process.env.TRAPMAP_LABEL_RECALL_EMBEDDING_DISTANCE ?? 0.5,
+);
 
 // ---------------------------------------------------------------------------
 // Types

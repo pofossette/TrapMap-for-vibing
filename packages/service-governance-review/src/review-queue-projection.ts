@@ -53,6 +53,8 @@ export interface ReviewQueueProjection {
   total: number;
 }
 
+const REVIEW_QUEUE_DEFAULT_LIMIT = Number(process.env.TRAPMAP_GOVERNANCE_QUEUE_DEFAULT_LIMIT ?? 25);
+
 export async function buildOwnerReviewQueueProjection(
   knowledge: Pick<KnowledgeOwnerPort, 'listByFilter'>,
   input: { auth: ReviewQueueProjectionAuth; query?: ReviewQueueQuery; status?: string },
@@ -61,7 +63,7 @@ export async function buildOwnerReviewQueueProjection(
   const entries = filterReviewQueueEntries(ownerEntries, input);
   const queueQuery: ReviewQueueQuery = input.query ?? {
     cursor: undefined,
-    limit: 25,
+    limit: REVIEW_QUEUE_DEFAULT_LIMIT,
     sort: 'highest-risk',
   };
   const queryResult = applyReviewQueueQuery(entries, queueQuery);
@@ -395,7 +397,7 @@ export async function buildReviewQueueProjection(
 
   const queueQuery: ReviewQueueQuery = input.query ?? {
     cursor: undefined,
-    limit: 25,
+    limit: REVIEW_QUEUE_DEFAULT_LIMIT,
     sort: 'highest-risk',
   };
   const queryResult = applyReviewQueueQuery(

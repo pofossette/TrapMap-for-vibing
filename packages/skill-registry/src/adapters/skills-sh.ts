@@ -10,19 +10,45 @@ import type { RegistryAdapter, RegistrySearchQuery, SkillBundle } from './regist
 const SKILLS_SH_API_BASE = process.env.SKILLS_SH_API_BASE ?? 'https://www.skills.sh/api';
 const SKILLS_SH_RAW_BASE = 'https://raw.githubusercontent.com';
 
+/**
+ * Optional per-request timeout in ms for skills.sh fetches.
+ * Env: SKILLS_SH_TIMEOUT_MS. Unset or invalid = no timeout (legacy behavior).
+ */
+function resolveSkillsShTimeoutMs(): number | undefined {
+  const raw = process.env.SKILLS_SH_TIMEOUT_MS;
+  if (raw === undefined || raw.trim().length === 0) return undefined;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+const SKILLS_SH_TIMEOUT_MS = resolveSkillsShTimeoutMs();
+
+/** Fetch with the optional skills.sh timeout applied (no-op when unset). */
+async function skillsShFetch(input: string, init?: RequestInit): Promise<Response> {
+  if (SKILLS_SH_TIMEOUT_MS === undefined) return fetch(input, init);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SKILLS_SH_TIMEOUT_MS);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export class SkillsShAdapter implements RegistryAdapter {
   readonly kind = 'skills-sh' as const;
   readonly displayName = 'skills.sh';
 
   async search(query: RegistrySearchQuery): Promise<SkillRegistryEntry[]> {
     // Copying ai-pkgs search: GET /skills/search?q=<query>
-    // We add timeout + fallback to empty if API unavailable (offline-friendly)
+    // Bounded by SKILLS_SH_TIMEOUT_MS when set; falls back to empty when the
+    // API is unavailable (offline-friendly).
     try {
       const url = new URL(`${SKILLS_SH_API_BASE}/skills/search`);
       url.searchParams.set('q', query.query);
       if (query.limit) url.searchParams.set('limit', String(query.limit));
       if (query.tags?.length) url.searchParams.set('tags', query.tags.join(','));
-      const res = await fetch(url.toString(), { headers: { Accept: 'application/json' } });
+      const res = await skillsShFetch(url.toString(), { headers: { Accept: 'application/json' } });
       if (!res.ok) return [];
       const data = (await res.json()) as {
         skills?: SkillRegistryEntry[];
@@ -39,7 +65,9 @@ export class SkillsShAdapter implements RegistryAdapter {
     // Try skills.sh bundle endpoint first, fallback to GitHub raw
     const slug = source.slug ?? source.canonical;
     try {
-      const res = await fetch(`${SKILLS_SH_API_BASE}/skills/${encodeURIComponent(slug)}/bundle`);
+      const res = await skillsShFetch(
+        `${SKILLS_SH_API_BASE}/skills/${encodeURIComponent(slug)}/bundle`,
+      );
       if (res.ok) {
         const json = (await res.json()) as SkillBundle;
         return json;
@@ -59,7 +87,7 @@ export class SkillsShAdapter implements RegistryAdapter {
     const subpath = source.subpath ? `/${source.subpath.replace(/^\//, '')}` : '';
     // naive: fetch SKILL.md via raw
     const base = `${SKILLS_SH_RAW_BASE}/${source.owner}/${source.repo}/${ref}${subpath}`;
-    const res = await fetch(`${base}/SKILL.md`);
+    const res = await skillsShFetch(`${base}/SKILL.md`);
     if (!res.ok) throw new Error(`GitHub raw fetch failed: ${res.status} ${base}/SKILL.md`);
     const content = await res.text();
     const { sha256 } = await import('@trapmap/lib');
@@ -83,7 +111,9 @@ export class SkillsShAdapter implements RegistryAdapter {
   async getVersions(source: SkillSource): Promise<string[]> {
     try {
       const slug = source.slug ?? source.canonical;
-      const res = await fetch(`${SKILLS_SH_API_BASE}/skills/${encodeURIComponent(slug)}/versions`);
+      const res = await skillsShFetch(
+        `${SKILLS_SH_API_BASE}/skills/${encodeURIComponent(slug)}/versions`,
+      );
       if (!res.ok) return [];
       const data = (await res.json()) as { versions?: string[] };
       return data.versions ?? [];

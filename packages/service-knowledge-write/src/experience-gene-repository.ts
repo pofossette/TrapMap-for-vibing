@@ -24,6 +24,10 @@ import {
 } from '@trapmap/infra';
 import { prefixedId } from '@trapmap/lib';
 
+const GENE_DEDUP_SIMILARITY = Number(process.env.TRAPMAP_GENE_DEDUP_SIMILARITY ?? 0.93);
+/** Experience-gene embedding width — centralized name, value unchanged. */
+const EXPERIENCE_GENE_EMBEDDING_DIMENSIONS = 384;
+
 type GeneRow = {
   id: string;
   schema_version: string;
@@ -264,7 +268,7 @@ export class PgExperienceGeneRepository
        WHERE p.status = 'ready'
          AND e.status IN ('candidate', 'validated', 'solidified')
          AND e.content_hash <> $3
-         AND 1 - (p.embedding <=> $2::vector) >= 0.93
+         AND 1 - (p.embedding <=> $2::vector) >= ${GENE_DEDUP_SIMILARITY}
        ORDER BY cosine_similarity DESC, e.id ASC
        LIMIT 1`,
       [gene.geneId, `[${embedding.join(',')}]`, gene.contentHash],
@@ -283,8 +287,13 @@ export class PgExperienceGeneRepository
     embedding: number[],
     modelVersion: string,
   ): Promise<ExperienceGene> {
-    if (embedding.length !== 384 || embedding.some((value) => !Number.isFinite(value))) {
-      throw new Error('experience gene embedding must contain 384 finite values');
+    if (
+      embedding.length !== EXPERIENCE_GENE_EMBEDDING_DIMENSIONS ||
+      embedding.some((value) => !Number.isFinite(value))
+    ) {
+      throw new Error(
+        `experience gene embedding must contain ${EXPERIENCE_GENE_EMBEDDING_DIMENSIONS} finite values`,
+      );
     }
 
     return this.transaction(async () => {

@@ -14,6 +14,12 @@ import type {
   GraphQueryRuntimeState,
   RetrievalQuery,
 } from '@trapmap/contracts';
+
+// Single source of truth for the default decay config lives in
+// @trapmap/contracts (domain/decay.ts); re-exported here so existing
+// consumers keep a stable import path with zero behavior change.
+export { DEFAULT_FRESHNESS_DECAY_CONFIG } from '@trapmap/contracts';
+
 import { cosineSimilarity as sharedCosineSimilarity } from '@trapmap/lib';
 
 import { type BoundaryEntryView, computeBoundaryScoreDelta } from './boundary.js';
@@ -162,22 +168,8 @@ export const TOKEN_COVERAGE_BONUS = 0.1;
 export const TOKEN_COVERAGE_RATIO = 0.5;
 export const STALE_DECAY_PENALTY = 0.1;
 
-export const DEFAULT_FRESHNESS_DECAY_CONFIG: FreshnessDecayConfig = {
-  evergreen: { enabled: false },
-  versioned: {
-    enabled: true,
-    mode: 'step',
-    matchMultiplier: 1,
-    mismatchMultiplier: 0.5,
-  },
-  volatile: {
-    enabled: true,
-    mode: 'exponential',
-    halfLifeDays: 30,
-    zeroDays: 90,
-    floor: 0.3,
-  },
-};
+// Default freshness-decay values are owned by @trapmap/contracts
+// (DEFAULT_FRESHNESS_DECAY_CONFIG, re-exported above) — do not re-declare here.
 
 export function mergeCandidates<E extends { id: string }>(
   semantic: RecallCandidateLike<E>[],

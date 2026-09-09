@@ -21,7 +21,14 @@
 
 ## 行为
 
-本包无运行时依赖，它不依赖 Fastify / Nest，不做进程启动，不连 PostgreSQL，不读环境变量。宿主在组合层注入端口实现，单元测试用 `testing` 桩替换。
+宿主无关：不读 env、不连库；运行时依赖见 `package.json`（Nest/Fastify/OTel/zod…）。不做进程启动，宿主在组合层注入端口实现，单元测试用 `testing` 桩替换。
+
+| 依赖 | 用途 |
+| --- | --- |
+| `@nestjs/common` + `fastify` | 模块底座与服务框架 |
+| `@opentelemetry/*`（8 个） | 追踪、指标、资源与语义约定 |
+| `@trapmap/contracts` / `@trapmap/lib` | 共享契约与纯函数工具 |
+| `zod` | schema 校验 |
 
 ## 常见用法
 

@@ -9,10 +9,20 @@ import { ConfigService } from '@nestjs/config';
 import {
   bootstrapOtelSdk,
   boundedOtelShutdown,
+  OTEL_METRIC_EXPORT_INTERVAL_MS,
   OTEL_SHUTDOWN_TIMEOUT_MS,
   type OtelSdkHandle,
 } from '@trapmap/backend-core';
 import type { OtelPolicyResult } from '@trapmap/contracts';
+
+/**
+ * Parse an optional positive-int ms env value, falling back to `defaultMs`
+ * when unset or invalid so behavior is unchanged.
+ */
+function resolvePositiveIntMs(raw: string | undefined, defaultMs: number): number {
+  const parsed = Number.parseInt(raw ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : defaultMs;
+}
 
 /**
  * NestJS adapter for the shared OTel bootstrap (design D5 single-plugin
@@ -41,6 +51,7 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
           environment: this.config.get<string>('NODE_ENV'),
         }).filter(([, v]) => v !== undefined),
       ),
+      { metricExportIntervalMs: this.resolveOtelMetricExportIntervalMs() },
     );
     this.sdk = bootstrapped.sdk;
     this.policy = bootstrapped.policy;
@@ -67,10 +78,11 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
 
     try {
       // Preserve the shared bounded shutdown timeout semantics.
+      const shutdownTimeoutMs = this.resolveOtelShutdownTimeoutMs();
       await Promise.race([
-        boundedOtelShutdown(this.sdk),
+        boundedOtelShutdown(this.sdk, { shutdownTimeoutMs }),
         new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('OTel shutdown timed out')), OTEL_SHUTDOWN_TIMEOUT_MS),
+          setTimeout(() => reject(new Error('OTel shutdown timed out')), shutdownTimeoutMs),
         ),
       ]);
       this.logger.log('OpenTelemetry SDK shut down');
@@ -79,5 +91,26 @@ export class OtelService implements OnModuleInit, OnApplicationShutdown {
         `OpenTelemetry SDK shutdown error: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+  }
+
+  /**
+   * Env resolution mirrors the pool pattern in `config/config.ts`:
+   * `TRAPMAP_HOST_LOCAL_*` first, shared name as fallback; unset/invalid
+   * falls back to the backend-core default so behavior is unchanged.
+   */
+  private resolveOtelMetricExportIntervalMs(): number {
+    return resolvePositiveIntMs(
+      this.config.get<string>('TRAPMAP_HOST_LOCAL_OTEL_METRIC_EXPORT_INTERVAL_MILLIS') ??
+        this.config.get<string>('OTEL_METRIC_EXPORT_INTERVAL_MILLIS'),
+      OTEL_METRIC_EXPORT_INTERVAL_MS,
+    );
+  }
+
+  private resolveOtelShutdownTimeoutMs(): number {
+    return resolvePositiveIntMs(
+      this.config.get<string>('TRAPMAP_HOST_LOCAL_OTEL_SHUTDOWN_TIMEOUT_MS') ??
+        this.config.get<string>('OTEL_SHUTDOWN_TIMEOUT_MS'),
+      OTEL_SHUTDOWN_TIMEOUT_MS,
+    );
   }
 }

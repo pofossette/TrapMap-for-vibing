@@ -15,6 +15,12 @@
 
 `workflow-with-trapmap` 把检索、trap 优先规划、知识沉淀、反馈与衰减检查设为硬门控，`trapmap-cli-usage-guide` 只回答签名问题，不回答取舍问题。你先加载工作流 skill，需要精确语法时再加载 CLI 指南。
 
+护栏 5 条：命令不确定先 `trapmap --help` 验证；代理间解析优先 JSON 输出；不把聊天日志/秘密/密钥/私有路径/大文档贴进可复用知识；不盲目拼多 skill，单技能加显式 `AVOID` 更强；输出配置不明用 `trapmap output profile set --tool <tool>` 对齐代理环境。
+
+版本规则：各 skill 的 `SKILL.md` frontmatter `version` 必填 semver（`major.minor.patch`，可带 prerelease/build）；`version` 单调递增（不低于 git 历史最近一次提交版本）；改 skill 内容同步递增版本，CI 由 `pnpm check:skills` 守卫。
+
+验证 3 条：`pnpm test:import-export`、`pnpm check:skills`、`pnpm check:structure`。
+
 ## 常见用法
 
 本目录无 `package.json`，下面两条是文件级操作，不走 pnpm。

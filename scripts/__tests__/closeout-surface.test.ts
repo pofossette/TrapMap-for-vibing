@@ -122,68 +122,24 @@ describe('closeout surface guardrails', () => {
     );
   });
 
-  it('guards active-mainline wording in truth and archive indexes', () => {
-    const budgets = readComplexityBudgets();
-    const rules = budgets.docRules;
-
-    const truthRule = rules.find(
-      (entry) =>
-        entry.file === 'docs/reference/SYSTEM_TRUTH_SOURCES.md' &&
-        entry.mustContain?.includes(
-          'docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md',
-        ),
-    );
-    const archiveRule = rules.find((entry) => entry.file === 'docs/archived/README.md');
-
-    expect(truthRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining([
-        'docs/archived/archived-plans/documentation-validation-and-observability-platform-archived.md',
-      ]),
-    );
-    expect(archiveRule?.mustContain ?? []).toEqual(
-      expect.arrayContaining(['不应被其他文档当作当前执行入口引用']),
-    );
-  });
-
-  it('freezes the compatibility deletion contract and archived observability status', () => {
+  it('freezes the compatibility deletion contract', () => {
     const guard = readRepoFile('scripts/__tests__/compatibility-retirement-guard.test.ts');
-    const archivedObservabilityDetail = readRepoFile(
-      'docs/archived/archived-plans/observability-traceability-closure.md',
-    );
 
     expect(guard).toContain('const completedOwnerWaves');
     expect(guard).toContain('wave-10');
     expect(guard).toContain('productionCompatibilityReferences');
     expect(guard).toContain('@trapmap/server');
-    expect(archivedObservabilityDetail).toContain('状态：** 已归档');
   });
 
   it('guards observability verification and regression docs against stale closeout facts', () => {
-    const readme = readDoc('README.md');
     const testingDoc = readDoc('docs/operations/TESTING.md');
-    const verificationDoc = readDoc('docs/archived/operations/OBSERVABILITY-VERIFICATION.md');
     const regressionDoc = readDoc('docs/operations/REGRESSION-COMMANDS.md');
     const deploymentDoc = readDoc('docs/architecture/DEPLOYMENT.md');
 
-    expect(readme).toContain(
-      '`@trapmap/host-local` 的 closeout 验收路径固定为 `build -> start -> observability-benchmark`',
-    );
-    expect(readme).toContain('@trapmap/host-local');
     expect(testingDoc).toContain(
-      '`@trapmap/host-local` closeout 主链路固定为 `build -> start -> observability-benchmark`',
+      'host-local closeout 主链路固定为 build、start、observability-benchmark',
     );
-    expect(testingDoc).toContain('`dev` 仅用于开发便利，不作为 closeout 完成判据');
-    expect(verificationDoc).toContain('http://127.0.0.1:4000/metrics');
-    expect(verificationDoc).toContain(
-      '先执行 `pnpm --filter @trapmap/host-local build`，再执行 `pnpm --filter @trapmap/host-local start`',
-    );
-    expect(verificationDoc).toContain('`build -> start -> observability-benchmark`');
-    expect(verificationDoc).toContain('LOKI_HOST');
-    expect(verificationDoc).toContain('CONSUL_ENABLED=true');
-    expect(verificationDoc).toContain('CONSUL_HOST');
-    expect(verificationDoc).toContain('CONSUL_PORT');
-    expect(verificationDoc).not.toContain('http://localhost:3000/metrics');
-    expect(verificationDoc).not.toContain('TRAPMAP_LOKI_URL');
+    expect(testingDoc).toContain('`dev` 只做开发便利，不算 closeout 判据');
 
     expect(regressionDoc).toContain('grep -i traceparent');
     expect(regressionDoc).not.toContain('grep X-Trace-Id');
@@ -214,7 +170,7 @@ describe('closeout surface guardrails', () => {
     const truthSources = readDoc('docs/reference/SYSTEM_TRUTH_SOURCES.md');
 
     // Deleted packages should be marked as deleted, not listed as current authority
-    expect(truthSources).toContain('**已删除**（Wave-10）');
-    expect(truthSources).toContain('packages/server` 已于 Wave-10 删除');
+    expect(truthSources).toContain('Wave-10 已删除');
+    expect(truthSources).toContain('packages/server（Wave-10 已删除）');
   });
 });

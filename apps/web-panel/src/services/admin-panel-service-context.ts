@@ -1,4 +1,4 @@
-import { ApiError, type SessionProvider } from '@trapmap/client-core';
+import { ApiError, DEFAULT_GATEWAY_URL, type SessionProvider } from '@trapmap/client-core';
 
 import type { AdminPanelApiContract } from '@trapmap/web-panel/shared/enum-types';
 import {
@@ -117,7 +117,7 @@ function withAuthRedirect<T extends AdminPanelApiContract>(api: T): T {
 
 const ADMIN_PANEL_API_MODE_MOCK = 'mock';
 const ADMIN_PANEL_API_MODE_REAL = 'real';
-const fallbackBaseUrl = 'http://127.0.0.1:4000';
+const fallbackBaseUrl = DEFAULT_GATEWAY_URL;
 
 export type AdminPanelApiMode = typeof ADMIN_PANEL_API_MODE_REAL | typeof ADMIN_PANEL_API_MODE_MOCK;
 

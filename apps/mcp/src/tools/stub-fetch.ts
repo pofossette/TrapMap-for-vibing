@@ -9,8 +9,8 @@ export function stubFetchCapture(
     }),
 ): Array<{ url: string; init?: RequestInit }> {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
-  globalThis.fetch = vi.fn(async (input: string | URL | RequestInfo, init?: RequestInit) => {
-    calls.push({ url: String(input), init });
+  globalThis.fetch = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(input), ...(init !== undefined ? { init } : {}) });
     return respond(String(input), init);
   }) as typeof fetch;
   return calls;

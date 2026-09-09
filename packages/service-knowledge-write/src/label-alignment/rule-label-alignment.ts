@@ -8,6 +8,11 @@
 
 import type { LabelAlignmentPort } from '@trapmap/backend-core';
 
+/** Rule-judgment confidences — centralized names, values unchanged. */
+const RULE_CONFIDENCE_NEW = 0.8;
+const RULE_CONFIDENCE_EXISTING = 1;
+const RULE_CONFIDENCE_UNSURE = 0;
+
 /**
  * Create the label-alignment rule port (precise exact-match strategy).
  */
@@ -19,7 +24,7 @@ export function createRuleLabelAlignment(): LabelAlignmentPort {
           decision: {
             decision: 'new',
             canonicalName: input.rawLabel,
-            confidence: 0.8,
+            confidence: RULE_CONFIDENCE_NEW,
             reasoning: 'no candidate found; create new label',
           },
           candidates: input.candidates,
@@ -38,7 +43,7 @@ export function createRuleLabelAlignment(): LabelAlignmentPort {
           decision: {
             decision: 'existing',
             canonicalLabelId: exact.id,
-            confidence: 1,
+            confidence: RULE_CONFIDENCE_EXISTING,
             reasoning: 'exact alias or name match',
           },
           candidates: input.candidates,
@@ -49,7 +54,7 @@ export function createRuleLabelAlignment(): LabelAlignmentPort {
       return {
         decision: {
           decision: 'unsure',
-          confidence: 0,
+          confidence: RULE_CONFIDENCE_UNSURE,
           reasoning: 'no exact match; requires review',
         },
         candidates: input.candidates,

@@ -9,7 +9,6 @@ import {
   OUTBOX_STATUS_PENDING,
   OUTBOX_STATUS_PROCESSING,
   type QueuePorts,
-  retryBackoffMs,
   statusAfterTaskFailure,
   TASK_DEFAULT_MAX_ATTEMPTS,
   TASK_DEFAULT_PRIORITY,
@@ -50,8 +49,28 @@ export const OUTBOX_CLAIMABLE_SQL_CONDITION = `status = '${OUTBOX_STATUS_PENDING
 /** Outbox events whose worker lease expired are reclaimed back to pending. */
 export const OUTBOX_RECLAIM_SQL_CONDITION = `status = '${OUTBOX_STATUS_PROCESSING}' AND lease_until < NOW()`;
 
+/** Env-tunable policy resolution (service shell reads env; backend-core holds the defaults). */
+const resolveTaskLeaseMs = () => Number(process.env.TRAPMAP_JOB_TASK_LEASE_MS ?? TASK_LEASE_MS);
+const resolveOutboxLeaseMs = () =>
+  Number(process.env.TRAPMAP_JOB_OUTBOX_LEASE_MS ?? OUTBOX_LEASE_MS);
+const resolveRetryBaseDelayMs = () =>
+  Number(process.env.TRAPMAP_JOB_RETRY_BASE_DELAY_MS ?? TASK_RETRY_BASE_DELAY_MS);
+const resolveOutboxMaxAttempts = () =>
+  Number(process.env.TRAPMAP_JOB_OUTBOX_MAX_ATTEMPTS ?? OUTBOX_MAX_ATTEMPTS);
+const resolveOutboxClaimBatchSize = () =>
+  Number(process.env.TRAPMAP_JOB_OUTBOX_CLAIM_BATCH_SIZE ?? OUTBOX_CLAIM_BATCH_SIZE);
+
 /** Outbox fail transition: terminal after the retry budget, pending otherwise. */
-export const OUTBOX_FAIL_STATUS_SQL = `CASE WHEN attempts >= ${OUTBOX_MAX_ATTEMPTS} THEN '${OUTBOX_STATUS_FAILED}' ELSE '${OUTBOX_STATUS_PENDING}' END`;
+export const OUTBOX_FAIL_STATUS_SQL = `CASE WHEN attempts >= ${resolveOutboxMaxAttempts()} THEN '${OUTBOX_STATUS_FAILED}' ELSE '${OUTBOX_STATUS_PENDING}' END`;
+
+/** Exponential backoff delay (ms) preserving the upstream retry shape. */
+function resolveRetryBackoffMs(attempts: number): number {
+  // NOTE: backoff base 2 differs from structured-generation (base 4) by design: job重试域与AI侧无关，历史选择，改前先压测
+  return resolveRetryBaseDelayMs() * 2 ** (attempts - 1);
+}
+
+/** Consumer poll interval between claim sweeps. */
+const JOB_CONSUMER_POLL_MS = Number(process.env.TRAPMAP_JOB_CONSUMER_POLL_MS ?? 1000);
 
 export interface JobRuntimeAsyncTransportConfig {
   provider: 'postgres' | 'rabbitmq';
@@ -194,7 +213,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
           payload: unknown;
           attempts: number;
         }>(
-          `UPDATE task_queue SET status = '${TASK_STATUS_RUNNING}', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '${TASK_LEASE_MS / 1000} seconds', updated_at = NOW() WHERE id = (SELECT id FROM task_queue WHERE type = $1 AND ${TASK_CLAIMABLE_SQL_CONDITION} ORDER BY priority DESC, created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING id, type, payload, attempts`,
+          `UPDATE task_queue SET status = '${TASK_STATUS_RUNNING}', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '${resolveTaskLeaseMs() / 1000} seconds', updated_at = NOW() WHERE id = (SELECT id FROM task_queue WHERE type = $1 AND ${TASK_CLAIMABLE_SQL_CONDITION} ORDER BY priority DESC, created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED) RETURNING id, type, payload, attempts`,
           [handler.type, workerId],
         );
         const task = claimed.rows[0];
@@ -227,7 +246,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
           } else {
             await pool.query(
               `UPDATE task_queue SET status = '${TASK_STATUS_PENDING}', last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, process_after = NOW() + $3 * INTERVAL '1 millisecond', updated_at = NOW() WHERE id = $1`,
-              [task.id, message, retryBackoffMs(row.attempts)],
+              [task.id, message, resolveRetryBackoffMs(row.attempts)],
             );
           }
         }
@@ -240,7 +259,7 @@ function createPostgresTaskQueue(pool: Pool): JobRuntimeAsyncTransport['task'] {
           loop = (async () => {
             while (running) {
               await Promise.all(handlers.map(consume));
-              await new Promise((resolve) => setTimeout(resolve, 1000));
+              await new Promise((resolve) => setTimeout(resolve, JOB_CONSUMER_POLL_MS));
             }
           })();
         },
@@ -277,7 +296,7 @@ function createPostgresOutbox(pool: Pool): JobRuntimeAsyncTransport['events'] {
     enqueue: (params) => enqueueWith(pool, params),
     enqueueTx: (client, params) => enqueueWith(client, params),
     async claimBatch(
-      limit = OUTBOX_CLAIM_BATCH_SIZE,
+      limit = resolveOutboxClaimBatchSize(),
       workerId = `job-runtime-outbox_${process.pid}`,
     ) {
       const reclaimed = await pool.query(
@@ -290,7 +309,7 @@ function createPostgresOutbox(pool: Pool): JobRuntimeAsyncTransport['events'] {
         payload: unknown;
         aggregateId: string;
       }>(
-        `UPDATE domain_event_outbox SET status = '${OUTBOX_STATUS_PROCESSING}', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '${OUTBOX_LEASE_MS / 1000} seconds' WHERE id IN (SELECT id FROM domain_event_outbox WHERE ${OUTBOX_CLAIMABLE_SQL_CONDITION} ORDER BY event_name, created_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED) RETURNING id, event_name AS "eventName", payload, aggregate_id AS "aggregateId"`,
+        `UPDATE domain_event_outbox SET status = '${OUTBOX_STATUS_PROCESSING}', attempts = attempts + 1, worker_id = $2, started_at = COALESCE(started_at, NOW()), heartbeat_at = NOW(), lease_until = NOW() + INTERVAL '${resolveOutboxLeaseMs() / 1000} seconds' WHERE id IN (SELECT id FROM domain_event_outbox WHERE ${OUTBOX_CLAIMABLE_SQL_CONDITION} ORDER BY event_name, created_at ASC LIMIT $1 FOR UPDATE SKIP LOCKED) RETURNING id, event_name AS "eventName", payload, aggregate_id AS "aggregateId"`,
         [limit, workerId],
       );
       return result.rows;
@@ -303,7 +322,7 @@ function createPostgresOutbox(pool: Pool): JobRuntimeAsyncTransport['events'] {
     },
     async fail(eventId, error) {
       await pool.query(
-        `UPDATE domain_event_outbox SET status = ${OUTBOX_FAIL_STATUS_SQL}, last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, available_at = CASE WHEN attempts >= ${OUTBOX_MAX_ATTEMPTS} THEN available_at ELSE NOW() + (${TASK_RETRY_BASE_DELAY_MS} * POWER(2, attempts - 1)) * INTERVAL '1 millisecond' END WHERE id = $1`,
+        `UPDATE domain_event_outbox SET status = ${OUTBOX_FAIL_STATUS_SQL}, last_error = $2, worker_id = NULL, heartbeat_at = NULL, lease_until = NULL, available_at = CASE WHEN attempts >= ${resolveOutboxMaxAttempts()} THEN available_at ELSE NOW() + (${resolveRetryBaseDelayMs()} * POWER(2, attempts - 1)) * INTERVAL '1 millisecond' END WHERE id = $1`,
         [eventId, error],
       );
     },

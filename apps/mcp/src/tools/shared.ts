@@ -2,8 +2,6 @@ import type { z } from 'zod';
 
 import type { McpConfig } from '../config.js';
 
-export type { Role } from '../permissions.js';
-
 /**
  * Role model (full matrix lands in Task B5 — permissions.ts).
  * Ordered from least to most privileged.

@@ -23,5 +23,12 @@
 
 export { ApiError } from './http/api-error.js';
 export { apiRequest } from './http/api-request.js';
+export {
+  CLIENT_MAX_RETRIES_ENV,
+  CLIENT_TIMEOUT_ENV,
+  DEFAULT_GATEWAY_URL,
+  resolveClientMaxRetries,
+  resolveClientTimeoutMs,
+} from './http/client-config.js';
 export type { ApiResponse, HttpMethod, RequestOptions } from './http/request-envelope.js';
 export type { SessionProvider } from './session/session-provider.js';

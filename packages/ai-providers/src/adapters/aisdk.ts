@@ -27,6 +27,7 @@ import type { EmbeddingModel, LanguageModel } from 'ai';
 import { embed, embedMany, generateText } from 'ai';
 
 import type { AiProviderConfig } from '../provider-config.js';
+import { resolveAiRequestTimeoutMs } from '../provider-config.js';
 
 export interface ResolvedChatModel {
   model: LanguageModel;
@@ -142,6 +143,15 @@ export function toEmbeddingConfig(config: AiProviderConfig): EmbeddingModelConfi
   };
 }
 
+/**
+ * Optional abort-signal option for AI SDK calls. Returns `{}` (call shape
+ * unchanged) unless `AI_REQUEST_TIMEOUT_MS` resolves to a positive value.
+ */
+function aiRequestTimeoutOption(): { abortSignal?: AbortSignal } {
+  const timeoutMs = resolveAiRequestTimeoutMs();
+  return timeoutMs === undefined ? {} : { abortSignal: AbortSignal.timeout(timeoutMs) };
+}
+
 /** Generate chat text via AI SDK. Centralizes all `generateText` calls. */
 export async function generateChatText(options: {
   resolved: ResolvedChatModel;
@@ -154,6 +164,7 @@ export async function generateChatText(options: {
     system: options.system,
     prompt: options.prompt,
     ...(options.temperature === undefined ? {} : { temperature: options.temperature }),
+    ...aiRequestTimeoutOption(),
   });
   return text;
 }
@@ -163,7 +174,11 @@ export async function embedSingle(
   resolved: ResolvedEmbeddingModel,
   value: string,
 ): Promise<number[]> {
-  const { embedding } = await embed({ model: resolved.model, value });
+  const { embedding } = await embed({
+    model: resolved.model,
+    value,
+    ...aiRequestTimeoutOption(),
+  });
   return embedding;
 }
 
@@ -172,6 +187,10 @@ export async function embedBatch(
   resolved: ResolvedEmbeddingModel,
   values: string[],
 ): Promise<number[][]> {
-  const { embeddings } = await embedMany({ model: resolved.model, values });
+  const { embeddings } = await embedMany({
+    model: resolved.model,
+    values,
+    ...aiRequestTimeoutOption(),
+  });
   return embeddings;
 }

@@ -2,6 +2,7 @@ import {
   resolveInternalTimeoutMs,
   serviceNameForInternalHost,
 } from '@trapmap/host-distributed/config/index.js';
+import { resolveGatewayDefaultTimeoutMs } from '../config.js';
 import { CircuitOpenError, resolveRetryPolicy, withResilience } from '../resilience.js';
 import type { InternalRequestOptions, ServiceResponse } from './types.js';
 import {
@@ -20,7 +21,9 @@ export function withEnvTimeout(
   const serviceName = serviceNameForInternalHost(hostname);
   if (serviceName === undefined) return options ?? {};
   const envTimeoutMs = resolveInternalTimeoutMs(process.env, serviceName);
-  if (envTimeoutMs === undefined) return options ?? {};
+  if (envTimeoutMs === undefined) {
+    return { ...options, timeoutMs: resolveGatewayDefaultTimeoutMs(process.env) };
+  }
   return { ...options, timeoutMs: envTimeoutMs };
 }
 

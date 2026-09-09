@@ -25,4 +25,32 @@ pnpm run ci
 pnpm --filter @trapmap/evals eval:ci:core
 ```
 
+### 评测命令速查
+
+| 命令 | 说明 |
+|------|------|
+| `pnpm --filter @trapmap/evals eval -- smoke` | smoke 层统一评测（PG 协调，需 Docker） |
+| `pnpm --filter @trapmap/evals eval -- retrieval` | 仅检索评估 |
+| `pnpm --filter @trapmap/evals eval -- summary` | 仅摘要评估 |
+| `pnpm --filter @trapmap/evals eval -- agent-planning --tier smoke` | 路径规划评估（core 已归档，见 TESTING.md） |
+| `pnpm --filter @trapmap/evals eval -- label-alignment --tier smoke --mode live` | 标签对齐评估（`--mode dry-run` 离线可跑） |
+| `pnpm --filter @trapmap/evals eval:ci` | baseline-aware CI runner（默认 smoke） |
+| `pnpm --filter @trapmap/evals eval:ci:core` | baseline-aware CI runner（core 入口） |
+| `pnpm run ci` | 仓库聚合 CI 本地入口 |
+
+### deployment 最小验证（8 行）
+
+```bash
+pnpm test:observability-closeout
+pnpm test:observability-benchmark
+pnpm test:discovery-closeout
+pnpm test:distributed-closeout
+pnpm test:deployment-smoke
+pnpm test:runtime-foundations
+pnpm typecheck
+pnpm check:docs
+```
+
+运行与质量三页：[测试指南](operations/TESTING.md) · [CI/CD 流水线](operations/CI_CD.md) · [安全指南](operations/SECURITY.md)。
+
 轻宿主是 `Nest modular monolith`；事实冲突时以 `reference/` 为准。

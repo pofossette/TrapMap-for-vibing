@@ -6,7 +6,12 @@ import {
   SpanStatusCode,
   trace,
 } from '@opentelemetry/api';
-import { bootstrapOtelSdk, boundedOtelShutdown } from '@trapmap/backend-core';
+import {
+  bootstrapOtelSdk,
+  boundedOtelShutdown,
+  OTEL_METRIC_EXPORT_INTERVAL_MS,
+  OTEL_SHUTDOWN_TIMEOUT_MS,
+} from '@trapmap/backend-core';
 import type { OtelPolicyInput } from '@trapmap/contracts';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 
@@ -29,7 +34,9 @@ export async function attachRuntimeTelemetry(
   app: FastifyInstance,
   serviceName: string,
 ): Promise<void> {
-  const bootstrapped = await bootstrapOtelSdk(buildOtelPolicyInput(serviceName));
+  const bootstrapped = await bootstrapOtelSdk(buildOtelPolicyInput(serviceName), {
+    metricExportIntervalMs: resolveOtelMetricExportIntervalMs(process.env),
+  });
   const sdk = bootstrapped.sdk;
 
   app.addHook('onRequest', async (request) => {
@@ -66,9 +73,30 @@ export async function attachRuntimeTelemetry(
 
   app.addHook('onClose', async () => {
     if (sdk) {
-      await boundedOtelShutdown(sdk);
+      await boundedOtelShutdown(sdk, {
+        shutdownTimeoutMs: resolveOtelShutdownTimeoutMs(process.env),
+      });
     }
   });
+}
+
+/**
+ * OTLP metric export interval (`OTEL_METRIC_EXPORT_INTERVAL_MILLIS`).
+ * Parsing mirrors `config/service-config.ts`: unset/invalid env falls back
+ * to the shared backend-core default so behavior is unchanged.
+ */
+function resolveOtelMetricExportIntervalMs(env: Record<string, string | undefined>): number {
+  const parsed = Number.parseInt(env.OTEL_METRIC_EXPORT_INTERVAL_MILLIS ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : OTEL_METRIC_EXPORT_INTERVAL_MS;
+}
+
+/**
+ * OTel SDK shutdown bound (`OTEL_SHUTDOWN_TIMEOUT_MS`, no TRAPMAP_ prefix —
+ * follows the existing `OTEL_*` naming). Same fallback rule as above.
+ */
+function resolveOtelShutdownTimeoutMs(env: Record<string, string | undefined>): number {
+  const parsed = Number.parseInt(env.OTEL_SHUTDOWN_TIMEOUT_MS ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : OTEL_SHUTDOWN_TIMEOUT_MS;
 }
 
 function buildOtelPolicyInput(serviceName: string): OtelPolicyInput {

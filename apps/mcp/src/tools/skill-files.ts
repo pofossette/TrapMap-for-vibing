@@ -100,7 +100,10 @@ export const readSkillFilesTool = defineTool({
     });
     const bundle = firstBundle(response);
     if (!bundle) throw new Error(`Artifact not found: ${String(input.artifactId)}`);
-    const collected = collectRequestedFiles(bundle, input.paths);
+    if (!Array.isArray(input.paths)) throw new Error(`Invalid paths: ${String(input.paths)}`);
+    if (!input.paths.every((p): p is string => typeof p === 'string'))
+      throw new Error(`Invalid paths: ${String(input.paths)}`);
+    const collected = collectRequestedFiles(bundle, input.paths as readonly string[]);
     return {
       artifactId: input.artifactId,
       files: collected.delivered,

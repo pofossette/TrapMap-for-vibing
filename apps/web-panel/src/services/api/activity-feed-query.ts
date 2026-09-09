@@ -4,6 +4,8 @@ import type {
 } from '@trapmap/web-panel/shared/enum-types';
 import { normalizeActivityType } from '@trapmap/web-panel/shared/lib/display-labels';
 
+import { DEFAULT_ACTIVITY_FEED_LIMIT } from './query-limits';
+
 type ActivityFeedPage = {
   events: ActivityEventViewModel[];
   filteredTotal: number;
@@ -45,7 +47,7 @@ export function applyActivityFeedQuery(
     (left, right) =>
       right.timestamp.localeCompare(left.timestamp) || left.id.localeCompare(right.id),
   );
-  const limit = query?.limit ?? 20;
+  const limit = query?.limit ?? DEFAULT_ACTIVITY_FEED_LIMIT;
   let offset = 0;
   if (query?.cursor) {
     if (!/^[0-9]{1,128}$/.test(query.cursor)) {

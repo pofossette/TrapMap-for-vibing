@@ -121,7 +121,11 @@ export async function keywordScoreWithFallback(
   _client: GoAcceleratorClient | null,
 ): Promise<{ score: number; tokenMatches: Array<{ token: string; fields: string[] }> }> {
   // Timely exit: bypass go-accelerator
-  // local fallback mirrors tokenization.ts scoreKeywordEntry weights 3/2/1
+  // Local fallback mirrors the KEYWORD_*_WEIGHT single source of truth in
+  // backend-core `knowledge-read/domain/tokenization.ts` (3.0/2.0/1.0).
+  // Kept as locals (not imported) because @trapmap/infra does not depend on
+  // @trapmap/backend-core (see infra/package.json) — importing it would
+  // invert layering. Keep both sides in sync; see the cross-pointer there.
   const KEYWORD_LABEL_WEIGHT = 3.0;
   const KEYWORD_SHORTCUT_WEIGHT = 2.0;
   const KEYWORD_DETAIL_WEIGHT = 1.0;

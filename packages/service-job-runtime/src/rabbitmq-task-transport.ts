@@ -4,6 +4,7 @@ import type {
   TaskHandler,
   TaskQueuePort,
 } from '@trapmap/backend-core';
+import { TASK_DEFAULT_MAX_ATTEMPTS, TASK_DEFAULT_PRIORITY } from '@trapmap/backend-core';
 import { prefixedId } from '@trapmap/lib';
 
 interface RabbitMqMessage {
@@ -57,9 +58,16 @@ export interface RabbitMqTaskTransportConfig {
   url: string;
   exchange: string;
   queue: string;
-  prefetch: number;
+  prefetch?: number;
   channelFactory?: () => Promise<RabbitMqChannelLike>;
   connectionFactory?: () => Promise<RabbitMqConnectionLike>;
+}
+
+/** Default scheduling delay (ms) — no upstream policy constant, value unchanged. */
+const RABBITMQ_TASK_DEFAULT_DELAY_MS = 0;
+
+function resolvePrefetch(config: Pick<RabbitMqTaskTransportConfig, 'prefetch'>): number {
+  return config.prefetch ?? Number(process.env.TRAPMAP_JOB_RABBITMQ_PREFETCH ?? 1);
 }
 
 export type RabbitMqTaskTransport = TaskQueuePort & {
@@ -90,7 +98,7 @@ async function ensureTopology(
   await channel.assertExchange(config.exchange, 'topic', { durable: true });
   await channel.assertQueue(config.queue, { durable: true });
   await channel.bindQueue(config.queue, config.exchange, '#');
-  await channel.prefetch?.(config.prefetch);
+  await channel.prefetch?.(resolvePrefetch(config));
 }
 
 export function createRabbitMqTaskTransport(
@@ -123,9 +131,9 @@ export function createRabbitMqTaskTransport(
         type,
         payload,
         options: {
-          priority: options.priority ?? 0,
-          maxAttempts: options.maxAttempts ?? 3,
-          delayMs: options.delayMs ?? 0,
+          priority: options.priority ?? TASK_DEFAULT_PRIORITY,
+          maxAttempts: options.maxAttempts ?? TASK_DEFAULT_MAX_ATTEMPTS,
+          delayMs: options.delayMs ?? RABBITMQ_TASK_DEFAULT_DELAY_MS,
           dedupeKey: options.dedupeKey ?? null,
         },
       };

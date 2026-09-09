@@ -18,7 +18,25 @@ export type {
 } from './observability.js';
 export { wrapProvidersWithObservation } from './observability.js';
 export type { AiProviderConfig, AiProviderType } from './provider-config.js';
-export { loadAiProviderConfig } from './provider-config.js';
+export {
+  AI_RETRY_LIMIT_MAX,
+  AI_RETRY_LIMIT_MIN,
+  DEFAULT_PARSE_MAX_RETRIES,
+  DEFAULT_PARSE_RETRY_BASE_MS,
+  DEFAULT_SECTION_CACHE_MAX,
+  DEFAULT_SECTION_CACHE_TTL_MS,
+  DEFAULT_STRUCTURED_MAX_RETRIES,
+  DEFAULT_STRUCTURED_RETRY_BASE_MS,
+  loadAiProviderConfig,
+  resolveAiRequestTimeoutMs,
+  resolveParseMaxRetries,
+  resolveParseRetryBaseMs,
+  resolveSectionCacheMax,
+  resolveSectionCacheOptions,
+  resolveSectionCacheTtlMs,
+  resolveStructuredMaxRetries,
+  resolveStructuredRetryBaseMs,
+} from './provider-config.js';
 export {
   AiSdkChat,
   AiSdkEmbeddings,

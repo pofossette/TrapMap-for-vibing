@@ -30,7 +30,7 @@ export const getReviewDetailTool = defineTool({
     const client = createGatewayClient(ctx.config);
     return client.request(
       'GET',
-      `/v1/operations/artifacts/${encodeURIComponent(input.artifactId)}/history`,
+      `/v1/operations/artifacts/${encodeURIComponent(String(input.artifactId))}/history`,
     );
   },
 });
@@ -69,7 +69,7 @@ export const completeRemediationTool = defineTool({
     const client = createGatewayClient(ctx.config);
     return client.request(
       'POST',
-      `/v1/operations/feedback/remediation/${encodeURIComponent(input.entryId)}/complete`,
+      `/v1/operations/feedback/remediation/${encodeURIComponent(String(input.entryId))}/complete`,
       {
         body: {
           ...(input.actorNote ? { note: input.actorNote } : {}),

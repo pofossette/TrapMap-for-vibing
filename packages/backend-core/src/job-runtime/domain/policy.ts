@@ -5,6 +5,15 @@
  * I/O imports. The service infrastructure renders these rules into SQL
  * statements and worker loops; the owner SQL-condition rendering lives in
  * `service-job-runtime`.
+ *
+ * 宿主调参表：经 options 注入，不读 env ———
+ * 本文件的七个调参常量（TASK_DEFAULT_MAX_ATTEMPTS、TASK_LEASE_MS、
+ * OUTBOX_LEASE_MS、TASK_RETRY_BASE_DELAY_MS、OUTBOX_MAX_ATTEMPTS、
+ * OUTBOX_CLAIM_BATCH_SIZE、OUTBOX_POLL_INTERVAL_MS）是共享内核的命名
+ * 默认值（现状值，行为零变化）。backend-core 绝不直接读 process.env；
+ * 宿主如需调参，在调用侧经 options/参数注入覆盖（纯函数均已取参，如
+ * isRetryExhausted / retryBackoffMs / statusAfterTaskFailure），由后续
+ * host 任务打通 env。
  */
 
 // ---------------------------------------------------------------------------

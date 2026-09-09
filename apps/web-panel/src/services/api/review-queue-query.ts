@@ -1,6 +1,7 @@
 import type { ReviewQueueItem } from '@trapmap/contracts';
 import type { ReviewQueueRequest } from '@trapmap/web-panel/shared/enum-types';
 import { calculateReviewQueueRiskScore } from '../mappers/review-item-mapper';
+import { DEFAULT_REVIEW_QUEUE_LIMIT } from './query-limits';
 
 type QueueQueryRequest = NonNullable<ReviewQueueRequest>;
 
@@ -84,7 +85,7 @@ export function applyReviewQueueQuery(
     return sort === 'newest' ? -ageComparison : ageComparison;
   });
 
-  const limit = paging?.limit ?? 25;
+  const limit = paging?.limit ?? DEFAULT_REVIEW_QUEUE_LIMIT;
   let offset = 0;
   if (paging?.cursor) {
     if (!/^[0-9]{1,128}$/.test(paging.cursor)) {

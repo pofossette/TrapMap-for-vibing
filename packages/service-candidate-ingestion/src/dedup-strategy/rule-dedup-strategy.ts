@@ -23,6 +23,9 @@ function overlap(left: string[], right: string[]): string[] {
   return left.filter((term) => rightTerms.has(term.toLowerCase()));
 }
 
+const SEMANTIC_MATCH_CUTOFF = Number(process.env.TRAPMAP_DEDUP_SEMANTIC_CUTOFF ?? 0.38);
+const HIGH_OVERLAP_THRESHOLD = Number(process.env.TRAPMAP_DEDUP_HIGH_OVERLAP_THRESHOLD ?? 0.72);
+
 export function createRuleDedupStrategy(deps: RuleDedupStrategyDeps = {}): DedupStrategyPort {
   const now = deps.now ?? (() => new Date().toISOString());
   const createId = deps.createId ?? (() => prefixedId('dup'));
@@ -47,8 +50,6 @@ export function createRuleDedupStrategy(deps: RuleDedupStrategyDeps = {}): Dedup
               allTokenLists,
               goClient,
             );
-            const SEMANTIC_MATCH_CUTOFF = 0.38;
-            const HIGH_OVERLAP_THRESHOLD = 0.72;
             const matches: import('@trapmap/contracts').DuplicateMatch[] = [];
             let idx = 0;
             const { createHash } = await import('node:crypto');

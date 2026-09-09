@@ -15,6 +15,11 @@
  *   failure re-opens.
  */
 
+import {
+  resolveInternalRetryBaseDelayMs,
+  resolveInternalRetryMaxDelayMs,
+} from '../config/service-config.js';
+
 export interface RetryPolicy {
   maxAttempts: number;
   baseDelayMs: number;
@@ -30,7 +35,11 @@ export function resolveRetryPolicy(env: Record<string, string | undefined>): Ret
       maxAttempts = parsed;
     }
   }
-  return { maxAttempts, baseDelayMs: 100, maxDelayMs: 2000 };
+  return {
+    maxAttempts,
+    baseDelayMs: resolveInternalRetryBaseDelayMs(env),
+    maxDelayMs: resolveInternalRetryMaxDelayMs(env),
+  };
 }
 
 export type BreakerState = 'closed' | 'open' | 'half-open';

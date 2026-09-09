@@ -51,6 +51,11 @@ import { SERVICE_CONFIG_SERVICE, serviceConfigNode } from '../nodes/service-conf
 import { SERVICE_DATABASE_SERVICE, serviceDatabaseNode } from '../nodes/service-database.js';
 
 /** Worker sub-nodes attached to the job-runtime container (D7). */
+const ASSEMBLY_BOOT_SURFACE_DEADLINE_MS = 30_000;
+const ASSEMBLY_BOOT_SURFACE_POLL_MS = 50;
+// Note: same names/values as host-local packages/host-local/src/nest/main.ts
+// (ASSEMBLY_BOOT_SURFACE_DEADLINE_MS / ASSEMBLY_BOOT_SURFACE_POLL_MS).
+// Cross-package import avoided intentionally; deduped locally in this file only.
 const JOB_RUNTIME_WORKER_CHILDREN: readonly CapabilityNode[] = [
   candidateProcessingWorkerNode,
   governanceFeedbackWorkerNode,
@@ -148,11 +153,11 @@ export async function startDistributedService(
   // database creation connects pools) and cordis does not await providing
   // fibers, so their tokens land after boot() resolves. Wait for them with
   // a bound instead of racing ctx.get() (same pattern as host-local main).
-  const deadline = Date.now() + 30_000;
+  const deadline = Date.now() + ASSEMBLY_BOOT_SURFACE_DEADLINE_MS;
   const waitFor = async <T>(token: string): Promise<T | undefined> => {
     let value: T | undefined = running.ctx.get(token);
     while (value === undefined && Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, ASSEMBLY_BOOT_SURFACE_POLL_MS));
       value = running.ctx.get(token);
     }
     return value;

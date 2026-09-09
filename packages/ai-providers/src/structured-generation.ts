@@ -1,6 +1,7 @@
 import { sha256 } from '@trapmap/lib';
 import type { ZodType } from 'zod';
 import { stripCodeFences } from './ai-parse.js';
+import { resolveStructuredMaxRetries, resolveStructuredRetryBaseMs } from './provider-config.js';
 import type { ChatProvider } from './types.js';
 
 export interface StructuredGenerationResult<T> {
@@ -65,9 +66,11 @@ export async function generateStructured<T>(options: {
   retryBaseDelayMs?: number;
   temperature?: number;
 }): Promise<StructuredGenerationResult<T>> {
-  const maxRetries = options.maxRetries ?? 2;
+  // Defaults are centralized in ./provider-config.js (env-overridable);
+  // the base-4 exponential shape below stays hardcoded.
+  const maxRetries = options.maxRetries ?? resolveStructuredMaxRetries();
   assertRetryLimit(maxRetries);
-  const baseDelayMs = options.retryBaseDelayMs ?? 100;
+  const baseDelayMs = options.retryBaseDelayMs ?? resolveStructuredRetryBaseMs();
   if (options.temperature !== undefined && (options.temperature < 0 || options.temperature > 2)) {
     throw new RangeError('temperature must be between 0 and 2');
   }
@@ -105,6 +108,7 @@ export async function generateStructured<T>(options: {
     }
 
     if (attempts <= maxRetries) {
+      // NOTE: backoff base 4 differs from ai-parse (base 2) by design: 历史选择，默认参数下延迟序列一致，改前先压测
       await new Promise((resolve) => setTimeout(resolve, baseDelayMs * 4 ** (attempts - 1)));
     }
   }

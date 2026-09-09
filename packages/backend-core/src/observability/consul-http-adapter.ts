@@ -36,10 +36,22 @@ interface ConsulHealthServiceEntry {
 // Adapter options
 // ---------------------------------------------------------------------------
 
+/**
+ * Default Consul HTTP API address. backend-core never reads process.env;
+ * hosts override via ConsulHttpAdapterOptions.consulAddress (to be wired to
+ * env by a later host-side task). Value-preserving.
+ */
+export const DEFAULT_CONSUL_ADDRESS = 'http://localhost:8500';
+/**
+ * Default request timeout (ms) for Consul calls. Same options-injection
+ * rule as above; value-preserving.
+ */
+export const DEFAULT_CONSUL_TIMEOUT_MS = 3_000;
+
 export interface ConsulHttpAdapterOptions {
-  /** Consul HTTP API address (default http://localhost:8500). */
+  /** Consul HTTP API address (default DEFAULT_CONSUL_ADDRESS). */
   consulAddress?: string;
-  /** Request timeout in ms for Consul calls (default 3 000). */
+  /** Request timeout in ms for Consul calls (default DEFAULT_CONSUL_TIMEOUT_MS). */
   timeoutMs?: number;
   /**
    * When `true`, operational methods re-throw the underlying error after
@@ -67,8 +79,8 @@ export class ConsulHttpAdapter implements DiscoveryPort {
   private readonly logger: NonNullable<ConsulHttpAdapterOptions['logger']>;
 
   constructor(options?: ConsulHttpAdapterOptions) {
-    this.consulAddress = options?.consulAddress ?? 'http://localhost:8500';
-    this.timeoutMs = options?.timeoutMs ?? 3_000;
+    this.consulAddress = options?.consulAddress ?? DEFAULT_CONSUL_ADDRESS;
+    this.timeoutMs = options?.timeoutMs ?? DEFAULT_CONSUL_TIMEOUT_MS;
     this.throwOnError = options?.throwOnError ?? false;
     this.logger = options?.logger ?? console;
   }

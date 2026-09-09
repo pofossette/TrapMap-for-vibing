@@ -18,6 +18,7 @@ import type { TaskEnqueueOptions } from '@trapmap/backend-core';
 import { computeNextRun } from '@trapmap/backend-core';
 import type { CronJob } from '@trapmap/contracts';
 import type { CronOwnerBundle } from './pg-ports.js';
+import { CRON_CLAIM_BATCH_SIZE } from './pg-ports.js';
 
 export interface CronSchedulerTransport {
   task: {
@@ -41,10 +42,8 @@ export interface CronScheduler {
   tick(): Promise<number>;
 }
 
-const CLAIM_BATCH_SIZE = 20;
-
 export function createCronScheduler(config: CronSchedulerConfig): CronScheduler {
-  const pollIntervalMs = config.pollIntervalMs ?? 1000;
+  const pollIntervalMs = config.pollIntervalMs ?? Number(process.env.TRAPMAP_CRON_POLL_MS ?? 1000);
   const ownsWork = config.ownsWork ?? true;
   const clock = config.clock ?? (() => new Date());
   const dedupeKey = (job: CronJob): string => `cron:${job.id}:${job.nextRunAt ?? 'none'}`;
@@ -74,7 +73,7 @@ export function createCronScheduler(config: CronSchedulerConfig): CronScheduler 
   const tick = async (): Promise<number> => {
     if (!ownsWork) return 0;
     const now = clock();
-    const claimed = await config.bundle.claimDue(now, CLAIM_BATCH_SIZE);
+    const claimed = await config.bundle.claimDue(now, CRON_CLAIM_BATCH_SIZE);
     await processClaimed(claimed, now);
     return claimed.length;
   };

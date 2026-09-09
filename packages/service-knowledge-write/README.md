@@ -26,6 +26,19 @@ import { alignGraphNodes } from '@trapmap/service-knowledge-write/labels/graph-a
 
 改变知识生命周期状态的唯一权威路径经过本服务，治理侧与摄取侧经端口委托调用。聚合变更后的投影刷新等动作全部走异步队列。
 
+端点（`src/routes/knowledge.routes.ts`/`submission.routes.ts`，工件见 `src/artifact-routes.ts`）：
+
+| 方法+路径 | 用途 |
+| --- | --- |
+| `POST /internal/knowledge`、`PUT /internal/knowledge/:entryId` | 提条目、改内容/标签 |
+| `POST /internal/knowledge/:entryId/resubmit`、`/supersede` | 重新送审、替换条目 |
+| `GET /internal/knowledge/:entryId/conflict-candidates` | 列已批准冲突候选 |
+| `POST /internal/knowledge/review/approve`、`/reject`、`/maintenance`、`/decay` | 审核/维护/衰减决策 |
+| `POST /internal/candidates/publish`、`POST /internal/rpc/knowledge-write` | 发布候选结果、统一 RPC |
+| `POST /internal/traps`、`GET /internal/traps`、`/:trapId` | 建 trap、列表、取单体 |
+| `POST /internal/artifacts/*`、`GET /internal/artifacts/*` | 工件导入导出/生命周期/审核 |
+| `GET /internal/health`、`/live`、`/readiness`、`/ready`、`/ownership` | 健康/就绪/归属探针 |
+
 ## 常见用法
 
 ### 跑本包测试

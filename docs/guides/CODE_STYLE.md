@@ -24,6 +24,19 @@
 - 你 打开声明产物与一致大小写检查。依据见 `tsconfig.base.json` :11-20 。
 - 你 跑 `package.json` :63 的类型检查验证改动。
 
+### Falsy 与存在性检查
+
+- 你 不用 truthy 检查判断值是否存在，它会错误丢弃 `''`、`0`、`false` 等合法 falsy 值。
+
+| 场景 | 错误写法 | 正确写法 |
+|------|----------|----------|
+| 条件展开 | `...(value ? { value } : {})` | `...(value != null ? { value } : {})` |
+| 条件渲染 | `if (data.field)` | `if (data.field != null)` |
+| 数组元素检查 | `arr[0]` | `arr.some(x => x != null)` |
+| 空数组 join | `arr?.join(', ') ?? 'fallback'` | 先检查 `arr.length > 0` |
+
+- `!= null` 同时检查 `null` 与 `undefined`，保留 `''`、`0`、`false` 等合法值。
+
 ### 导入
 
 - 你 跨包引用走 `@trapmap/*` 包名，不写跨包相对路径。同包内引用走相对路径。判例见 `scripts/check-relative-imports.mjs` :163-175 。

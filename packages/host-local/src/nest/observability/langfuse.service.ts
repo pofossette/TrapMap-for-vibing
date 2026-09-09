@@ -26,6 +26,8 @@ import type { LangfusePolicyResult } from '@trapmap/contracts';
 
 import {
   createSinkFromClient,
+  LANGFUSE_SINK_FLUSH_AT,
+  LANGFUSE_SINK_PERSISTENCE,
   type LangfuseClientLike,
   loadLangfusePolicyFromEnv,
 } from './langfuse-sink.js';
@@ -58,8 +60,8 @@ export class LangfuseService implements LlmObservationSink, OnModuleInit, OnModu
         baseUrl: this.policy.baseUrl,
         publicKey: this.policy.publicKey,
         secretKey: this.policy.secretKey,
-        flushAt: 1,
-        persistence: 'memory',
+        flushAt: LANGFUSE_SINK_FLUSH_AT,
+        persistence: LANGFUSE_SINK_PERSISTENCE,
       }) as unknown as LangfuseClientLike; // lib type gap: the langfuse
       // SDK client type does not structurally match the minimal local client
       // surface used by the sink adapter

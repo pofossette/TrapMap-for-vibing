@@ -515,7 +515,7 @@ export function createIdentityAccessPgDeps(
       const [{ rows: countRows }, { rows }] = await Promise.all([
         pool.query(`SELECT COUNT(*) AS total FROM audit_events${where}`, values),
         pool.query(
-          `SELECT id, action, actor_id, entity_id, team_id, payload, event_version, source_service, request_id, trace_id, operation_id, causation_id, outcome, created_at, updated_at FROM audit_events${where} ORDER BY created_at DESC LIMIT ${Math.max(1, filter.limit ?? 25)}`,
+          `SELECT id, action, actor_id, entity_id, team_id, payload, event_version, source_service, request_id, trace_id, operation_id, causation_id, outcome, created_at, updated_at FROM audit_events${where} ORDER BY created_at DESC LIMIT ${Math.max(1, filter.limit ?? Number(process.env.TRAPMAP_IDENTITY_AUDIT_DEFAULT_LIMIT ?? 25))}`,
           values,
         ),
       ]);

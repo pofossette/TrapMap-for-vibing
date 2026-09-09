@@ -4,6 +4,9 @@ import { z } from 'zod';
 import { createGatewayClient } from '../gateway-client.js';
 import { defineTool } from './shared.js';
 
+/** Default number of ranked genes considered by the client (no env override). */
+const DEFAULT_MAX_RESULTS = 1;
+
 export const searchExperienceGenesTool = defineTool({
   name: 'trapmap_search_experience_genes',
   description:
@@ -40,7 +43,7 @@ export const searchExperienceGenesTool = defineTool({
           labels: input.labels ?? [],
           scopes: input.scopes ?? [],
         },
-        maxResults: input.maxResults ?? 1,
+        maxResults: input.maxResults ?? DEFAULT_MAX_RESULTS,
         includeActivationHints: false,
       }),
     });

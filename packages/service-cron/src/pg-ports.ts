@@ -19,6 +19,8 @@ import { getTableName } from 'drizzle-orm';
 
 const cronJobsTable = getTableName(cronJobs);
 
+export const CRON_CLAIM_BATCH_SIZE = Number(process.env.TRAPMAP_CRON_CLAIM_BATCH_SIZE ?? 20);
+
 export type Queryable = {
   query<T = Record<string, unknown>>(
     sql: string,
@@ -233,7 +235,7 @@ export function createCronOwnerBundle(pool: Queryable): CronOwnerBundle {
       return rows.map((row) => rowToStatusSnapshot(row as CronJobRow));
     },
 
-    async claimDue(now, limit = 20) {
+    async claimDue(now, limit = CRON_CLAIM_BATCH_SIZE) {
       const { rows } = await pool.query<CronJobRow>(
         `UPDATE ${cronJobsTable} SET updated_at = NOW()
          WHERE id IN (
