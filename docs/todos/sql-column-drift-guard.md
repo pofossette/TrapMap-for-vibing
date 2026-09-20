@@ -62,6 +62,11 @@ python 原型扫描器：解析 `packages/db/migrations/schema.sql` 的 56 张�
 | T4 | L3 降级指标 + ESLint 规则 | DB 分支降级在 dashboard 可见 |
 | T5 | 文档回写：`DATABASE_SCHEMA.md`（如补列）、`docs/operations/`（check 命令）、债务册更新 | 守卫全绿 |
 
+**T3 / T4② 的再定义（2026-09-20 评估）**：
+
+- **T3 暂不执行**：T3 的原动力是"正则原型误报率 24/24 里 20 条是别名归因错误"。实际落地的 `check:sql-columns.ts` 已经解决了这一类（解析 `FROM/JOIN` 的别名到真表名，多表语句里裸列一律跳过而不是猜），因此它在 210 条裸 SQL 上**零误报、豁免清单为空**——继续引入 `pgsql-ast-parser`（新依赖 + 重写解析器）在当下是零收益的复杂度。触发条件：一旦出现第一条需要靠豁免压下去的误报，就升级 AST，并把豁免机制限定为只覆盖动态 SQL。
+- **T4② 换实现载体**：计划里写的是 "ESLint 规则"，但本仓库的 lint 载体是 Biome（`pnpm check` = `biome check .`），Biome 不支持自定义规则。若要做"catch 内只 console.error 后静默继续"的静态提示，只能按本仓库既有的 scripts/check-*.ts 守卫模式新写一个脚本并维护标注白名单——那需要先做一次全仓 inventory（catch 站点数量级在百），属于独立任务，不塞进本主线收尾。
+
 **每阶段提交纪律**：与 latency-optimize 相同——代码改动 + 验证证据同一提交；守卫本身的"首跑红名单"截图/输出入库留痕。
 
 ### 执行记录

@@ -54,8 +54,10 @@ export const SURFACE_EXEMPTIONS: readonly string[] = [];
  * (Wave-10 deleted) docs still present in `docs/reference/api-surface.md`
  * for historical reference but not implemented in any host gateway. They are
  * tracked together in `docs/todos/open-debt-and-compromises.md` and
- * `SURFACE_EXEMPTIONS` still only holds `/v2/retrieval/search`. New paths must
- * never be added here; fix the route or documentation instead.
+ * `SURFACE_EXEMPTIONS` is empty (2026-09-19): its only entry,
+ * `/v2/retrieval/search`, became a real route when the capsule pipeline landed
+ * on both hosts. New paths must never be added there; fix the route or the
+ * documentation instead.
  */
 export const SURFACE_INVENTORY_DRIFT: readonly string[] = [
   '/v1/admin/reconcile-knowledge-indexes',

@@ -153,7 +153,12 @@ describe('checkSurface', () => {
     ]);
   });
 
-  it('exempts only the listed documented-but-unimplemented paths (seed: /v2/retrieval/search)', () => {
+  it('exempts only what the list names, and ships that list empty', () => {
+    // `/v2/retrieval/search` was this list's only entry until the capsule
+    // pipeline landed on both hosts (2026-09-19). It is a real route now, so a
+    // documented path no host registers must be reported again — the exemption
+    // mechanism itself is exercised with a local list below.
+    expect(SURFACE_EXEMPTIONS).toEqual([]);
     const real = [{ path: '/v1/retrieval/search', file: routeFile, line: 2 }];
     const documented = [
       { path: '/v1/retrieval/search', file: apiSurfaceFile, line: 10 },
@@ -161,8 +166,13 @@ describe('checkSurface', () => {
       { path: '/v1/retrieval/skills/search-by-content', file: apiSurfaceFile, line: 12 },
     ];
 
-    const violations = checkSurface(real, documented, SURFACE_EXEMPTIONS);
-    expect(violations.map((v) => v.path)).toEqual(['/v1/retrieval/skills/search-by-content']);
+    expect(checkSurface(real, documented, SURFACE_EXEMPTIONS).map((v) => v.path)).toEqual([
+      '/v2/retrieval/search',
+      '/v1/retrieval/skills/search-by-content',
+    ]);
+    expect(checkSurface(real, documented, ['/v2/retrieval/search']).map((v) => v.path)).toEqual([
+      '/v1/retrieval/skills/search-by-content',
+    ]);
   });
 
   it('does not let exemptions hide newly added paths', () => {
@@ -209,6 +219,9 @@ describe('checkSurface', () => {
   it('keys the expected base-main scenario to the skill-lookup gap only', () => {
     const real = [
       { path: '/v1/retrieval/search', file: routeFile, line: 121 },
+      // v2 became a registered host route on 2026-09-19 (capsule pipeline);
+      // only the skills-by-content surface is still documented-but-unwired.
+      { path: '/v2/retrieval/search', file: routeFile, line: 149 },
       {
         path: '/v3/retrieval/search',
         file: 'packages/host-distributed/src/gateway/route-defs.ts',
