@@ -1,0 +1,90 @@
+{
+  "generatedAt": "2026-09-20T06:02:51.533Z",
+  "source": "live-pg(entries=3000,queries=30,warmup=5)",
+  "endpointLatency": [
+    {
+      "endpoint": "v1-search",
+      "path": "/bench/v1-search",
+      "summary": {
+        "count": 30,
+        "minMs": 106.46,
+        "p50Ms": 109.21,
+        "p95Ms": 125.19,
+        "p99Ms": 130.35,
+        "maxMs": 130.35,
+        "avgMs": 111.64
+      }
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "path": "/bench/v3-graph-plan",
+      "summary": {
+        "count": 30,
+        "minMs": 220.53,
+        "p50Ms": 226.29,
+        "p95Ms": 260.25,
+        "p99Ms": 273.44,
+        "maxMs": 273.44,
+        "avgMs": 232.31
+      }
+    },
+    {
+      "endpoint": "v2-capsule",
+      "path": "/bench/v2-capsule",
+      "summary": {
+        "count": 30,
+        "minMs": 221.73,
+        "p50Ms": 228.92,
+        "p95Ms": 256.74,
+        "p99Ms": 266.55,
+        "maxMs": 266.55,
+        "avgMs": 233.74
+      }
+    },
+    {
+      "endpoint": "v1-skills",
+      "path": "/bench/v1-skills",
+      "summary": {
+        "count": 30,
+        "minMs": 243.31,
+        "p50Ms": 257.8,
+        "p95Ms": 281.42,
+        "p99Ms": 292.49,
+        "maxMs": 292.49,
+        "avgMs": 260.78
+      }
+    },
+    {
+      "endpoint": "v4-gene",
+      "path": "/v1/retrieval/genes/search",
+      "summary": {
+        "count": 30,
+        "minMs": 0.86,
+        "p50Ms": 1.1,
+        "p95Ms": 2.16,
+        "p99Ms": 4.63,
+        "maxMs": 4.63,
+        "avgMs": 1.31
+      }
+    }
+  ],
+  "failedRequests": 0,
+  "statuses": {
+    "v1-search": {
+      "200": 30
+    },
+    "v3-graph-plan": {
+      "200": 30
+    },
+    "v2-capsule": {
+      "200": 30
+    },
+    "v1-skills": {
+      "200": 30
+    },
+    "v4-gene": {
+      "200": 30
+    }
+  },
+  "failureDetails": {}
+}

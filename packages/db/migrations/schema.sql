@@ -885,6 +885,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS "idx_graph_index_documents_source_revision_no"
 CREATE INDEX IF NOT EXISTS "idx_graph_index_documents_team" ON "graph_index_documents" USING btree ("team_id");--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "knowledge_embeddings_entry_revision_no_idx" ON "knowledge_embeddings" USING btree ("entry_id","revision_no");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_knowledge_embeddings_status" ON "knowledge_embeddings" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_knowledge_embeddings_vector_hnsw" ON "knowledge_embeddings" USING hnsw ("vector" vector_cosine_ops);--> statement-breakpoint
 CREATE UNIQUE INDEX IF NOT EXISTS "knowledge_keywords_entry_revision_no_idx" ON "knowledge_keywords" USING btree ("entry_id","revision_no");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_knowledge_keywords_tokens_gin" ON "knowledge_keywords" USING gin ("tokens");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_knowledge_keywords_status" ON "knowledge_keywords" USING btree ("status");--> statement-breakpoint
@@ -895,6 +896,7 @@ CREATE INDEX IF NOT EXISTS "idx_retrieval_badcase_feedback" ON "retrieval_badcas
 CREATE INDEX IF NOT EXISTS "idx_retrieval_badcase_entry" ON "retrieval_badcase_traces" USING btree ("entry_id","entry_type");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_embeddings_artifact_revision" ON "skill_artifact_capsule_embeddings" USING btree ("artifact_id","revision_no");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_embeddings_status" ON "skill_artifact_capsule_embeddings" USING btree ("status");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_capsule_embeddings_vector_hnsw" ON "skill_artifact_capsule_embeddings" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_keywords_artifact_revision" ON "skill_artifact_capsule_keywords" USING btree ("artifact_id","revision_no");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_keywords_tokens_gin" ON "skill_artifact_capsule_keywords" USING gin ("tokens");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_keywords_status" ON "skill_artifact_capsule_keywords" USING btree ("status");
