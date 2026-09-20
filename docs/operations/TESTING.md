@@ -148,7 +148,7 @@ pnpm check:docs
 | 文档守卫 | `pnpm check:docs` 加 `pnpm check:structure` | 叙事与命令一致性、目录规则 |
 | 表清单守卫 | `pnpm check:table-schema` | `db` 的 42 张 `pgTable` 对 `DATABASE_SCHEMA.md` 的 diff |
 | 建模 vs 应用 DDL 守卫 | `pnpm check:schema-parity` | `packages/db/src/schema` 的建模对 `packages/db/migrations/schema.sql`（运行时真正执行的 DDL）的表/列 diff |
-| 裸 SQL 列引用守卫 | `pnpm check:sql-columns` | service 裸 SQL 引用的列是否存在于应用 DDL |
+| 裸 SQL 引用守卫 | `pnpm check:sql-columns` | AST（真实 PG 语法）核对表/别名/列/INSERT 列清单/UPDATE SET/ON CONFLICT 目标；无法静态判定的语句按文件+条数登记 |
 | 静默降级守卫 | `pnpm check:silent-fallbacks` | catch 里只打日志就继续的站点必须重抛、进指标或带 `silent-fallback-ok` 理由 |
 | pgTable 单源守卫 | `pnpm check:pgtable-single-source` | service 包不重定义表 |
 | Eval import 边界守卫 | `pnpm check:eval-imports` | evals 不直连 service 内部文件 |

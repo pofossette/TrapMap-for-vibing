@@ -62,12 +62,12 @@ python 原型扫描器：解析 `packages/db/migrations/schema.sql` 的 56 张�
 | T4 | L3 降级指标 + ESLint 规则 | DB 分支降级在 dashboard 可见 |
 | T5 | 文档回写：`DATABASE_SCHEMA.md`（如补列）、`docs/operations/`（check 命令）、债务册更新 | 守卫全绿 |
 
-**T3 / T4② 的再定义（2026-09-20 评估）**：
+**T3 已执行（2026-09-20，AST 收紧）**：原文的 T3 目标是"AST 升级 + 豁免仅限动态 SQL"。执行时把口径收紧为一条原则——**能静态判定的必须判定，判定不了的必须显式登记**：
 
-- **T3 暂不执行**：T3 的原动力是"正则原型误报率 24/24 里 20 条是别名归因错误"。实际落地的 `check:sql-columns.ts` 已经解决了这一类（解析 `FROM/JOIN` 的别名到真表名，多表语句里裸列一律跳过而不是猜），因此它在 210 条裸 SQL 上**零误报、豁免清单为空**——继续引入 `pgsql-ast-parser`（新依赖 + 重写解析器）在当下是零收益的复杂度。触发条件：一旦出现第一条需要靠豁免压下去的误报，就升级 AST，并把豁免机制限定为只覆盖动态 SQL。
-- **T4② 换实现载体**：计划里写的是 "ESLint 规则"，但本仓库的 lint 载体是 Biome（`pnpm check` = `biome check .`），Biome 不支持自定义规则。若要做"catch 内只 console.error 后静默继续"的静态提示，只能按本仓库既有的 scripts/check-*.ts 守卫模式新写一个脚本并维护标注白名单——那需要先做一次全仓 inventory（catch 站点数量级在百），属于独立任务，不塞进本主线收尾。
-
-**每阶段提交纪律**：与 latency-optimize 相同——代码改动 + 验证证据同一提交；守卫本身的"首跑红名单"截图/输出入库留痕。
+- **解析器**：`scripts/lib/sql-ast-analysis.ts` 用 `pgsql-ast-parser`（根 devDependency）按真实 PG 语法分析，替换原先的正则。现在覆盖：表存在性、别名解析与别名笔误、语句作用域内的裸列、`INSERT` 列清单、`UPDATE ... SET` 目标、`ON CONFLICT (...)` 目标、CTE/子查询/`LATERAL` 的相关引用（子查询有自己的 FROM 作用域，外层作用域用于相关引用）、`ORDER BY` 引用选择列表别名、`EXCLUDED` 伪表；`pgsql-ast-parser` 不支持的 `ON CONFLICT ... WHERE`（部分索引推断）会先摘出谓词再单独按目标表校验，而不是放弃整条语句。`<=>`/`<->`/`<#>`（pgvector 距离算子）在分析前归一化，不影响列引用判定。
+- **提取器**：`scripts/lib/sql-extraction.ts` 逐字符扫描字符串/模板字面量（跳过注释、正确跨过嵌套模板与转义引号、行号取自字面量起始行），并把 `${…}` 原位替换：`$${n}` → `$1`（参数序号惯用法），其余 → 标识符占位。散文、"Update skills"、`'DELETE'`（HTTP 方法）、`'pending'` 这类字面量不再被误判成 SQL。
+- **常量解析**：`scripts/lib/sql-constants.ts` 解析文件内 / 同包 / 被 import 的 workspace 包的常量（字符串、无插值模板、**未被改动的**字符串数组 `.join()`、`getTableName(drizzleTable)`），并支持常量模板里再套常量的有限递归。它让 `SELECT ${CRON_JOB_COLUMNS} FROM ${cronJobsTable} WHERE id = $1` 这类语句变成**可校验**：把 `bogus_id` 注入该 SQL 会被守卫拦下，注入到被解析的列清单里同样会被拦下。对**会 `.push()` 的数组**拒绝折叠（那会把语句截断、凭空造出一条不存在的 SQL）。
+- **未解析语句的登记制**：仍然无法静态判定的语句进 `DYNAMIC_SQL`——**按文件 + 精确条数 + 理由**登记（当前 11 文件 22 条）。条数两侧都收紧：多一条（新增不可校验 SQL）红，少一条（历史声明过期）也红，迫使每次变动都显式更新。违规本身**没有豁免机制**。
 
 ### 执行记录
 
@@ -79,7 +79,8 @@ python 原型扫描器：解析 `packages/db/migrations/schema.sql` 的 56 张�
 | T4（降级计数部分） | 完成 | 三条静默降级路径全部进指标：`RetrievalMetricsPort` 新增 `recordDegraded({endpoint, reason})`，契约枚举 `RETRIEVAL_DEGRADED_REASONS = ['db-search-failed','db-vector-search-failed','rerank-fallback']`，双宿主实现同名序列 `trapmap_retrieval_degraded_total{endpoint,reason}`（host-local Prometheus / host-distributed OTel），打点收口在 `service-knowledge-read/src/retrieval-latency.ts:emitDegraded`，覆盖 `recall/hybrid-channel.ts`、`recall/semantic-channel.ts`、`recall/rerankRecallResults` 的 Go 回退；`console.error` 保留供本地调试。测试：host-local 新增 1 例（分别计数）、host-distributed 新增 `retrieval-metrics.test.ts`（2 例）、读侧新增 `retrieval-degraded.test.ts`（3 例，含"端口缺席时静默"）。文档：`OBSERVABILITY.md` 归属节 + `OBSERVABILITY-OPERATIONS.md` 指标表/查询/`RetrievalDegraded` 告警（顺带修正该页"v2 无宿主注册"的过期描述）。 |
 | T4（静默降级静态守卫） | 完成 | 载体按本仓工具链换为 `scripts/check-silent-fallbacks.ts`（Biome 无自定义规则），并入 CI `doc-guardrails`。口径：catch 体去掉 `console.*`/`logger.*` 调用与注释后为空即为"只打日志"；重抛、进指标、把失败转成显式返回值、或带理由的 `// silent-fallback-ok: <理由>` 标注均可通过（无理由的标注同样违规）。首跑：593 文件 / 169 catch → 33 个只打日志站点；修掉检查器自身一个假阴性（遗留 `;` 未剥离，漏掉 3 个站点）后为 36 个，逐个标注完成，守卫零违规。单测 7 例（含"标注无理由""探针注入"）。标注确认的两处真实缺口已挂账（cron tick 无指标端口、候选去重 PG 通道降级无计数）。 |
 | 收尾（`conflict_relations` 落点） | 完成 | 该表此前是唯一一条 parity 豁免（表在应用 DDL、TS 未建模，`DATABASE_SCHEMA.md` 记为「双源例外」）。已补建模 `packages/db/src/schema/governance.ts`（列/规范序 CHECK/唯一索引/两个查询索引与 DDL 逐项对齐），`index.ts` 聚合导出，`DATABASE_SCHEMA.md` 升到 **43 表**并新增「治理评议」节、去掉例外说明，`EXEMPTIONS` 清空（机制保留）。**链路打通验证**（docker 真 PG，13 项全绿）：approved entries → knowledge-write owner → conflict-read → 规则分类 → `conflictProjection.upsert` 落 `conflict_relations` → `getById` / `listByEntryIds` / `retrievalProjection.listConflicts` 回读；重跑检测幂等（detectedCount 0、行数仍 1）；反向 pair 被 `ck_conflict_relations_canonical_order` 拒绝、重复 pair 被 `idx_conflict_relations_entry_pair` 拒绝。 |
-| T3、T5 | 未开始 | 见 §4 |
+| T3 | 完成 | AST 分析器（`scripts/lib/sql-ast-analysis.ts`）+ 严格提取器（`sql-extraction.ts`）+ 常量解析（`sql-constants.ts`）落地；不可静态判定的语句改为 `DYNAMIC_SQL` 按文件+条数+理由登记（11 文件 22 条），违规无豁免。自检：注入真实列漂移（`cron_jobs.bogus_id`、`experience_genes.bogus_status`、被解析清单里的假列）均被拦截并退出非 0；解析器自带的数组折叠缺陷（折叠被 `.push` 的数组会截断语句）在自检中发现并改为拒绝折叠。单测 22 例（分析器拒绝/接受矩阵、提取器、端到端守卫、条数声明）。 |
+| T5 | 完成 | 文档随各阶段同步回写：`DATABASE_SCHEMA.md`（43 表 + 治理评议节）、`TESTING.md` / `CI_CD.md` / `DOCUMENTATION_GOVERNANCE.md`（守卫登记与口径）、本细则与 `plan.md` 状态、`open-debt-and-compromises.md`（SQL 漂移与静默降级两节）。 |
 
 ## 5. 验收门禁
 
