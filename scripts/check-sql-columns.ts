@@ -84,16 +84,6 @@ const EXEMPTIONS: ReadonlyArray<{ table: string; column: string; reason: string 
     column: 'field_tokens_labels',
     reason: 'v1/v3 DB recall branch triple-breakage (latency-optimize mainline)',
   },
-  {
-    table: 'skill_artifacts',
-    column: 'latest_revision',
-    reason: 'experience-gene write side; fix needs caller-intent verification (T2)',
-  },
-  {
-    table: 'skill_artifacts',
-    column: 'remediation',
-    reason: 'experience-gene write side; fix needs caller-intent verification (T2)',
-  },
 ];
 
 function isExempt(table: string, column: string): string | null {

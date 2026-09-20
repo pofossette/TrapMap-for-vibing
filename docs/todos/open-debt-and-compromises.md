@@ -125,11 +125,11 @@
 | # | 位置 | 坏引用 | 修复方向（T2） |
 |---|---|---|---|
 | 1 | `service-knowledge-read/src/retrieval-infra-default.ts:128`（`pgRecall.keywordRecall`） | `knowledge_search_documents.tokens` / `field_tokens_shortcut` / `field_tokens_detail` / `field_tokens_labels` | ✅ 已修（补齐迁移加列）。该表仍无写入方，见下条"DB 召回分支" |
-| 2 | `service-knowledge-write/src/experience-gene-snapshots.ts:84` | `skill_artifacts.latest_revision`、`.remediation` | **未修**：需先核实原意（这两列在 Drizzle schema 中也不存在，非漂移而是代码/表演化未同步）。修复思路：latest_revision 走 `artifact_revisions` 的 LATERAL max（与 knowledge 侧同一写法），remediation 门控对 artifact 是否适用需确认 |
-| 3 | `service-knowledge-write/src/experience-gene-staleness-handler.ts:111,125` | `sa.remediation` | 同 #2，**未修** |
+| 2 | `service-knowledge-write/src/experience-gene-snapshots.ts:84` | `skill_artifacts.latest_revision`、`.remediation` | ✅ 已修：原意核实为**照抄 knowledge 侧门控**——artifacts 从来没有这两列，remediation 只存在于 `knowledge_entries`（无 artifact 写入方），latest revision 应来自 `artifact_revisions`。改为 LATERAL max(revision_no)（与 knowledge 侧同一写法）并移除 artifact 的 remediation 门控 |
+| 3 | `service-knowledge-write/src/experience-gene-staleness-handler.ts:111,125`（另含 `experience-gene-planning.ts:115,155`） | `sa.remediation` | ✅ 已修：同 #2，artifact 派生的 gene 不再按 remediation 判定抑制（`remediationSuppressed` 恒 false，lifecycle_state 是 artifact 唯一门控） |
 | 4 | `service-candidate-ingestion/src/pg-ports.ts:245,429` | `UPDATE candidates SET analysis`（实际列 `analysis_snapshot`）；`INSERT INTO candidate_duplicate_cases (... matches ...)`（表无此列） | ✅ 已修（补齐迁移：`candidates.analysis`、`candidate_duplicate_cases.matches`；顺带修正 `candidate_outcomes` 主键应为 `(candidate_id, kind)` 复合键，否则 resolution 会覆盖 manual） |
 | 5 | `service-knowledge-write/src/experience-gene-repository.ts:236,365` | `UPDATE experience_gene_embeddings SET document, labels` | ✅ 已修（合并表已含 document/labels；`document` 按 `tsvector` 建并加 GIN，写侧改 `to_tsvector('english', $2)`，读侧改 JOIN 合并表） |
 
-守卫 `pnpm check:sql-columns` 已落地并 blocking：豁免由 8 条降到 4 条（只剩 #2/#3）。局限已在脚本头注释：含 `${}` 的动态片段只校验静态列部分，drizzle ORM 查询不在扫描面（其列引用受 TS 类型保护）。
+守卫 `pnpm check:sql-columns` 已落地并 blocking：**豁免清单已清空（5 处全修）**。局限已在脚本头注释：含 `${}` 的动态片段只校验静态列部分，drizzle ORM 查询不在扫描面（其列引用受 TS 类型保护）。同类根因（建模改了但没写迁移）由新增的 `pnpm check:schema-parity` 拦截。
 
 **新增派生债务**：`experience_gene_embeddings.document` 运行时类型是 `tsvector`（读侧用 `@@`/`ts_rank`），而 drizzle 0.45 没有 tsvector 列类型，建模里仍声明 `text`——`check:schema-parity` 只比列名，这条类型差异靠字段注释与本节记录，drizzle 补上该类型后应同步。

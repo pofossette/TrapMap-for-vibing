@@ -80,13 +80,22 @@ async function loadSkillArtifact(
   pool: Queryable,
   request: { artifactId: string; revision: number; derivationUnitId: string },
 ): Promise<ExperienceGeneSourceSnapshot | null> {
+  // Artifacts have no `latest_revision` and no `remediation` column (neither
+  // the models nor the applied DDL ever had them — the old query referenced
+  // both and therefore always errored). Latest revision comes from the
+  // revision history, and remediation suppression is a knowledge-entry
+  // concern: only entries carry remediation, artifacts are gated by
+  // lifecycle_state alone.
   const artifactResult = await pool.query<Row>(
-    `SELECT id, title, labels, scope, team_id, required_level, lifecycle_state,
-            latest_revision, remediation
-     FROM skill_artifacts
-     WHERE id = $1 AND lifecycle_state = 'approved' AND latest_revision = $2
-       AND (remediation->>'suppressedFromRetrieval')::boolean IS NOT TRUE
-       AND (remediation->>'suppressedFromIndex')::boolean IS NOT TRUE`,
+    `SELECT sa.id, sa.title, sa.labels, sa.scope, sa.team_id, sa.required_level, sa.lifecycle_state,
+            COALESCE(latest.revision_no, 0)::int AS latest_revision
+     FROM skill_artifacts sa
+     LEFT JOIN LATERAL (
+       SELECT revision_no FROM artifact_revisions
+       WHERE artifact_id = sa.id ORDER BY revision_no DESC LIMIT 1
+     ) latest ON true
+     WHERE sa.id = $1 AND sa.lifecycle_state = 'approved'
+       AND COALESCE(latest.revision_no, 0) = $2`,
     [request.artifactId, request.revision],
   );
   if (!eligible(artifactResult.rows[0])) return null;
@@ -130,12 +139,12 @@ async function loadSkillCapsule(
   request: { capsuleId: string },
 ): Promise<ExperienceGeneSourceSnapshot | null> {
   const result = await pool.query<Row>(
-    `SELECT cap.*, sa.title AS artifact_title, sa.lifecycle_state, sa.remediation
+    // Artifacts carry no remediation signal (see loadSkillArtifact); the
+    // lifecycle_state gate is the only artifact-level suppression that exists.
+    `SELECT cap.*, sa.title AS artifact_title, sa.lifecycle_state
      FROM skill_artifact_capsules cap
      JOIN skill_artifacts sa ON sa.id = cap.artifact_id
-     WHERE cap.capsule_id = $1 AND sa.lifecycle_state = 'approved'
-       AND (sa.remediation->>'suppressedFromRetrieval')::boolean IS NOT TRUE
-       AND (sa.remediation->>'suppressedFromIndex')::boolean IS NOT TRUE`,
+     WHERE cap.capsule_id = $1 AND sa.lifecycle_state = 'approved'`,
     [request.capsuleId],
   );
   const row = result.rows[0];

@@ -111,9 +111,7 @@ async function approvedArtifact(
        SELECT revision_no, source_hash, files FROM artifact_revisions
         WHERE artifact_id = sa.id ORDER BY revision_no DESC LIMIT 1
      ) ar ON true
-     WHERE sa.id = $1 AND sa.lifecycle_state = 'approved'
-       AND (sa.remediation->>'suppressedFromRetrieval')::boolean IS NOT TRUE
-       AND (sa.remediation->>'suppressedFromIndex')::boolean IS NOT TRUE`,
+     WHERE sa.id = $1 AND sa.lifecycle_state = 'approved'`,
     [id],
   );
   const row = result.rows[0];
@@ -152,8 +150,6 @@ async function approvedCapsules(pool: Queryable, artifactId: string) {
      FROM skill_artifact_capsules cap
      JOIN skill_artifacts sa ON sa.id = cap.artifact_id
      WHERE cap.artifact_id = $1 AND sa.lifecycle_state = 'approved'
-       AND (sa.remediation->>'suppressedFromRetrieval')::boolean IS NOT TRUE
-       AND (sa.remediation->>'suppressedFromIndex')::boolean IS NOT TRUE
      ORDER BY cap.capsule_id`,
     [artifactId],
   );
