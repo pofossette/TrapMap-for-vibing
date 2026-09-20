@@ -115,3 +115,17 @@
 - **retrieval eval v2/v3 期望调优（2026-09-19 更新）**：v3 图计划管线已实现（`backend-core/src/knowledge-read/domain/graph-plan.ts` 的 Kahn 编译 + `search/search-v3-plan.ts` 编排 + 置信度门控），eval 组装服务器已注册 `/v2` `/v3`，用例真实可达且返回契约合法形状，retrieval eval 通过数 5→7。剩余 19 个失败是 fixture 期望按已退役原管线的排序/摘要行为编写（如 `v2-include-summary` 要求摘要支持、`v2-keyword-dominant` 要求特定排序），属评测期望调优而非接线缺陷。注意早期登记的"v3 图计划编译不存在"与"v3 别名"两条已失效，以本条为准。
 - **`skill_artifact_capsules` schema 漂移（2026-09-19 发现）**：`packages/db/src/schema/artifacts.ts` 声明了 `keyword_tokens` / `field_keyword_tokens` / `team_id`，但 `packages/db/migrations/schema.sql` 里没有，写入侧也从不写。胶囊管道已绕开（走全文检索表达式 + 从 `art.team_id` 继承治理），但两边应当对齐：要么删掉 TS schema 的死声明，要么补迁移。注意 `schema.sql` 用的是 `CREATE TABLE IF NOT EXISTS`，已存在的库不会自动获得新列。
 - **v2 胶囊评分是重实现而非复原**：原胶囊管道随已删除的 `packages/server`（Wave-10）消失，`MIN_CAPSULE_SCORE` 与评分器无留存实现。现行权重取自 `RETRIEVAL.md` 记载，但 RRF 的 k=60 与 `0.7 内容 / 0.3 融合` 的混合比例是判断值，已在代码注释标注。若日后找到原实现，应对齐或显式改文档。
+
+## SQL 列引用漂移（2026-09-20，由 check:sql-columns 守卫扫描确认）
+
+守卫扫描 210 条裸 SQL 语句（9 个包），确认 **5 处（8 个 table.column 对、14 处代码位置）引用了 applied schema 中不存在的列**，全部在运行时必失败（多数被 try/catch 静默吞掉）：
+
+| # | 位置 | 坏引用 | 修复方向（T2） |
+|---|---|---|---|
+| 1 | `service-knowledge-read/src/retrieval-infra-default.ts:128`（`pgRecall.keywordRecall`） | `knowledge_search_documents.tokens` / `field_tokens_shortcut` / `field_tokens_detail` / `field_tokens_labels` | 随 DB 召回分支三重断裂一并修（该表亦无写入方） |
+| 2 | `service-knowledge-write/src/experience-gene-snapshots.ts:84` | `skill_artifacts.latest_revision`、`.remediation` | 需先核实原意（这两列在 Drizzle schema 中也不存在，非漂移而是代码/表演化未同步） |
+| 3 | `service-knowledge-write/src/experience-gene-staleness-handler.ts:111,125` | `sa.remediation` | 同 #2 |
+| 4 | `service-candidate-ingestion/src/pg-ports.ts:245,429` | `UPDATE candidates SET analysis`（实际列 `analysis_snapshot`）；`INSERT INTO candidate_duplicate_cases (... matches ...)`（表无此列） | 改列名 / 对齐表列集 |
+| 5 | `service-knowledge-write/src/experience-gene-repository.ts:236,365` | `UPDATE experience_gene_embeddings SET document, labels` | 推测本应写 `experience_gene_search_documents`（该表恰有 document/labels），需核实 |
+
+守卫 `pnpm check:sql-columns` 已落地并 blocking（上述 5 处在内置豁免清单内，逐项修复后摘除豁免）。局限已在脚本头注释：含 `${}` 的动态片段只校验静态列部分，drizzle ORM 查询不在扫描面（其列引用受 TS 类型保护）。

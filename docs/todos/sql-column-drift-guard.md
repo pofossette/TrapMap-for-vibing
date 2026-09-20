@@ -64,6 +64,13 @@ python 原型扫描器：解析 `packages/db/migrations/schema.sql` 的 56 张�
 
 **每阶段提交纪律**：与 latency-optimize 相同——代码改动 + 验证证据同一提交；守卫本身的"首跑红名单"截图/输出入库留痕。
 
+### 执行记录
+
+| 阶段 | 状态 | 结果 |
+|---|---|---|
+| T1 | 完成 | `scripts/check-sql-columns.ts` 落地 + `pnpm check:sql-columns` 接入。首跑：解析 schema.sql 56 表、扫描 9 个包 **210 条裸 SQL**（其中 63 条含 `${}` 动态片段——改为替换插值占位符后仍校验静态列部分，覆盖从 147 提升到 210），命中 **5 处实锤 / 8 个 table.column 对 / 14 处代码位置**（含手工扫描漏掉的 `experience_gene_embeddings.document/labels`），已进内置豁免清单并登记债务。有效性自检：注入 `bogus_column` 守卫报违规退出非 0，删除后恢复绿灯。 |
+| T2-T5 | 未开始 | 见 §4 |
+
 ## 5. 验收门禁
 
 - `pnpm check:sql-columns` blocking 绿（豁免清空后）；

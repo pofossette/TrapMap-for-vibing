@@ -41,6 +41,7 @@
     "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts",
     "duplication": "jscpd --config .jscpd.json packages apps scripts evals",
     "check:asserts": "pnpm exec tsx scripts/check-naked-asserts.ts",
+    "check:sql-columns": "pnpm exec tsx scripts/check-sql-columns.ts",
     "check:table-schema": "pnpm exec tsx scripts/check-table-schema.ts",
     "check:pgtable-single-source": "pnpm exec tsx scripts/check-pgtable-single-source.ts",
     "check:eval-imports": "pnpm exec tsx scripts/check-eval-imports.ts",
