@@ -12,8 +12,9 @@
     },
     {
       "file": "docs/reference/DATABASE_SCHEMA.md",
-      "mustContain": ["42 张表"],
+      "mustContain": ["43 张表"],
       "mustNotContain": [
+        "42 张表",
         "48 张表",
         "54 张表",
         "56 张表",

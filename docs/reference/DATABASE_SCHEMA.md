@@ -1,6 +1,6 @@
 # 数据库表结构
 
-> 状态：Active。核对日期：2026-09-08。真源是 `packages/db/src/schema/`（42 张 `pgTable`）；本页镜像它。表清单漂移时以守卫 `scripts/check-table-schema.ts` 的实测为准，你用 `pnpm check:table-schema` 验证。
+> 状态：Active。核对日期：2026-09-20。真源是 `packages/db/src/schema/`（43 张 `pgTable`）；本页镜像它。表清单漂移时以守卫 `scripts/check-table-schema.ts` 的实测为准，你用 `pnpm check:table-schema` 验证；建模与**运行时应用的 DDL**（`packages/db/migrations/schema.sql`）的一致性由 `pnpm check:schema-parity` 验证。
 
 ## 技术栈
 
@@ -11,9 +11,9 @@
 | 向量索引 | HNSW | `packages/db/src/schema/knowledge.ts:48` 迁移注释 |
 | 全文索引 | tsvector 加 GIN，jsonb 加 GIN | `packages/db/src/schema/knowledge.ts:126` 索引定义 |
 
-## 表总览 (42 张表)
+## 表总览 (43 张表)
 
-9 个域加起来 42 张：7 加 11 加 4 加 3 加 6 加 4 加 2 加 4 加 1。你增删表时同步改本页同节计数，否则守卫变红。
+10 个域加起来 43 张：7 加 11 加 4 加 3 加 6 加 4 加 2 加 4 加 1 加 1。你增删表时同步改本页同节计数，否则守卫变红。
 
 ### 知识域 (7 表)
 
@@ -116,7 +116,15 @@
 |---|---|---|---|
 | `cron_jobs` | 定时任务 | `id` | `packages/db/src/schema/cron.ts:11` |
 
-> `conflict_relations` 仅 `service-governance-review` 迁移拥有（旧 `drizzle/` 路径，现 raw SQL 见 `packages/service-governance-review/src/pg-ports.ts:124`），无 `packages/db` 建模，属双源例外，现状保留加文档标注。
+### 治理评议 (1 表)
+
+源码：`packages/db/src/schema/governance.ts`。
+
+| 表 | 用途 | 主键 |
+|---|---|---|
+| `conflict_relations` | 冲突关系（`entry_id_a < entry_id_b` 规范序，`(entry_id_a, entry_id_b)` 唯一） | `id` |
+
+`conflict_relations` 由 `service-governance-review` 的冲突检测工作流写入（raw SQL 见 `packages/service-governance-review/src/pg-ports.ts:124`），经 `GovernanceRetrievalProjection.listConflicts` 回读给检索。它曾是本页标注的「双源例外」（表在应用 DDL 里、未在 `packages/db` 建模），2026-09-20 已补建模，双源例外随之取消。
 
 ## 核心关系图
 
@@ -135,6 +143,7 @@ erDiagram
     skill_artifact_capsules ||--o| skill_artifact_capsule_embeddings : embeds
     candidates ||--o{ candidate_duplicate_cases : flags
     candidates ||--o{ candidate_outcomes : outcomes
+    knowledge_entries ||--o{ conflict_relations : conflicts
     users ||--o{ memberships : joins
     teams ||--o{ memberships : contains
     users ||--o{ sessions : sessions

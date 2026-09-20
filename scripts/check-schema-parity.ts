@@ -60,13 +60,12 @@ export interface SchemaParityResult {
  * the old route-surface exemption list rotted; see the note in
  * `check-sql-columns.ts` for the same rule.
  */
-const EXEMPTIONS: ReadonlyArray<{ table: string; reason: string }> = [
-  {
-    table: 'conflict_relations',
-    reason:
-      'documented double-source exception: owned by service-governance-review migrations (docs/reference/DATABASE_SCHEMA.md:119); replacement landing spot tracked in open-debt-and-compromises.md',
-  },
-];
+// Empty as of 2026-09-20: the last entry — `conflict_relations`, which the
+// pre-Phase-2 migration owned outside `packages/db` while the applied DDL kept
+// the table — is now modelled in `packages/db/src/schema/governance.ts`, so
+// both sides of this guard come from one source again. The mechanism stays for
+// the next genuinely-exempted case, which must name its tracking debt.
+const EXEMPTIONS: ReadonlyArray<{ table: string; reason: string }> = [];
 
 function isExemptTable(table: string): string | null {
   return EXEMPTIONS.find((entry) => entry.table === table)?.reason ?? null;

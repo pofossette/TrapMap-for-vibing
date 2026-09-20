@@ -133,3 +133,5 @@
 守卫 `pnpm check:sql-columns` 已落地并 blocking：**豁免清单已清空（5 处全修）**。局限已在脚本头注释：含 `${}` 的动态片段只校验静态列部分，drizzle ORM 查询不在扫描面（其列引用受 TS 类型保护）。同类根因（建模改了但没写迁移）由新增的 `pnpm check:schema-parity` 拦截。
 
 **新增派生债务**：`experience_gene_embeddings.document` 运行时类型是 `tsvector`（读侧用 `@@`/`ts_rank`），而 drizzle 0.45 没有 tsvector 列类型，建模里仍声明 `text`——`check:schema-parity` 只比列名，这条类型差异靠字段注释与本节记录，drizzle 补上该类型后应同步。
+
+**已消项**：`conflict_relations` 的「双源例外」——该表此前只在 `service-governance-review` 的迁移/裸 SQL 里存在，`packages/db` 未建模，`DATABASE_SCHEMA.md` 明文标注为现状保留的例外，`check:schema-parity` 也为它挂了一条豁免。2026-09-20 补建模（`packages/db/src/schema/governance.ts`）后，建模、DDL、文档三处回到单一真源，豁免清空，冲突链路（检测 → 落库 → 检索回读）在真库端到端验证通过。
