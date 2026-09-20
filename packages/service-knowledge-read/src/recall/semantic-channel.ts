@@ -3,7 +3,7 @@ import { computeScore } from '@trapmap/backend-core';
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
-import { resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
+import { emitDegraded, resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from '../retrieval-semantic.js';
 import type { ScoredEntry } from '../retrieval-types.js';
@@ -68,6 +68,9 @@ export async function semanticRecall(
       }
       return finalizeSemanticResults(infra!, scoredEntries, parsed);
     } catch (error) {
+      // Same class of blindness as the hybrid branch: the fallback succeeds,
+      // so only this counter distinguishes "DB path broken" from "DB path fast".
+      emitDegraded(services, endpoint, 'db-vector-search-failed');
       console.error('[semanticRecall] DB search failed, falling back to in-memory:', error);
     }
   }

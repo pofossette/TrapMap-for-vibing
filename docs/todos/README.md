@@ -6,11 +6,13 @@
 
 ## 活跃索引
 
-下标与根 `plan.md` 的当前主线一一对应。根索引当前 active 主线为检索延迟可观测化（2026-09-19 起），其余全部标 Queued 或登记册身份。
+下标与根 `plan.md` 的当前主线一一对应。根索引当前 active 主线为 SQL 列引用漂移治理（2026-09-20 起），其余全部标 Queued 或登记册身份。
 
 | 文件 | 角色 | 状态 |
 |---|---|---|
-| [retrieval-latency-observability.md](retrieval-latency-observability.md) | 检索延迟可观测化（四路端点 × 四召回通道，T0-T8） | Active（2026-09-19；根 `plan.md` 已显式链接） |
+| [sql-column-drift-guard.md](sql-column-drift-guard.md) | SQL 列引用漂移治理（守卫 + Phase-2 迁移补齐） | Active（2026-09-20；T1/T2 完成，T3-T5 未开始；根 `plan.md` 已显式链接） |
+| [retrieval-latency-optimize.md](retrieval-latency-optimize.md) | 检索延迟优化（P0-0/P0-2/P1-2 落地，P1-1 回退留证） | Queued（2026-09-20；代码与结果就绪，待 PR/closeout） |
+| [retrieval-latency-observability.md](retrieval-latency-observability.md) | 检索延迟可观测化（四路端点 × 四召回通道，T0-T8） | Queued（2026-09-19 已完成并随 PR #13 合入 main；T6.2 转债务） |
 | [cli-server-integration-mainline.md](cli-server-integration-mainline.md) | CLI 真实服务对接测试（Three-Artifact Live + Docker 资源观测） | Queued（2026-09-08；Phase 0-4 + Phase 5.1-5.2 已勾，仅剩 Phase 5.3 归档） |
 | [web-panel-feature-and-ui-optimization.md](web-panel-feature-and-ui-optimization.md) | Web Panel 功能补全与 UI 美化优化 | Queued（2026-09-08；Phase2 路由覆盖已闭环，仅剩 audit 断言，已转债务） |
 | [gene-retrieval-eval.md](gene-retrieval-eval.md) | Gene 检索评测扩展（spec，T0-T6 未 dispatch） | Queued spec（2026-09-06 落规格，代码实现尚未 dispatch；进入执行需根 `plan.md` 显式链接） |
@@ -33,6 +35,6 @@
 
 ## 当前状态说明
 
-当前 active 主线为检索延迟可观测化（2026-09-19 起，T0 未开工）。CLI 与 Web Panel 为排队项，Gene 为排队 spec（T0-T6 待 dispatch）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。Dead Code and Architecture Order Cleanup 已完成并归档，细则原文存 `docs/archived/archived-plans/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`（原 `docs/todos/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`，全量重写时未迁移），残余 Task 11-13 回写见长期登记册。
+当前 active 主线为 SQL 列引用漂移治理（2026-09-20 起，T1/T2 已完成：DDL 全量对齐、`check:schema-parity` 落地、两守卫豁免清零）。检索延迟优化与检索延迟可观测化为排队项，CLI 与 Web Panel 为排队项，Gene 为排队 spec（T0-T6 待 dispatch）。[open-debt-and-compromises.md](open-debt-and-compromises.md) 是唯一长期问题登记册；[assert-exemptions.md](assert-exemptions.md) 由断言守卫追踪。Dead Code and Architecture Order Cleanup 已完成并归档，细则原文存 `docs/archived/archived-plans/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`（原 `docs/todos/dead-code-and-architecture-order-cleanup.md（已归档，路径冻结）`，全量重写时未迁移），残余 Task 11-13 回写见长期登记册。
 
 完整归档表见 `docs/archived/README.md（已归档，路径冻结）`（全量重写时归档目录已删除，历史表冻结）。

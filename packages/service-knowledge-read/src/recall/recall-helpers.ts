@@ -1,9 +1,10 @@
 import { versionMatchMultiplier } from '@trapmap/backend-core';
-import type { retrievalQuerySchema } from '@trapmap/contracts';
+import type { RetrievalLatencyEndpoint, retrievalQuerySchema } from '@trapmap/contracts';
 import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
 import type { Pool } from 'pg';
 import type { SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
+import { emitDegraded } from '../retrieval-latency.js';
 import { artifactVersionOf, type ScoredEntry } from '../retrieval-types.js';
 import type { KnowledgeRecord } from '../store.js';
 
@@ -61,6 +62,12 @@ export async function rerankRecallResults(
   mergedCandidates: any,
   queryTokens: any,
   parsed: any,
+  /**
+   * Optional attribution for the degraded-path counter. Callers that have the
+   * request context pass it; without it the Go fallback stays as silent as it
+   * was (the port is optional everywhere).
+   */
+  attribution?: { services?: SkillShareerServices; endpoint: RetrievalLatencyEndpoint },
 ) {
   const goClient = getGoAcceleratorClient();
   if ((goClient as any).isEnabled) {
@@ -107,6 +114,9 @@ export async function rerankRecallResults(
           .filter(Boolean) as any,
       };
     } catch (e) {
+      // Local scoring answers the request, so a failing accelerator would
+      // otherwise only show up as slightly worse ranking.
+      if (attribution) emitDegraded(attribution.services, attribution.endpoint, 'rerank-fallback');
       console.error('[rerank] go fallback', e);
     }
   }

@@ -12,11 +12,13 @@
 
 ## 当前主线
 
-- **检索延迟可观测化（2026-09-19 起 active）：** 目标为四路检索端点 × 四召回通道的延迟可衡量、可计算、可量化；T0 契约地基 → T1 backend-core port → T2 service 打点 → T3 host-local Prometheus → T4 host-distributed OTel → T5 route_family 扩展 → T6 RAG log 可查询化 → T7 eval 延迟门禁 → T8 文档回写。硬约束：检索语义零变更、延迟不进对客 API、不复活 `/v2` 与 `heuristic`。细则见 [docs/todos/retrieval-latency-observability.md](docs/todos/retrieval-latency-observability.md)。
-- 上一状态：2026-09-08 收口时无 active mainline（依赖升级与 AI SDK 统一已归档，见 `docs/archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md（已归档，路径冻结）`）。
+- **SQL 列引用漂移治理（2026-09-20 起 active）：** 起点是"代码裸 SQL 引用 schema 中不存在的列"这一类运行时静默失败；已确认根因是 `packages/db/migrations/schema.sql`（运行时唯一应用的 DDL）比 TS 建模落后一整个 Phase-2 表压缩。当前状态：T1 守卫落地、T2 全量修复完成（`check:sql-columns` 豁免清零、`check:schema-parity` 新增并绿灯、docker 真库比对 0 差异）；剩余 T3（AST 升级降误报）、T4（降级进指标）、T5（文档收口），以及 `conflict_relations` 双源例外的替代落点（owner 已定：严格按 TS 形状对齐，需先设计落点再 DROP）。细则见 [docs/todos/sql-column-drift-guard.md](docs/todos/sql-column-drift-guard.md)。
+- 上一状态：2026-09-19 的检索延迟可观测化主线已随 PR #13 合入 main（T0-T8 完成，T6.2 接 Loki 转债务），见 [docs/todos/retrieval-latency-observability.md](docs/todos/retrieval-latency-observability.md)。
 
 ## 已排队（按顺序，非 active）
 
+- **检索延迟优化（latency-optimize）：** 分支 `latency-optimize` 上 P0-0 / P0-2 / P1-2 落地、P1-1 回退留证，五路 P50 全面提升（v1 4.2×、v1-skills 8.9×、v3 7.0×、gene 持平），语义零变更（eval 通过数 7 不变）。细则见 [docs/todos/retrieval-latency-optimize.md](docs/todos/retrieval-latency-optimize.md)；待发 PR 与 closeout 后归档，残留 TTL 陈旧度与真实 embedding provider 网络开销已登记在债务册。
+- **检索延迟可观测化（2026-09-19 已合入 main）：** T0-T8 完成，T6.2（接 Loki）为债务，细则见 [docs/todos/retrieval-latency-observability.md](docs/todos/retrieval-latency-observability.md)。
 - **CLI 真实服务对接测试 Phase 5.3 归档：** Phase 0-4 + Phase 5.1-5.2 已勾，仅剩归档（`git mv` + 索引更新）；细则见 [cli-server-integration-mainline.md](docs/todos/cli-server-integration-mainline.md)。
 - **Web Panel 功能补全与 UI 美化：** Phase2 路由覆盖已闭环，仅剩 audit 断言（已转长期债务）；恢复执行需 owner 另行确认；细则见 [web-panel-feature-and-ui-optimization.md](docs/todos/web-panel-feature-and-ui-optimization.md)。
 - **Gene 检索评测扩展（spec）：** [gene-retrieval-eval.md](docs/todos/gene-retrieval-eval.md) 为 T0-T6 任务规格，代码实现尚未 dispatch；进入执行需按 subagent-driven 顺序并由本索引显式链接。

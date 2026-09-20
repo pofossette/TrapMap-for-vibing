@@ -2,7 +2,7 @@
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
-import { resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
+import { emitDegraded, resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
 import { keywordRecall, normalizeQuery } from '../retrieval-keyword.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import { getQueryEmbedding } from '../retrieval-semantic.js';
@@ -91,8 +91,16 @@ export async function hybridRecall(
         semanticCandidates,
         keywordCandidates,
       );
-      return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
+      return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed, {
+        ...(services ? { services } : {}),
+        endpoint,
+      });
     } catch (error) {
+      // The in-memory fallback below still returns results, so this counter is
+      // the only signal that the DB recall path is broken end to end — the
+      // exact blindness that hid the missing-migration drift until it showed
+      // up as a "surprisingly fast" retrieval regression.
+      emitDegraded(services, endpoint, 'db-search-failed');
       console.error('[hybridRecall] DB search failed, falling back to in-memory:', error);
     }
   }
@@ -109,5 +117,8 @@ export async function hybridRecall(
     timedChannel(services, endpoint, 'keyword', () => keywordRecall(seed, eligibleEntries)),
   ]);
   const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
-  return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);
+  return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed, {
+    ...(services ? { services } : {}),
+    endpoint,
+  });
 }

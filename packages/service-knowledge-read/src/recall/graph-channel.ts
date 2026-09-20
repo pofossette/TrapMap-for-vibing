@@ -69,7 +69,10 @@ export async function graphAssistedHybridRecall(
     hybridCandidates: hybridMerged,
     graphCandidates: governedGraphCandidates,
   });
-  const reranked = await rerankRecallResults(infra!, finalMerged, queryTokens, parsed);
+  const reranked = await rerankRecallResults(infra!, finalMerged, queryTokens, parsed, {
+    ...(services ? { services } : {}),
+    endpoint,
+  });
   return {
     ...reranked,
     trace: {

@@ -92,7 +92,7 @@ P0-0 关键发现：合并条目（`artifact_live_*`）在**每次查询**由 `m
 ## 5. 债务与边界
 
 - **DB keyword 分支三重断裂（新登记，独立于本分支；2026-09-20 已解除一重）**：`knowledge_search_documents` 无写入方 + `keywordRecall` SQL 引用不存在列 + `USE_DB_SEARCH` 默认关闭。其中"引用不存在列"已由 sql-column-drift-guard 主线的补齐迁移解除（列已存在），剩下**无写入方**与**开关默认关**两重：启用 DB 化需要 knowledge-write 在提交/修订时写 search document（对齐 gene 的写入模式），属跨服务工程，另立主线。修复前 v1/v3 的 semantic 走内存路径，本分支的 P0-0（写回缓存）是当前路径下唯一有效的 semantic 优化。
-- **静默降级可观测性**：DB 分支失败仅 `console.error`，应进指标（degraded 计数）——放 P2。
+- **静默降级可观测性（✅ 2026-09-20 已解）**：DB 分支失败原先仅 `console.error`。现已由 sql-column-drift-guard 主线的 T4 补上 `trapmap_retrieval_degraded_total{endpoint,reason}`——三条降级路径全部打点（`db-search-failed` / `db-vector-search-failed` / `rerank-fallback`），并在 `OBSERVABILITY-OPERATIONS.md` 配了查询与 `RetrievalDegraded` 告警。`console.error` 保留供本地调试，但不再是唯一线索。
 
 - TTL 缓存（P0-2/P1-2a）引入最长 60s 的索引陈旧度：与既有读模型缓存同一先例，但跨服务写入路径要持续盯——若未来 artifact 派生改为进程内直写，应把失效钩子接过去并取消 TTL
 - 真实 embedding provider 上线后，查询向量化的网络往返（50–200ms）将成为新的第一瓶颈，届时做查询 embedding 缓存/批量，另行主线

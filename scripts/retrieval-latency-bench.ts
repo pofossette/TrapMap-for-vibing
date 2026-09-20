@@ -160,6 +160,7 @@ interface CollectedSamples {
   searches: Array<{ endpoint: string; mode: string; outcome: string; durationMs: number }>;
   stages: Array<{ endpoint: string; stage: string; durationMs: number }>;
   channels: Array<{ endpoint: string; channel: string; durationMs: number }>;
+  degraded: Array<{ endpoint: string; reason: string }>;
 }
 
 function createCollectingMetrics(sink: CollectedSamples): RetrievalMetricsPort {
@@ -185,6 +186,9 @@ function createCollectingMetrics(sink: CollectedSamples): RetrievalMetricsPort {
         channel: params.channel,
         durationMs: params.durationMs,
       });
+    },
+    recordDegraded(params) {
+      sink.degraded.push({ endpoint: params.endpoint, reason: params.reason });
     },
   };
 }
@@ -297,7 +301,7 @@ async function runBench(options: BenchOptions, corpusSize: number) {
   resetRetrievalReadModelCacheForTests();
   const corpus = buildCorpus(corpusSize);
   const queries = buildQueries(options.queries);
-  const sink: CollectedSamples = { searches: [], stages: [], channels: [] };
+  const sink: CollectedSamples = { searches: [], stages: [], channels: [], degraded: [] };
 
   const services: SkillShareerServices = {
     config: {
