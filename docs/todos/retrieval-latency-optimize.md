@@ -56,7 +56,8 @@
 |---|---|---|---|---|
 | 基线 | c16b4faf | — | 41.55 / 87.85 / 50.98 / 80.12 / 1.02 | 见第 1 节 |
 | P0-1 | b88d0deb 后 | HNSW ×2（DDL） | 40.12 / 92.29 / 50.36 / 78.61 / 1.10——无收益，根因是 DB 分支三重断裂 | 假设证伪；索引保留铺路 |
-| P0-0 | 本提交 | embedding 写回 + 纯函数备忘录 + **artifact 合并条目 WeakMap 备忘录**（真正主因） | 1000: **9.55** / 55.09 / 50.41 / **47.81** / 1.11；200: 3.33 / 13.79 / 8.65 / 12.85 / 1.01；3000: 26.88 / 168.24 / 84.06 / 149.93 / 1.18 | v1 3.6-4.4×、v3 ~1.7×、skills ~1.5×；v2 不变（不同池）；数据 `optimize/after-p0-0d-*.json` |
+| P0-0 | 本分支 | embedding 写回 + 纯函数备忘录 + **artifact 合并条目 WeakMap 备忘录**（真正主因） | 1000: **9.55** / 55.09 / 50.41 / **47.81** / 1.11；200: 3.33 / 13.79 / 8.65 / 12.85 / 1.01；3000: 26.88 / 168.24 / 84.06 / 149.93 / 1.18 | v1 3.6-4.4×、v3 ~1.7×、skills ~1.5×；v2 不变（不同池）；数据 `optimize/after-p0-0d-*.json` |
+| P0-2 | 本提交 | `MemoryGraphQueryBackend` 运行时/文档缓存（TTL 60s，写钩子失效） | 1000: 9.62 / 55.56 / 36.25 / **11.65** / 1.12 | **v3 4.1×**（3× listAll+建图 → 0）；v1 graph 通道同步受益；v2 的 36.25 与本项无关，属机器波动，待复测；数据 `optimize/after-p0-2-1000.json` |
 
 P0-0 关键发现：合并条目（`artifact_live_*`）在**每次查询**由 `mergeArtifactsIntoRetrievalPool` 重建为全新对象，任何 per-object 备忘录（embeddingCache 写回、WeakMap）都随对象丢弃——semantic 通道每查询对全部 artifact 条目重算 embedding（~30ms）。修复：`artifactToRetrievalEntry` 按 artifact 对象（来自缓存的读模型，身份稳定）用 WeakMap 复用同一 merged entry，写回自然跨查询存活。探针证据：修复前每查询 cacheMisses=全部 artifact 条目；修复后 knowledge+artifact 全部命中（semantic 通道 34ms → ~2ms）。
 | P0-2 | 待填 | 图运行时缓存 | 待填 | 待填 |

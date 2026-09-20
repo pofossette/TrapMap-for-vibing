@@ -7,6 +7,7 @@ import type {
   GraphQueryNodeView,
   GraphQueryRuntimeState,
 } from '@trapmap/contracts';
+import type { GraphRuntimeSnapshot } from './graph-query-core.js';
 import {
   buildLocalExpansionView as buildGraphologyLocalExpansionView,
   buildGraphRuntimeSnapshot,
@@ -17,6 +18,20 @@ import {
 export class MemoryGraphQueryBackend implements GraphQueryBackend {
   // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   readonly kind = 'memory' as const;
+
+  /**
+   * Runtime/documents cache: without it every backend method re-ran
+   * `listAll()` (full table) and rebuilt the graphology projection — 3x per
+   * graph-plan query and 1x per graph-recall CANDIDATE on the v1 graph
+   * channel. Mutators invalidate; the TTL bounds staleness for writes that
+   * bypass this backend instance (artifact derivation writes through the
+   * knowledge-write bundle), matching the read-model cache precedent.
+   */
+  private static readonly RUNTIME_TTL_MS = Number(
+    process.env.TRAPMAP_GRAPH_RUNTIME_TTL_MS ?? 60_000,
+  );
+  private runtimeCache: { snapshot: GraphRuntimeSnapshot; builtAt: number } | null = null;
+  private documentsCache: { documents: GraphIndexDocumentRecord[]; builtAt: number } | null = null;
 
   constructor(private readonly graphIndexRepo: GraphIndexRepositoryPort) {}
 
@@ -38,16 +53,19 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
   // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async upsertDocument(document: GraphIndexDocumentRecord): Promise<void> {
     await this.graphIndexRepo.upsert(document);
+    this.invalidateRuntime();
   }
 
   // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async removeSource(sourceType: 'trap' | 'skill', sourceId: string): Promise<void> {
     await this.graphIndexRepo.removeBySource(sourceType, sourceId);
+    this.invalidateRuntime();
   }
 
   // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
   async rebuildProjection(_documents: GraphIndexDocumentRecord[]): Promise<void> {
     // Memory mode already uses graphIndexRepo as the canonical store.
+    this.invalidateRuntime();
   }
 
   // fallow-ignore-next-line unused-class-member -- GraphQueryBackend interface contract (contracts/src/domain/graph-query.ts); called via interface type from host-local shared-infra and package consumers
@@ -91,7 +109,7 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
     maxDepth: number;
     auth: { teamId: string | null; securityLevel: number };
   }): Promise<GraphQueryExpansionView> {
-    const documents = await this.graphIndexRepo.listAll();
+    const documents = await this.listDocuments();
     const graph = buildGraphologyLocalExpansionView({
       documents,
       seedNodeIds: params.seedNodeIds,
@@ -142,7 +160,32 @@ export class MemoryGraphQueryBackend implements GraphQueryBackend {
   }
 
   private async loadRuntime() {
-    return buildGraphRuntimeSnapshot(await this.graphIndexRepo.listAll());
+    if (
+      this.runtimeCache &&
+      Date.now() - this.runtimeCache.builtAt < MemoryGraphQueryBackend.RUNTIME_TTL_MS
+    ) {
+      return this.runtimeCache.snapshot;
+    }
+    const snapshot = buildGraphRuntimeSnapshot(await this.listDocuments());
+    this.runtimeCache = { snapshot, builtAt: Date.now() };
+    return snapshot;
+  }
+
+  private async listDocuments(): Promise<GraphIndexDocumentRecord[]> {
+    if (
+      this.documentsCache &&
+      Date.now() - this.documentsCache.builtAt < MemoryGraphQueryBackend.RUNTIME_TTL_MS
+    ) {
+      return this.documentsCache.documents;
+    }
+    const documents = await this.graphIndexRepo.listAll();
+    this.documentsCache = { documents, builtAt: Date.now() };
+    return documents;
+  }
+
+  private invalidateRuntime(): void {
+    this.runtimeCache = null;
+    this.documentsCache = null;
   }
 }
 
