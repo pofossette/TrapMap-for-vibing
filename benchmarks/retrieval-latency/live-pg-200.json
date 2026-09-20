@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-09-19T08:52:09.112Z",
+  "source": "live-pg(entries=200,queries=30,warmup=5)",
+  "endpointLatency": [
+    {
+      "endpoint": "v1-search",
+      "path": "/bench/v1-search",
+      "summary": {
+        "count": 30,
+        "minMs": 4.75,
+        "p50Ms": 5.19,
+        "p95Ms": 22.4,
+        "p99Ms": 22.66,
+        "maxMs": 22.66,
+        "avgMs": 6.95
+      }
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "path": "/bench/v3-graph-plan",
+      "summary": {
+        "count": 30,
+        "minMs": 4.63,
+        "p50Ms": 4.96,
+        "p95Ms": 23.07,
+        "p99Ms": 23.72,
+        "maxMs": 23.72,
+        "avgMs": 7.23
+      }
+    },
+    {
+      "endpoint": "v1-skills",
+      "path": "/bench/v1-skills",
+      "summary": {
+        "count": 30,
+        "minMs": 4.84,
+        "p50Ms": 5.2,
+        "p95Ms": 20.6,
+        "p99Ms": 24.45,
+        "maxMs": 24.45,
+        "avgMs": 7.31
+      }
+    }
+  ],
+  "failedRequests": 0
+}

@@ -21,6 +21,7 @@ export * from './boundary.js';
 export * from './eligibility.js';
 export * from './gene-selection.js';
 export * from './graph-mapping.js';
+export * from './graph-plan.js';
 export * from './ranking.js';
 export * from './refinement.js';
 export * from './skill-lookup.js';

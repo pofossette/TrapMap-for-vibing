@@ -6,6 +6,7 @@ import {
   type RoutingTrace,
   retrievalQuerySchema,
 } from '@trapmap/contracts';
+import type { RetrievalLatencyEndpoint, RetrievalLatencySample } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
 
 import { mergeArtifactsIntoRetrievalPool } from './artifact-entry-merge.js';
@@ -28,6 +29,7 @@ import { buildCitations } from './response-citations.js';
 import { generateRefinement } from './response-refinement.js';
 import { buildSummary } from './response-summary.js';
 import { getRetrievalInfra } from './retrieval-infra.js';
+import { emitStage, resolveLatencyEndpoint, toPipelineStage } from './retrieval-latency.js';
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
@@ -66,12 +68,18 @@ async function timedStep<T>(
   name: string,
   fn: () => Promise<T>,
   steps: PipelineStep[],
-  options?: TimedStepOptions,
+  options?: TimedStepOptions & {
+    endpoint?: RetrievalLatencyEndpoint;
+    services?: SkillShareerServices;
+  },
 ): Promise<T> {
   const start = Date.now();
   const result = await fn();
   const latencyMs = Date.now() - start;
   const step: PipelineStep = { name, latencyMs };
+  if (options?.endpoint && options.services) {
+    emitStage(options.services, options.endpoint, toPipelineStage(name), latencyMs);
+  }
   if (options?.inputSize !== undefined) {
     step.inputSize = options.inputSize;
   }
@@ -85,6 +93,7 @@ async function timedStep<T>(
 
 function buildRagLogEntry(options: {
   auth: ResolvedAuthContext;
+  endpoint: RetrievalLatencyEndpoint;
   includeRefinement: boolean;
   includeSummary: boolean;
   maxResults: number;
@@ -93,9 +102,9 @@ function buildRagLogEntry(options: {
   resultCount: number;
   routingTrace: RoutingTrace;
   seed: string;
-  services: SkillShareerServices;
   startedAtMs: number;
   steps: PipelineStep[];
+  channelSteps?: RetrievalLatencySample[];
   filters?: RetrievalQuery['filters'];
 }): RagLogEntry {
   const metadata: RagLogEntry['metadata'] = {
@@ -103,6 +112,7 @@ function buildRagLogEntry(options: {
     includeSummary: options.includeSummary,
     includeRefinement: options.includeRefinement,
     routingTrace: options.routingTrace,
+    latencyEndpoint: options.endpoint,
   };
   if (options.filters) {
     metadata.filters = {
@@ -118,6 +128,9 @@ function buildRagLogEntry(options: {
     actorId: options.auth.actorId,
     teamId: options.auth.activeTeamId,
     pipelineSteps: options.steps,
+    ...(options.channelSteps && options.channelSteps.length > 0
+      ? { channelSteps: options.channelSteps }
+      : {}),
     totalLatencyMs: Date.now() - options.startedAtMs,
     resultCount: options.resultCount,
     metadata,
@@ -134,25 +147,25 @@ export async function searchKnowledge(
   const steps: PipelineStep[] = [];
   const infra = getRetrievalInfra(services);
   const intentRecognition = getIntentRecognition(services);
+  const endpoint = resolveLatencyEndpoint(query);
+  const channelSteps: RetrievalLatencySample[] = [];
+  // Per-request shallow clone: the recall channels push their samples into
+  // `latencyChannelSamples` without mutating the host-level services bundle.
+  const scopedServices: SkillShareerServices = { ...services, latencyChannelSamples: channelSteps };
+
+  /** `timedStep` bound to this request's endpoint and services. */
+  const step = <T>(name: string, fn: () => Promise<T>, options?: TimedStepOptions): Promise<T> =>
+    timedStep(name, fn, steps, { ...options, endpoint, services });
 
   try {
-    const parsed = await timedStep(
-      'parse',
-      () => Promise.resolve(retrievalQuerySchema.parse(query)),
-      steps,
-    );
+    const parsed = await step('parse', () => Promise.resolve(retrievalQuerySchema.parse(query)));
 
-    const readModel = await timedStep(
-      'snapshot',
-      () => buildRetrievalReadModel(services.repos),
-      steps,
-      {
-        outputSize: (d) =>
-          (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).knowledgeEntries.length,
-      },
-    );
+    const readModel = await step('snapshot', () => buildRetrievalReadModel(services.repos), {
+      outputSize: (d) =>
+        (d as Awaited<ReturnType<typeof buildRetrievalReadModel>>).knowledgeEntries.length,
+    });
 
-    const eligibleEntries = await timedStep(
+    const eligibleEntries = await step(
       'eligibility',
       () =>
         Promise.resolve(
@@ -167,18 +180,16 @@ export async function searchKnowledge(
             services,
           ),
         ),
-      steps,
       {
         inputSize: readModel.knowledgeEntries.length + readModel.skillArtifacts.length,
         outputSize: (r) => (r as KnowledgeRecord[]).length,
       },
     );
 
-    const boundaryFiltered = await timedStep(
+    const boundaryFiltered = await step(
       'boundary-filter',
       () =>
         Promise.resolve(filterByBoundaryContext(eligibleEntries, parsed.boundaryContext, services)),
-      steps,
       { inputSize: eligibleEntries.length, outputSize: (r) => (r as KnowledgeRecord[]).length },
     );
 
@@ -191,13 +202,21 @@ export async function searchKnowledge(
       });
       const emptyRouting = infra.routing.selectStrategy(emptyDecision.mode, parsed.seed);
       const routingTrace = buildRoutingTrace(services, emptyRouting);
+      services.retrievalMetrics?.recordSearch({
+        endpoint,
+        mode: parsed.mode,
+        outcome: 'empty',
+        durationMs: Date.now() - startMs,
+        resultCount: 0,
+      });
       void logRagRetrieval(
         services.config.ragLog,
         buildRagLogEntry({
           auth,
-          services,
+          endpoint,
           startedAtMs: startMs,
           steps,
+          channelSteps,
           resultCount: 0,
           queryId,
           seed: parsed.seed,
@@ -216,22 +235,18 @@ export async function searchKnowledge(
     }
 
     let recognizedMode: string | undefined;
-    const routingDecision = await timedStep(
-      'routing',
-      async () => {
-        const recognized = await intentRecognition.recognize({
-          query: parsed.seed,
-          requestedMode: parsed.mode,
-          knownModes: services.strategyRegistry.all().map((strategy) => strategy.version),
-          seed: parsed.seed,
-        });
-        recognizedMode = recognized.mode;
-        return infra.routing.selectStrategy(recognized.mode, parsed.seed);
-      },
-      steps,
-    );
+    const routingDecision = await step('routing', async () => {
+      const recognized = await intentRecognition.recognize({
+        query: parsed.seed,
+        requestedMode: parsed.mode,
+        knownModes: services.strategyRegistry.all().map((strategy) => strategy.version),
+        seed: parsed.seed,
+      });
+      recognizedMode = recognized.mode;
+      return infra.routing.selectStrategy(recognized.mode, parsed.seed);
+    });
 
-    const { scoredEntries, mergedCandidates, trace } = await timedStep(
+    const { scoredEntries, mergedCandidates, trace } = await step(
       'recall',
       () =>
         dispatchByMode(
@@ -241,10 +256,9 @@ export async function searchKnowledge(
           parsed,
           services.strategyRegistry,
           services.channelRegistry,
-          services,
+          scopedServices,
           auth,
         ),
-      steps,
       {
         inputSize: boundaryFiltered.length,
         outputSize: (r) => (r as { scoredEntries: ScoredEntry[] }).scoredEntries.length,
@@ -267,13 +281,12 @@ export async function searchKnowledge(
       { teamId: auth.activeTeamId, requiredLevel: auth.securityLevel },
     );
 
-    const { globalConstraints, projectKnowledge } = await timedStep(
+    const { globalConstraints, projectKnowledge } = await step(
       'assembly',
       () =>
         Promise.resolve(
           assembleResponseBuckets(scoredEntries, parsed.filters, citations, conflictHints),
         ),
-      steps,
       {
         inputSize: scoredEntries.length,
         outputSize: (r) => {
@@ -287,30 +300,25 @@ export async function searchKnowledge(
     const summaryCitations = citations ? Array.from(citations.values()) : undefined;
     const summary =
       parsed.includeSummary && summaryCitations && summaryCitations.length > 0
-        ? await timedStep(
-            'summary',
-            () =>
-              Promise.resolve(
-                buildSummary({
-                  query: parsed.seed,
-                  includeSummary: true,
-                  hits: allMatches.map((m) => ({
-                    shortcut: m.shortcut,
-                    detail: m.detail,
-                    labels: m.labels,
-                  })),
-                  citations: summaryCitations,
-                }),
-              ),
-            steps,
+        ? await step('summary', () =>
+            Promise.resolve(
+              buildSummary({
+                query: parsed.seed,
+                includeSummary: true,
+                hits: allMatches.map((m) => ({
+                  shortcut: m.shortcut,
+                  detail: m.detail,
+                  labels: m.labels,
+                })),
+                citations: summaryCitations,
+              }),
+            ),
           )
         : null;
 
     const refinementSummary = parsed.includeRefinement
-      ? await timedStep(
-          'refinement',
-          () => generateRefinement(services, parsed.seed, globalConstraints, projectKnowledge),
-          steps,
+      ? await step('refinement', () =>
+          generateRefinement(services, parsed.seed, globalConstraints, projectKnowledge),
         )
       : null;
 
@@ -321,14 +329,23 @@ export async function searchKnowledge(
       summary,
     );
 
+    const resultCount = globalConstraints.length + projectKnowledge.length;
+    services.retrievalMetrics?.recordSearch({
+      endpoint,
+      mode: parsed.mode,
+      outcome: 'ok',
+      durationMs: Date.now() - startMs,
+      resultCount,
+    });
     void logRagRetrieval(
       services.config.ragLog,
       buildRagLogEntry({
         auth,
-        services,
+        endpoint,
         startedAtMs: startMs,
         steps,
-        resultCount: globalConstraints.length + projectKnowledge.length,
+        channelSteps,
+        resultCount,
         queryId,
         seed: parsed.seed,
         mode: parsed.mode,
@@ -349,13 +366,21 @@ export async function searchKnowledge(
     // invoking the intent port — the raw mode may be schema-invalid and the
     // failure logging must not depend on judgment.
     const failRouting = infra.routing.selectStrategy(query.mode ?? 'semantic', query.seed ?? '');
+    services.retrievalMetrics?.recordSearch({
+      endpoint,
+      mode: query.mode ?? 'semantic',
+      outcome: 'error',
+      durationMs: Date.now() - startMs,
+      resultCount: 0,
+    });
     void logRagRetrieval(
       services.config.ragLog,
       buildRagLogEntry({
         auth,
-        services,
+        endpoint,
         startedAtMs: startMs,
         steps,
+        channelSteps,
         resultCount: 0,
         queryId,
         seed: query.seed ?? '',

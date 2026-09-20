@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-09-19T10:03:09.812Z",
+  "source": "live-pg(entries=200,queries=30,warmup=5)",
+  "endpointLatency": [
+    {
+      "endpoint": "v1-search",
+      "path": "/bench/v1-search",
+      "summary": {
+        "count": 30,
+        "minMs": 10.31,
+        "p50Ms": 11.21,
+        "p95Ms": 26.59,
+        "p99Ms": 34.6,
+        "maxMs": 34.6,
+        "avgMs": 14.54
+      }
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "path": "/bench/v3-graph-plan",
+      "summary": {
+        "count": 30,
+        "minMs": 27.06,
+        "p50Ms": 45.8,
+        "p95Ms": 59.73,
+        "p99Ms": 63.78,
+        "maxMs": 63.78,
+        "avgMs": 43.53
+      }
+    },
+    {
+      "endpoint": "v2-capsule",
+      "path": "/bench/v2-capsule",
+      "summary": {
+        "count": 30,
+        "minMs": 7.82,
+        "p50Ms": 8.5,
+        "p95Ms": 9.5,
+        "p99Ms": 12.07,
+        "maxMs": 12.07,
+        "avgMs": 8.72
+      }
+    },
+    {
+      "endpoint": "v1-skills",
+      "path": "/bench/v1-skills",
+      "summary": {
+        "count": 30,
+        "minMs": 19.25,
+        "p50Ms": 22.25,
+        "p95Ms": 36.76,
+        "p99Ms": 36.78,
+        "maxMs": 36.78,
+        "avgMs": 26.13
+      }
+    }
+  ],
+  "failedRequests": 0,
+  "statuses": {
+    "v1-search": {
+      "200": 30
+    },
+    "v3-graph-plan": {
+      "200": 30
+    },
+    "v2-capsule": {
+      "200": 30
+    },
+    "v1-skills": {
+      "200": 30
+    }
+  },
+  "failureDetails": {}
+}

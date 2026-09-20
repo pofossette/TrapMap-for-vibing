@@ -1,7 +1,11 @@
 import { appendFile, mkdir, rename, rm, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import type { RoutingTrace } from '@trapmap/contracts';
+import type {
+  RetrievalLatencyEndpoint,
+  RetrievalLatencySample,
+  RoutingTrace,
+} from '@trapmap/contracts';
 import { formatDate, prefixedId } from '@trapmap/lib';
 
 /**
@@ -41,6 +45,8 @@ export interface RagLogEntry {
   actorId: string;
   teamId: string | null;
   pipelineSteps: PipelineStep[];
+  /** Per-channel timings recorded inside the `recall` step. */
+  channelSteps?: RetrievalLatencySample[];
   totalLatencyMs: number;
   resultCount: number;
   metadata: {
@@ -49,6 +55,8 @@ export interface RagLogEntry {
     includeSummary: boolean;
     includeRefinement: boolean;
     routingTrace?: RoutingTrace;
+    /** Which retrieval surface served the query (internal attribution). */
+    latencyEndpoint?: RetrievalLatencyEndpoint;
   };
 }
 

@@ -15,6 +15,19 @@
 
 统一调度内核是 `retrieval-orchestration.ts` 与 `retrieval-recall-coordinator.ts`。
 
+### 四路管道（2026-09-19 起四路均已独立实现）
+
+四条路径由同一条经验条目管道分化而来，`RetrievalQueryPort.searchCapsules` / `RetrievalSearchParams.variant` 决定走哪一条：
+
+| 路径 | 实现 | 池 | 通道 |
+|---|---|---|---|
+| `/v1/retrieval/search` | `search-knowledge.ts`（`searchKnowledge`） | 知识条目 + skill artifact 视图 | keyword / semantic / graph（按 mode） |
+| `/v1/retrieval/skills/search-by-content` | `server-retrieval-seam.ts`（`createKnowledgeReadSkillLookupQuery`） | 同上，+ artifact 元数据回填 | 同上 |
+| `/v2/retrieval/search` | `search/search-v2.ts` + `search/capsule-recall.ts` | `skill_artifact_capsules` | keyword（全文）/ semantic（pgvector）/ heuristic（进程内规则） |
+| `/v3/retrieval/search` | `search/search-v3-plan.ts`（强制 `mode='graph-assisted'`） | 知识条目 + 图扩张 | keyword / semantic / **graph** |
+
+`variant` 与 `latencyEndpoint` 是内部字段：由 gateway 在调用点写入，内部 hop 原样透传（`retrievalInternalSearchBodySchema`），公开请求体 `retrievalSearchBodySchema` 不含它们，客户端无法选择管道或伪造指标标签。
+
 ## v1 模式
 
 | 模式 | 召回 | 算法 |
@@ -39,20 +52,45 @@ flowchart TB
 
 ## v2 胶囊检索
 
+> **实现状态（2026-09-19）**：原胶囊管道随已删除的 `packages/server`（Wave-10 退役）一并消失，`MIN_CAPSULE_SCORE` 与胶囊评分器均无留存实现。现行实现是 `search/capsule-recall.ts` + `search/capsule-scoring.ts`，**按本文档记载的权重重新实现**，不是原实现的复原；文档未固定的部分（RRF 的 k 值、内容分与融合分的混合比例）已在代码注释中逐条标注为判断而非事实。
+
 | 通道 | 实现 | 职责 |
 |---|---|---|
-| `heuristic` | `retrieval-*.ts` + capsule-recall | 保底，治理 + 多维加权评分 |
-| `keyword` | `retrieval-keyword.ts` | 词法通道，字段加权 BM25 |
-| `semantic` | `retrieval-semantic.ts` | 向量通道，余弦相似度 |
-| `graph` | `graph-query*.ts` | skill graph 结构化扩张 |
+| `semantic` | `capsule-recall.ts:semanticCapsuleChannel` | pgvector 检索 `skill_artifact_capsule_embeddings` |
+| `keyword` | `capsule-recall.ts:keywordCapsuleChannel` | PostgreSQL 全文检索（`to_tsvector @@ plainto_tsquery` + `ts_rank`） |
+| `heuristic` | `capsule-recall.ts:heuristicCapsuleChannel` | 进程内规则评分，向量索引为空时的保底 |
 
-通道经 `retrieval-recall-coordinator.ts` 并行调度，注册表在 `retrieval-infra.ts`。合并用 RRF（`preRerankScore = Σ 1/(k+rank)`，按 capsuleId 去重），重排用 intent-aware 特征与 `finalScore` + explainable reason。缺省三通道（heuristic + keyword + semantic），graph 按配置开。`MIN_CAPSULE_SCORE` 在通道层与 rerank 层双重门控。`contextualPrefix` 为第五评分维度（problem 0.30 / situation 0.21 / goal 0.17 / keyword 0.17 / contextualPrefix 0.15），token overlap 计分。
+三通道经 `Promise.all` 并行，RRF（`Σ 1/(k+rank)`，k=60）融合，再按五个维度加权重排：problem 0.30 / situation 0.21 / goal 0.17 / keyword 0.17 / contextualPrefix 0.15。`finalScore = 0.7 × 内容分 + 0.3 × 归一化融合分`，低于 `TRAPMAP_MIN_CAPSULE_SCORE`（默认 0.15）的候选被剔除；未被任何通道召回的候选无论内容分多高都不会出现。
 
-## v3 陷阱优先计划（灵感：GraSP arXiv:2604.17870 + SkillGraph 2605.12039）
+**表结构事实**：`packages/db/src/schema/artifacts.ts` 声明了 `keyword_tokens` / `field_keyword_tokens` / `team_id` 三列，但实际生效的 `packages/db/migrations/schema.sql` 里都没有，写入侧也从不写它们。因此词法通道走全文检索表达式而非预分词列，团队治理继承自 artifact 根表（`art.team_id`）。
 
-> 出发点论文：*GraSP* PDF https://arxiv.org/pdf/2604.17870（DAG 编译 + state/data/order 边 + 拓扑序执行）与 *SkillGraph* `R_ret = TopoSort(R_seed ∪ R_BFS ∪ R_beam)`（prerequisite / enhancement 边）。TrapMap 的 `executionPlan` 即该思想在 `TrapFirstPlan` 上的工程化：`mitigates / requires / order → Kahn → ExecutionStep[]`。
+## v3 陷阱优先图计划（灵感：GraSP arXiv:2604.17870 + SkillGraph 2605.12039）
+
+> **实现状态（2026-09-19）**：v3 已实现为真正的图计划管线，返回 `GraphPlanSearchResponse`（`plan` + `fallback`）——`trapmap load` 与 retrieval eval 的 v3 切片消费的正是这个形状。
+
+**管线**（`search/search-v3-plan.ts` 的 `searchV3`）：
+
+1. 查询标签 → `GraphQueryBackend.expandSourcesOneHop` / `getSourceNodeIds` / `buildLocalExpansionView` 做图扩张；
+2. 从扩张视图提取 trap / skill 节点（按查询 token 覆盖率打分），边按 plan 词汇表过滤；
+3. Kahn 拓扑排序编译 `executionPlan`（`backend-core/src/knowledge-read/domain/graph-plan.ts:compileExecutionPlan`）；
+4. 置信度 = 0.4×trap 证据 + 0.3×skill 证据 + 0.3×缓解链路（饱和点 3，判断值已在代码标注）；
+5. 门控：`trapCount=0` → `graph-plan-insufficient-trap-evidence`；`skillCount=0` → `...-skill-evidence`；`confidence < 0.5` → `graph-plan-low-confidence`；编译异常 → `graph-plan-compilation-failed`；其余 → `graph-plan-selected`。未选中时按 `fallbackMode`（auto = entry）走 `v1-graph-assisted` 或 `v2-capsule` 的治理回退。
+
+**边方向约定**（判断值，代码内标注）：graph 数据里 `mitigates` 存为 skill→trap，trap 缓解步骤先于受益 skill；`requires` 是"被依赖者先行"；`order` 按书写方向。环无法拒绝（图来自抽取），剩余节点带 `blockedBy` 原样输出。
+
+**评测现状**：eval 组装服务器（`scripts/testing/postgres-server-composition.ts`）已注册 `/v2` `/v3` 路由，v2/v3 用例真实可达；retrieval eval 通过数 5→7。剩余失败是 fixture 期望按已退役原管线的排序行为编写，属评测调优，不是接线问题。
 
 `graph-llm-extract.ts` 做 LLM 抽取，`response-summary.ts` 做摘要组装。
+
+## 延迟可观测
+
+两个切分维度共用一套指标：`endpoint`（四路）与 `channel`（四通道），加一个 `stage` 维度做管道分解。
+
+- 契约枚举：`packages/contracts/src/enum-types/retrieval-latency.ts`；聚合形状：`packages/contracts/src/domain/retrieval-latency.ts`（`summarizeLatency` 是唯一的百分位实现）。
+- Port：`RetrievalMetricsPort`（`packages/backend-core/src/ports/retrieval-metrics-ports.ts`），host-local 出 Prometheus、host-distributed 出 OTel，均可选注入。
+- 打点：阶段在 `search-knowledge.ts:timedStep`，通道在 `recall/*-channel.ts` 的 `timedChannel`。通道三路并发执行，所以 `recall` 阶段耗时 ≈ 最慢通道，不等于各通道之和。
+- 退役维度：`v2-capsule` 与 `channel="heuristic"` 恒为 0（`/v2/retrieval/search` 无宿主注册，`heuristic` 随已删除的 `packages/server` 退役）。
+- 离线基线：`pnpm retrieval:latency:bench`，产物在 `benchmarks/retrieval-latency/`。DB 召回分支在无连接池时不激活，结果是 CPU 下限而非服务 SLO。
 
 ## 意图解析
 

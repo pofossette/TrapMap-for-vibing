@@ -4,4 +4,5 @@ export * from './badcase-taxonomy.js';
 export * from './cron.js';
 export * from './experience-gene.js';
 export * from './path-validation.js';
+export * from './retrieval-latency.js';
 export * from './task-queue.js';

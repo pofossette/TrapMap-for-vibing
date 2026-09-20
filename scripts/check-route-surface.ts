@@ -35,13 +35,11 @@ export interface SurfaceViolation {
 /**
  * Documented-but-unimplemented routes tolerated by the guard.
  *
- * Seed: `/v2/retrieval/search` is referenced by the CLI `--v2` command and
- * api-surface, but neither host gateway registers it (the v2 capsule
- * implementation was retired with the deleted server package). It is tracked
- * as deferred work in the mainline issue pool; never add new entries here
- * without a corresponding tracked debt item.
+ * Empty since 2026-09-19: `/v2/retrieval/search` — the original exemption —
+ * is now registered by both host gateways (capsule-native pipeline). Never add
+ * a new entry here without a tracked debt item; fix the route or the docs.
  */
-export const SURFACE_EXEMPTIONS: readonly string[] = ['/v2/retrieval/search'];
+export const SURFACE_EXEMPTIONS: readonly string[] = [];
 
 /**
  * Pre-existing inventory drift — retired server docs not in gateway.

@@ -18,6 +18,8 @@ import {
   listTrapsSchema,
   mineQuerySchema,
   requireTrustedActor,
+  capsuleSearchBodySchema,
+  graphPlanSearchBodySchema,
   searchBodyArgs,
   searchBodySchema,
   skillLookupArgs,
@@ -275,15 +277,56 @@ export function createKnowledgeRoutes(): RouteDef[] {
       path: '/v1/retrieval/search',
       schema: searchBodySchema,
       handler: async (ctx, clients) => {
-        return forward(clients.knowledgeRead.search(searchBodyArgs(ctx)));
+        // `variant` / `latencyEndpoint` are set after the body spread so a
+        // client cannot pick a pipeline or forge a metric label.
+        return forward(
+          clients.knowledgeRead.search({
+            ...searchBodyArgs(ctx),
+            latencyEndpoint: 'v1-search',
+          }),
+        );
       },
     }),
+    // Capsule-native pipeline: different pool, different channels, different
+    // response shape than v1 — see docs/architecture/components/RETRIEVAL.md.
+    gatewayRouteDef({
+      method: 'POST',
+      path: '/v2/retrieval/search',
+      schema: capsuleSearchBodySchema,
+      handler: async (ctx, clients) => {
+        const body = ctx.body as { seed: string; maxResults?: number };
+        return forward(
+          clients.knowledgeRead.searchCapsules({
+            query: body.seed,
+            ...(body.maxResults !== undefined ? { limit: body.maxResults } : {}),
+            latencyEndpoint: 'v2-capsule',
+          }),
+        );
+      },
+    }),
+    // v3 is a genuinely separate pipeline: trap-first graph-plan compilation
+    // with a governed fallback, returning `GraphPlanSearchResponse` — the shape
+    // `trapmap load` and the retrieval eval consume.
     gatewayRouteDef({
       method: 'POST',
       path: '/v3/retrieval/search',
-      schema: searchBodySchema,
+      schema: graphPlanSearchBodySchema,
       handler: async (ctx, clients) => {
-        return forward(clients.knowledgeRead.search(searchBodyArgs(ctx)));
+        const body = ctx.body as {
+          seed: string;
+          skillBudget?: number;
+          maxDepth?: number;
+          fallbackMode?: 'auto' | 'v2-capsule' | 'v1-graph-assisted';
+        };
+        return forward(
+          clients.knowledgeRead.searchGraphPlan({
+            seed: body.seed,
+            ...(body.skillBudget !== undefined ? { skillBudget: body.skillBudget } : {}),
+            ...(body.maxDepth !== undefined ? { maxDepth: body.maxDepth } : {}),
+            ...(body.fallbackMode !== undefined ? { fallbackMode: body.fallbackMode } : {}),
+            latencyEndpoint: 'v3-graph-plan',
+          }),
+        );
       },
     }),
     gatewayRouteDef({

@@ -202,6 +202,8 @@ export const liveEvalCaseDiffSchema = z.object({
   /** Metric diffs */
   hitAt1Diff: z.number(),
   mrrDiff: z.number(),
+  /** Latency delta in ms (positive = slower). Absent when either side has no samples. */
+  durationMsDiff: z.number().optional(),
   /** Whether outcome changed between versions */
   outcomeChanged: z.boolean(),
   /** Whether governance status changed */
@@ -228,6 +230,19 @@ export const liveEvalSliceDiffSchema = z.object({
   mrrDiff: z.number(),
   governanceFailuresBaseline: z.number().int().min(0),
   governanceFailuresCurrent: z.number().int().min(0),
+  /** P50 latency per side; absent when the slice has no samples. */
+  p50MsBaseline: z.number().optional(),
+  p50MsCurrent: z.number().optional(),
+  /** P95 latency per side; absent when the slice has no samples. */
+  p95MsBaseline: z.number().optional(),
+  p95MsCurrent: z.number().optional(),
+  /**
+   * Latency verdict, decided independently of the relevance verdict so a
+   * faster-but-less-relevant run is still reported as `regressed` overall.
+   * `no-data` covers endpoints with no live implementation (`/v2/retrieval/search`)
+   * — never read a missing baseline as an improvement.
+   */
+  latencyVerdict: z.enum(['faster', 'slower', 'stable', 'no-data']).optional(),
   verdict: z.enum(['improved', 'regressed', 'stable']),
 });
 

@@ -1,4 +1,4 @@
-import type { RetrievalQueryPort } from '@trapmap/backend-core';
+import type { RetrievalMetricsPort, RetrievalQueryPort } from '@trapmap/backend-core';
 import { type SkillLookupArtifactMeta, toSkillLookupMatches } from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
@@ -8,6 +8,7 @@ import type {
   KnowledgeRecord,
   KnowledgeRevisionRecord,
   RetrievalGovernanceProjection,
+  RetrievalLatencyEndpoint,
   RetrievalQuery,
 } from '@trapmap/contracts';
 import {
@@ -40,6 +41,8 @@ import {
   semanticRecall,
 } from './retrieval-recall-coordinator.js';
 import { semanticChannel } from './retrieval-semantic.js';
+import { searchV2 } from './search/search-v2.js';
+import { searchV3 } from './search/search-v3-plan.js';
 import { RETRIEVAL_DEFAULT_LIMIT, searchKnowledge } from './search-knowledge.js';
 
 /** Skill-lookup fan-out cap — centralized name, value unchanged. */
@@ -54,6 +57,8 @@ export interface KnowledgeReadRetrievalQueryOptions {
   services: SearchKnowledgeServices;
   resolveAuthContext(params: { teamId?: string }): SearchKnowledgeAuth;
   mode?: RetrievalQuery['mode'];
+  /** Endpoint attribution used when the caller does not pass one per call. */
+  latencyEndpoint?: RetrievalLatencyEndpoint;
 }
 
 export type KnowledgeReadSkillLookupQueryOptions = KnowledgeReadRetrievalQueryOptions;
@@ -74,6 +79,8 @@ export interface KnowledgeReadOwnerRetrievalServicesOptions {
   intentRecognition?: SearchKnowledgeServices['intentRecognition'];
   /** D8 channel-merge judgment port (rule default when absent). */
   channelMerge?: SearchKnowledgeServices['channelMerge'];
+  /** Optional latency emission sink (no metrics when absent). */
+  retrievalMetrics?: RetrievalMetricsPort;
 }
 
 const asString = (value: unknown): string | undefined =>
@@ -317,6 +324,7 @@ export function createKnowledgeReadOwnerRetrievalServices(
     ...(options.retrievalInfra ? { retrievalInfra: options.retrievalInfra } : {}),
     ...(options.intentRecognition ? { intentRecognition: options.intentRecognition } : {}),
     ...(options.channelMerge ? { channelMerge: options.channelMerge } : {}),
+    ...(options.retrievalMetrics ? { retrievalMetrics: options.retrievalMetrics } : {}),
   };
 }
 
@@ -360,23 +368,66 @@ export function createKnowledgeReadStrategyRegistry(): StrategyRegistry {
 export function createKnowledgeReadRetrievalQuery(
   options: KnowledgeReadRetrievalQueryOptions,
 ): RetrievalQueryPort {
+  const buildQuery = (params: Parameters<RetrievalQueryPort['search']>[0]): RetrievalQuery => ({
+    seed: params.query,
+    filters: {
+      labels: [],
+      scopes: ['global', 'project'],
+      ...(params.teamId ? { teamId: params.teamId } : {}),
+    },
+    includeRefinement: false,
+    includeSummary: false,
+    mode: options.mode ?? 'hybrid',
+    maxResults: params.limit ?? RETRIEVAL_DEFAULT_LIMIT,
+    ...((params.latencyEndpoint ?? options.latencyEndpoint)
+      ? { latencyEndpoint: params.latencyEndpoint ?? options.latencyEndpoint }
+      : {}),
+  });
+
   return {
     async search(params) {
       const auth = options.resolveAuthContext(params) as ResolvedAuthContext;
-      // Return the full contract response verbatim: gateway v1/v3 surfaces
+      // Return the full contract response verbatim: gateway v1 surfaces
       // forward this body to CLI consumers that parse `RetrievalResponse`.
-      return searchKnowledge(options.services, auth, {
-        seed: params.query,
-        filters: {
-          labels: [],
-          scopes: ['global', 'project'],
-          ...(params.teamId ? { teamId: params.teamId } : {}),
+      // v2 and v3 are separate pipelines exposed through `searchCapsules` /
+      // `searchGraphPlan` — different pools and response shapes.
+      return searchKnowledge(options.services, auth, buildQuery(params));
+    },
+
+    async searchGraphPlan(params) {
+      // The graph-plan request contract carries no team scope; the resolution
+      // context is the same system-admin seam the other surfaces use.
+      const auth = options.resolveAuthContext({}) as ResolvedAuthContext;
+      return searchV3(
+        options.services,
+        auth,
+        {
+          seed: params.seed,
+          skillBudget: params.skillBudget ?? 3,
+          maxDepth: params.maxDepth ?? 2,
+          fallbackMode: params.fallbackMode ?? 'auto',
         },
-        includeRefinement: false,
-        includeSummary: false,
-        mode: options.mode ?? 'hybrid',
-        maxResults: params.limit ?? RETRIEVAL_DEFAULT_LIMIT,
-      });
+        params.latencyEndpoint ?? options.latencyEndpoint ?? 'v3-graph-plan',
+      );
+    },
+
+    async searchCapsules(params) {
+      const auth = options.resolveAuthContext(params) as ResolvedAuthContext;
+      return searchV2(
+        options.services,
+        auth,
+        {
+          seed: params.query,
+          filters: {
+            labels: [],
+            scopes: ['global', 'project'],
+            ...(params.teamId ? { teamId: params.teamId } : {}),
+          },
+          maxResults: params.limit ?? RETRIEVAL_DEFAULT_LIMIT,
+          includeSummary: false,
+        },
+        params.latencyEndpoint ?? options.latencyEndpoint ?? 'v2-capsule',
+      );
     },
   };
 }
@@ -407,6 +458,9 @@ export function createKnowledgeReadSkillLookupQuery(
         includeSummary: false,
         mode: options.mode ?? 'hybrid',
         maxResults: SKILL_LOOKUP_LIMIT,
+        // Skill lookup is only ever reachable from one route, so the
+        // attribution is fixed rather than per-call.
+        latencyEndpoint: 'v1-skills',
       }),
       artifactRepository.listForRetrieval({}),
     ]);

@@ -2,6 +2,7 @@
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
+import { resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
 import { keywordRecall, normalizeQuery } from '../retrieval-keyword.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import { getQueryEmbedding } from '../retrieval-semantic.js';
@@ -23,35 +24,45 @@ export async function hybridRecall(
   auth?: ResolvedAuthContext,
 ): Promise<RecallExecutionResult> {
   const queryTokens = normalizeQuery(seed);
+  const endpoint = resolveLatencyEndpoint(parsed);
   const infra = services ? getRetrievalInfra(services) : null;
   const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
   if (dbConfig.enabled && dbConfig.pool && auth) {
+    // Narrowed before the closures: `dbConfig.pool` is `Pool | null` and the
+    // narrowing would be lost inside the async callbacks.
+    const pool = dbConfig.pool;
     try {
       const eligibleIds = new Set(eligibleEntries.map((e) => e.id));
       const entryMap = new Map(eligibleEntries.map((e) => [e.id, e]));
       const [queryVector, keywordResults] = await Promise.all([
-        getQueryEmbedding(services!, seed),
-        infra!.pgRecall.keywordRecall(
-          dbConfig.pool,
-          seed,
-          {
-            teamId: auth.activeTeamId,
-            securityLevel: auth.securityLevel,
-            isSystemAdmin: auth.subjectType === 'system-admin',
-            scopes: parsed.filters?.scopes?.length ? parsed.filters.scopes : ['global', 'project'],
-          },
-          parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
+        timedChannel(services, endpoint, 'semantic', () => getQueryEmbedding(services!, seed)),
+        timedChannel(services, endpoint, 'keyword', () =>
+          infra!.pgRecall.keywordRecall(
+            pool,
+            seed,
+            {
+              teamId: auth.activeTeamId,
+              securityLevel: auth.securityLevel,
+              isSystemAdmin: auth.subjectType === 'system-admin',
+              scopes: parsed.filters?.scopes?.length
+                ? parsed.filters.scopes
+                : ['global', 'project'],
+            },
+            parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
+          ),
         ),
       ]);
       const dbScopeFilter =
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
-      const dbVectorResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
-        queryVector,
-        limit: parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
-        teamId: auth.activeTeamId,
-        maxLevel: auth.securityLevel,
-        ...(dbScopeFilter ? { scope: dbScopeFilter } : {}),
-      });
+      const dbVectorResults = await timedChannel(services, endpoint, 'semantic', () =>
+        infra!.pgRecall.vectorSimilaritySearch(pool, {
+          queryVector,
+          limit: parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
+          teamId: auth.activeTeamId,
+          maxLevel: auth.securityLevel,
+          ...(dbScopeFilter ? { scope: dbScopeFilter } : {}),
+        }),
+      );
       const createSemanticCandidate = infra!.scoring.createSemanticCandidate;
       const semanticCandidates = dbVectorResults
         .filter((r) => eligibleIds.has(r.entryId))
@@ -86,14 +97,16 @@ export async function hybridRecall(
     }
   }
   const [semanticCandidates, keywordCandidates] = await Promise.all([
-    computeSemanticCandidates(
-      services!,
-      seed,
-      eligibleEntries,
-      parsed.filters,
-      parsed.boundaryContext?.versions,
+    timedChannel(services, endpoint, 'semantic', () =>
+      computeSemanticCandidates(
+        services!,
+        seed,
+        eligibleEntries,
+        parsed.filters,
+        parsed.boundaryContext?.versions,
+      ),
     ),
-    keywordRecall(seed, eligibleEntries),
+    timedChannel(services, endpoint, 'keyword', () => keywordRecall(seed, eligibleEntries)),
   ]);
   const mergedCandidates = infra!.scoring.mergeCandidates(semanticCandidates, keywordCandidates);
   return await rerankRecallResults(infra!, mergedCandidates, queryTokens, parsed);

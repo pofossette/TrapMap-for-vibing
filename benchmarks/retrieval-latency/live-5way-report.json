@@ -1,0 +1,791 @@
+{
+  "generatedAt": "2026-09-20T01:57:25.099Z",
+  "source": "rag-log(benchmarks/retrieval-latency/rag-log-live)",
+  "sampleCount": 215,
+  "slices": [
+    {
+      "endpoint": "v1-search",
+      "dimension": "total",
+      "summary": {
+        "count": 45,
+        "minMs": 30,
+        "p50Ms": 40,
+        "p95Ms": 52,
+        "p99Ms": 134,
+        "maxMs": 134,
+        "avgMs": 40.38
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "parse",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 1,
+        "p99Ms": 1,
+        "maxMs": 1,
+        "avgMs": 0.07
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "snapshot",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 86,
+        "maxMs": 86,
+        "avgMs": 1.91
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "eligibility",
+      "summary": {
+        "count": 45,
+        "minMs": 1,
+        "p50Ms": 2,
+        "p95Ms": 2,
+        "p99Ms": 4,
+        "maxMs": 4,
+        "avgMs": 1.58
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "boundary-filter",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "routing",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "recall",
+      "summary": {
+        "count": 45,
+        "minMs": 27,
+        "p50Ms": 36,
+        "p95Ms": 47,
+        "p99Ms": 50,
+        "maxMs": 50,
+        "avgMs": 34.36
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "assembly",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 1,
+        "maxMs": 1,
+        "avgMs": 0.04
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "summary",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "refinement",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "channel:heuristic",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "channel:keyword",
+      "summary": {
+        "count": 45,
+        "minMs": 2,
+        "p50Ms": 2,
+        "p95Ms": 3,
+        "p99Ms": 3,
+        "maxMs": 3,
+        "avgMs": 2.31
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "channel:semantic",
+      "summary": {
+        "count": 45,
+        "minMs": 27,
+        "p50Ms": 36,
+        "p95Ms": 47,
+        "p99Ms": 50,
+        "maxMs": 50,
+        "avgMs": 34.16
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-search",
+      "dimension": "channel:graph",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "total",
+      "summary": {
+        "count": 40,
+        "minMs": 30,
+        "p50Ms": 33,
+        "p95Ms": 44,
+        "p99Ms": 53,
+        "maxMs": 53,
+        "avgMs": 37.33
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "parse",
+      "summary": {
+        "count": 40,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 1,
+        "p99Ms": 1,
+        "maxMs": 1,
+        "avgMs": 0.08
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "snapshot",
+      "summary": {
+        "count": 40,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 1,
+        "maxMs": 1,
+        "avgMs": 0.03
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "eligibility",
+      "summary": {
+        "count": 40,
+        "minMs": 1,
+        "p50Ms": 1,
+        "p95Ms": 2,
+        "p99Ms": 2,
+        "maxMs": 2,
+        "avgMs": 1.43
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "boundary-filter",
+      "summary": {
+        "count": 40,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "routing",
+      "summary": {
+        "count": 40,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "recall",
+      "summary": {
+        "count": 40,
+        "minMs": 28,
+        "p50Ms": 30,
+        "p95Ms": 42,
+        "p99Ms": 50,
+        "maxMs": 50,
+        "avgMs": 34.53
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "assembly",
+      "summary": {
+        "count": 40,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 1,
+        "p99Ms": 1,
+        "maxMs": 1,
+        "avgMs": 0.13
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "summary",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "refinement",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "channel:heuristic",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "channel:keyword",
+      "summary": {
+        "count": 40,
+        "minMs": 2,
+        "p50Ms": 2,
+        "p95Ms": 3,
+        "p99Ms": 3,
+        "maxMs": 3,
+        "avgMs": 2.25
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "channel:semantic",
+      "summary": {
+        "count": 40,
+        "minMs": 28,
+        "p50Ms": 29,
+        "p95Ms": 41,
+        "p99Ms": 49,
+        "maxMs": 49,
+        "avgMs": 34.3
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v1-skills",
+      "dimension": "channel:graph",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "total",
+      "summary": {
+        "count": 40,
+        "minMs": 45,
+        "p50Ms": 50,
+        "p95Ms": 51,
+        "p99Ms": 52,
+        "maxMs": 52,
+        "avgMs": 49.3
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "parse",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "snapshot",
+      "summary": {
+        "count": 40,
+        "minMs": 16,
+        "p50Ms": 23,
+        "p95Ms": 24,
+        "p99Ms": 24,
+        "maxMs": 24,
+        "avgMs": 22.3
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "eligibility",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "boundary-filter",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "routing",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "recall",
+      "summary": {
+        "count": 40,
+        "minMs": 25,
+        "p50Ms": 27,
+        "p95Ms": 28,
+        "p99Ms": 29,
+        "maxMs": 29,
+        "avgMs": 26.65
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "assembly",
+      "summary": {
+        "count": 40,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 1,
+        "p99Ms": 1,
+        "maxMs": 1,
+        "avgMs": 0.35
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "summary",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "refinement",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "channel:heuristic",
+      "summary": {
+        "count": 40,
+        "minMs": 4,
+        "p50Ms": 5,
+        "p95Ms": 6,
+        "p99Ms": 6,
+        "maxMs": 6,
+        "avgMs": 4.72
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "channel:keyword",
+      "summary": {
+        "count": 40,
+        "minMs": 25,
+        "p50Ms": 27,
+        "p95Ms": 28,
+        "p99Ms": 29,
+        "maxMs": 29,
+        "avgMs": 26.65
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "channel:semantic",
+      "summary": {
+        "count": 40,
+        "minMs": 17,
+        "p50Ms": 20,
+        "p95Ms": 24,
+        "p99Ms": 24,
+        "maxMs": 24,
+        "avgMs": 20.85
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v2-capsule",
+      "dimension": "channel:graph",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "total",
+      "summary": {
+        "count": 90,
+        "minMs": 45,
+        "p50Ms": 58,
+        "p95Ms": 87,
+        "p99Ms": 96,
+        "maxMs": 96,
+        "avgMs": 63.96
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "parse",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 1,
+        "maxMs": 1,
+        "avgMs": 0.02
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "snapshot",
+      "summary": {
+        "count": 90,
+        "minMs": 0,
+        "p50Ms": 1,
+        "p95Ms": 34,
+        "p99Ms": 43,
+        "maxMs": 43,
+        "avgMs": 14.69
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "eligibility",
+      "summary": {
+        "count": 45,
+        "minMs": 1,
+        "p50Ms": 1,
+        "p95Ms": 2,
+        "p99Ms": 2,
+        "maxMs": 2,
+        "avgMs": 1.31
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "boundary-filter",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "routing",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "recall",
+      "summary": {
+        "count": 90,
+        "minMs": 0,
+        "p50Ms": 1,
+        "p95Ms": 50,
+        "p99Ms": 55,
+        "maxMs": 55,
+        "avgMs": 23.33
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "assembly",
+      "summary": {
+        "count": 45,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "summary",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "refinement",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "channel:heuristic",
+      "summary": {
+        "count": 0,
+        "minMs": 0,
+        "p50Ms": 0,
+        "p95Ms": 0,
+        "p99Ms": 0,
+        "maxMs": 0,
+        "avgMs": 0
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "channel:keyword",
+      "summary": {
+        "count": 45,
+        "minMs": 2,
+        "p50Ms": 2,
+        "p95Ms": 3,
+        "p99Ms": 3,
+        "maxMs": 3,
+        "avgMs": 2.33
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "channel:semantic",
+      "summary": {
+        "count": 45,
+        "minMs": 27,
+        "p50Ms": 35,
+        "p95Ms": 41,
+        "p99Ms": 45,
+        "maxMs": 45,
+        "avgMs": 33.89
+      },
+      "dead": false
+    },
+    {
+      "endpoint": "v3-graph-plan",
+      "dimension": "channel:graph",
+      "summary": {
+        "count": 135,
+        "minMs": 7,
+        "p50Ms": 9,
+        "p95Ms": 47,
+        "p99Ms": 50,
+        "maxMs": 53,
+        "avgMs": 20.54
+      },
+      "dead": false
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import type { retrievalQuerySchema } from '@trapmap/contracts';
 import { createRuleChannelMerge } from '../channel-merge/rule-channel-merge.js';
 import type { SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
+import { resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
 import { keywordRecall, normalizeQuery } from '../retrieval-keyword.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import type { KnowledgeRecord } from '../store.js';
@@ -25,22 +26,27 @@ export async function graphAssistedHybridRecall(
   services?: SkillShareerServices,
 ): Promise<RecallExecutionResult> {
   const queryTokens = normalizeQuery(seed);
+  const endpoint = resolveLatencyEndpoint(parsed);
   const infra = services ? getRetrievalInfra(services) : null;
   const eligibleEntriesMap = new Map<string, KnowledgeRecord>();
   for (const entry of eligibleEntries) eligibleEntriesMap.set(entry.id, entry);
   const [semanticCandidates, keywordCandidates, graphCandidates] = await Promise.all([
-    computeSemanticCandidates(
-      services!,
-      seed,
-      eligibleEntries,
-      parsed.filters,
-      parsed.boundaryContext?.versions,
+    timedChannel(services, endpoint, 'semantic', () =>
+      computeSemanticCandidates(
+        services!,
+        seed,
+        eligibleEntries,
+        parsed.filters,
+        parsed.boundaryContext?.versions,
+      ),
     ),
-    keywordRecall(seed, eligibleEntries),
-    infra!.pgRecall.graphAssistedRecall(
-      seed,
-      eligibleEntriesMap,
-      services?.graphQueryBackend ? { graphQueryBackend: services.graphQueryBackend } : undefined,
+    timedChannel(services, endpoint, 'keyword', () => keywordRecall(seed, eligibleEntries)),
+    timedChannel(services, endpoint, 'graph', () =>
+      infra!.pgRecall.graphAssistedRecall(
+        seed,
+        eligibleEntriesMap,
+        services?.graphQueryBackend ? { graphQueryBackend: services.graphQueryBackend } : undefined,
+      ),
     ),
   ]);
   const governedGraphCandidates = graphCandidates

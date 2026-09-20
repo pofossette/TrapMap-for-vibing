@@ -12,7 +12,8 @@
 
 ## 当前主线
 
-- **暂无 active mainline（2026-09-08 收口）：** 依赖升级与 AI SDK 统一已完成 closeout 并归档，见 `docs/archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md（已归档，路径冻结）`。新工作须先建 active 细则并由本索引显式链接，不得直接复用归档文档。
+- **检索延迟可观测化（2026-09-19 起 active）：** 目标为四路检索端点 × 四召回通道的延迟可衡量、可计算、可量化；T0 契约地基 → T1 backend-core port → T2 service 打点 → T3 host-local Prometheus → T4 host-distributed OTel → T5 route_family 扩展 → T6 RAG log 可查询化 → T7 eval 延迟门禁 → T8 文档回写。硬约束：检索语义零变更、延迟不进对客 API、不复活 `/v2` 与 `heuristic`。细则见 [docs/todos/retrieval-latency-observability.md](docs/todos/retrieval-latency-observability.md)。
+- 上一状态：2026-09-08 收口时无 active mainline（依赖升级与 AI SDK 统一已归档，见 `docs/archived/archived-plans/ai-sdk-and-deps-upgrade-mainline-archived.md（已归档，路径冻结）`）。
 
 ## 已排队（按顺序，非 active）
 

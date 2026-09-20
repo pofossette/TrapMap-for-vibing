@@ -1,4 +1,4 @@
-import type { ResolvedRuntimeDeployment } from '@trapmap/backend-core';
+import type { ResolvedRuntimeDeployment, RetrievalMetricsPort } from '@trapmap/backend-core';
 import type {
   ArtifactReadProjection,
   CandidateCorpusReadPort,
@@ -44,6 +44,7 @@ import {
 } from '@trapmap/service-knowledge-write';
 import type { HostLocalConfig } from '../config/index.js';
 import { createPrometheusExperienceGeneMetrics } from '../observability/experience-gene-metrics.js';
+import { createPrometheusRetrievalMetrics } from '../observability/retrieval-metrics.js';
 import {
   createHostLocalChannelRegistry,
   createHostLocalStrategyRegistry,
@@ -79,6 +80,8 @@ export interface HostLocalServices {
   experienceGeneMarkStale: ReturnType<typeof createExperienceGeneStaleOperation>;
   experienceGenePlan: (event: unknown) => Promise<ExperienceGeneDerivationTaskPayload[]>;
   experienceGeneSearch: ReturnType<typeof createPgExperienceGeneSearchPort>;
+  /** Retrieval latency sink shared by every retrieval route of this host. */
+  retrievalMetrics: RetrievalMetricsPort;
   governanceReview: GovernanceReviewPgOwnerBundle;
   cronOwnerBundle: CronOwnerBundle;
   cronScheduler: CronScheduler;
@@ -105,6 +108,7 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
   const graphIndex = createKnowledgeReadGraphIndexRepository(pool);
   const knowledgeWrite = createKnowledgeWriteOwnerBundle(pool);
   const experienceGeneMetrics = createPrometheusExperienceGeneMetrics();
+  const retrievalMetrics = createPrometheusRetrievalMetrics();
   const experienceGeneDerive = createExperienceGeneDerivationOperation(pool, {
     metrics: experienceGeneMetrics,
     mode: config.experienceGeneMode,
@@ -157,6 +161,7 @@ export async function createHostLocalServices(config: HostLocalConfig): Promise<
     experienceGeneMarkStale,
     experienceGenePlan,
     experienceGeneSearch,
+    retrievalMetrics,
     governanceReview,
     cronOwnerBundle,
     cronScheduler,

@@ -3,6 +3,7 @@ import { computeScore } from '@trapmap/backend-core';
 import type { retrievalQuerySchema } from '@trapmap/contracts';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
+import { resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import { getQueryEmbedding, optimizedSemanticRecall } from '../retrieval-semantic.js';
 import type { ScoredEntry } from '../retrieval-types.js';
@@ -24,19 +25,27 @@ export async function semanticRecall(
   auth?: ResolvedAuthContext,
 ): Promise<RecallExecutionResult> {
   const infra = services ? getRetrievalInfra(services) : null;
+  const endpoint = resolveLatencyEndpoint(parsed);
   const dbConfig = services ? getDbSearchConfig(services) : { enabled: false, pool: null };
   if (dbConfig.enabled && dbConfig.pool && auth) {
+    // Narrowed before the closures: `dbConfig.pool` is `Pool | null` and the
+    // narrowing would be lost inside the async callbacks.
+    const pool = dbConfig.pool;
     try {
-      const queryVector = await getQueryEmbedding(services!, seed);
+      const queryVector = await timedChannel(services, endpoint, 'semantic', () =>
+        getQueryEmbedding(services!, seed),
+      );
       const scopeFilter =
         parsed.filters?.scopes?.length === 1 ? parsed.filters.scopes[0] : undefined;
-      const dbResults = await infra!.pgRecall.vectorSimilaritySearch(dbConfig.pool, {
-        queryVector,
-        limit: parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
-        teamId: auth.activeTeamId,
-        maxLevel: auth.securityLevel,
-        ...(scopeFilter ? { scope: scopeFilter } : {}),
-      });
+      const dbResults = await timedChannel(services, endpoint, 'semantic', () =>
+        infra!.pgRecall.vectorSimilaritySearch(pool, {
+          queryVector,
+          limit: parsed.maxResults * RETRIEVAL_OVERFETCH_MULT,
+          teamId: auth.activeTeamId,
+          maxLevel: auth.securityLevel,
+          ...(scopeFilter ? { scope: scopeFilter } : {}),
+        }),
+      );
       const eligibleIds = new Set(eligibleEntries.map((e) => e.id));
       const entryMap = new Map(eligibleEntries.map((e) => [e.id, e]));
       const scoredEntries: ScoredEntry[] = [];
@@ -62,14 +71,22 @@ export async function semanticRecall(
       console.error('[semanticRecall] DB search failed, falling back to in-memory:', error);
     }
   }
-  const queryVector = await getQueryEmbedding(services!, seed);
-  const { scoredEntries: rawScoredEntries } = await optimizedSemanticRecall(
-    services!,
-    queryVector,
-    eligibleEntries,
-    parsed.filters,
-    seed,
-    parsed.boundaryContext?.versions,
+  const queryVector = await timedChannel(services, endpoint, 'semantic', () =>
+    getQueryEmbedding(services!, seed),
+  );
+  const { scoredEntries: rawScoredEntries } = await timedChannel(
+    services,
+    endpoint,
+    'semantic',
+    () =>
+      optimizedSemanticRecall(
+        services!,
+        queryVector,
+        eligibleEntries,
+        parsed.filters,
+        seed,
+        parsed.boundaryContext?.versions,
+      ),
   );
   const scoredEntries: ScoredEntry[] = rawScoredEntries.map(({ entry, score }) => {
     const boundaryDelta = infra!.scoring.computeBoundaryScoreDelta(entry, parsed.boundaryContext);

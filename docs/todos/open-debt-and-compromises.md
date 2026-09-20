@@ -103,3 +103,15 @@
 
 - [x] 2026-08-22 closeout：关闭条目物理移除，净收缩核对完成。
 - [x] 2026-09-08 收口：每条补齐来源/影响/边界/进入条件/后续落点；无效单行登记已移除；DEPRECATED-vs-410 冲突与跨 lane 待确认项已收录。
+
+## 检索延迟可观测化残留（2026-09-19）
+
+- **T6.2 RAG log 接 Loki 未做**：`scripts/retrieval-latency-report.ts` 只能读本地 JSONL，`RagLogEntry` 尚未结构化推送到 Loki（host-local 已有 adapter 与 `LOKI_HOST` 边界，接线不改采集开关语义）。
+- **live eval 冻结基线仍未采集**：`evals/retrieval-live` 的 `latencyVerdict` 已实现，但 `eval:retrieval:live` 需要活服务 + token，当前只跑过 `run-eval.ts retrieval`（PG 直连）。阈值暂取相对 50%（`evals/retrieval-live/compare.ts` 的 `LATENCY_REGRESSION_RATIO`）。另外 retrieval eval smoke 在本环境稳定 5/26 通过（**已与 HEAD 基线逐项对比，切片表完全一致，属既有失败**），恢复它不在本主线范围。
+- **live bench 不含 gateway 层**：`scripts/retrieval-latency-live.ts` 直接把路由挂在 Fastify 上，跳过 Nest 会话守卫与鉴权中间件；embedding 用默认哈希实现。要测真实外网 embedding 延迟需配置 provider key。
+- **离线 bench 只覆盖 CPU 开销**：DB 召回分支在无连接池时不激活，embedding 走默认 infra 的哈希实现，不含 PG / pgvector / HTTP / 鉴权成本。
+
+- **gene 检索默认关闭（2026-09-19 核实）**：`/v1/retrieval/genes/search` 管线完整（PG 双通道召回 + 专属延迟指标），但受 `TRAPMAP_EXPERIENCE_GENES_MODE` 门控且默认 `off`——不配置即返回治理空响应，生产若要启用必须显式设 `serve`。另外 gene 的端到端验证此前缺失，本轮已补（serve 模式 + 播种 gene 命中验证）；gene 的确定性离线 eval 之外仍无对抗性评测（gene-retrieval-eval spec 待 dispatch）。
+- **retrieval eval v2/v3 期望调优（2026-09-19 更新）**：v3 图计划管线已实现（`backend-core/src/knowledge-read/domain/graph-plan.ts` 的 Kahn 编译 + `search/search-v3-plan.ts` 编排 + 置信度门控），eval 组装服务器已注册 `/v2` `/v3`，用例真实可达且返回契约合法形状，retrieval eval 通过数 5→7。剩余 19 个失败是 fixture 期望按已退役原管线的排序/摘要行为编写（如 `v2-include-summary` 要求摘要支持、`v2-keyword-dominant` 要求特定排序），属评测期望调优而非接线缺陷。注意早期登记的"v3 图计划编译不存在"与"v3 别名"两条已失效，以本条为准。
+- **`skill_artifact_capsules` schema 漂移（2026-09-19 发现）**：`packages/db/src/schema/artifacts.ts` 声明了 `keyword_tokens` / `field_keyword_tokens` / `team_id`，但 `packages/db/migrations/schema.sql` 里没有，写入侧也从不写。胶囊管道已绕开（走全文检索表达式 + 从 `art.team_id` 继承治理），但两边应当对齐：要么删掉 TS schema 的死声明，要么补迁移。注意 `schema.sql` 用的是 `CREATE TABLE IF NOT EXISTS`，已存在的库不会自动获得新列。
+- **v2 胶囊评分是重实现而非复原**：原胶囊管道随已删除的 `packages/server`（Wave-10）消失，`MIN_CAPSULE_SCORE` 与评分器无留存实现。现行权重取自 `RETRIEVAL.md` 记载，但 RRF 的 k=60 与 `0.7 内容 / 0.3 融合` 的混合比例是判断值，已在代码注释标注。若日后找到原实现，应对齐或显式改文档。

@@ -17,6 +17,8 @@ import {
 } from '../../packages/host-local/src/nest/runtime/host-runtime.js';
 import type { HostLocalServices } from '../../packages/host-local/src/nest/runtime/host-services.js';
 import type { ArtifactWritePort } from '../../packages/service-knowledge-write/src/artifact-ports.js';
+import { createExperienceGeneRouteDefs } from '@trapmap/service-knowledge-read';
+import { registerFastifyRoutes } from '@trapmap/backend-core';
 
 export interface PostgresComposedServer {
   /** Fastify app for HTTP injection testing. */
@@ -101,6 +103,51 @@ export async function buildPostgresComposedServer(
     limit: body.limit as number | undefined,
   }));
 
+  // Capsule-native v2 surface (seed-only body, capsules + profile hints back).
+  app.post('/v2/retrieval/search', async (request, reply) => {
+    try {
+      const body = request.body as { seed?: string; maxResults?: number };
+      if (!runtime.retrievalQuery.searchCapsules) {
+        return reply.status(501).send({ error: 'capsule retrieval not wired' });
+      }
+      return reply.send(
+        await runtime.retrievalQuery.searchCapsules({
+          query: body.seed ?? '',
+          ...(body.maxResults !== undefined ? { limit: body.maxResults } : {}),
+          latencyEndpoint: 'v2-capsule',
+        }),
+      );
+    } catch (error) {
+      return sendError(reply, error);
+    }
+  });
+
+  // Trap-first graph-plan v3 surface (GraphPlanSearchResponse back).
+  app.post('/v3/retrieval/search', async (request, reply) => {
+    try {
+      const body = request.body as {
+        seed?: string;
+        skillBudget?: number;
+        maxDepth?: number;
+        fallbackMode?: 'auto' | 'v2-capsule' | 'v1-graph-assisted';
+      };
+      if (!runtime.retrievalQuery.searchGraphPlan) {
+        return reply.status(501).send({ error: 'graph-plan retrieval not wired' });
+      }
+      return reply.send(
+        await runtime.retrievalQuery.searchGraphPlan({
+          seed: body.seed ?? '',
+          ...(body.skillBudget !== undefined ? { skillBudget: body.skillBudget } : {}),
+          ...(body.maxDepth !== undefined ? { maxDepth: body.maxDepth } : {}),
+          ...(body.fallbackMode !== undefined ? { fallbackMode: body.fallbackMode } : {}),
+          latencyEndpoint: 'v3-graph-plan',
+        }),
+      );
+    } catch (error) {
+      return sendError(reply, error);
+    }
+  });
+
   // Register skill lookup route
   app.post('/v1/retrieval/skills/search-by-content', async (request, reply) => {
     try {
@@ -134,6 +181,25 @@ export async function buildPostgresComposedServer(
       return sendError(reply, error);
     }
   });
+
+  // Experience-gene surface: registered through the same Fastify RouteDef
+  // adapter the real hosts use. Mode comes from TRAPMAP_EXPERIENCE_GENES_MODE
+  // (off default → the route returns the governed disabled response).
+  const searchGenes = services.experienceGeneSearch?.searchGenes;
+  if (searchGenes) {
+    const genesMode = (process.env.TRAPMAP_EXPERIENCE_GENES_MODE ?? 'off') as
+      | 'off'
+      | 'shadow'
+      | 'serve';
+    registerFastifyRoutes(
+      app,
+      createExperienceGeneRouteDefs({
+        mode: genesMode,
+        searchGenes: (input, context) => searchGenes(input, context),
+      }).filter((route) => route.path === '/v1/retrieval/genes/search'),
+      { mode: genesMode, searchGenes: (input, context) => searchGenes(input, context) },
+    );
+  }
 
   return {
     app,

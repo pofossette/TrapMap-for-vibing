@@ -11,6 +11,7 @@ import {
 } from './common.js';
 import { conflictHintSchema } from './conflict.js';
 import { canonicalPathSchema } from './path-validation.js';
+import { retrievalLatencyEndpointSchema } from '../enum-types/retrieval-latency.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**
@@ -86,6 +87,13 @@ export const retrievalQuerySchema = z.object({
   mode: retrievalQueryModeSchema.default('semantic'),
   /** Boundary context for determining entry applicability (Phase 66) */
   boundaryContext: boundaryContextSchema.optional(),
+  /**
+   * Internal-only latency attribution: which retrieval surface served this
+   * query. Never part of the HTTP body (`retrievalSearchBodySchema`) and never
+   * echoed back in the response — it exists so stage and channel metrics can
+   * be sliced per endpoint. Defaults to `unknown`.
+   */
+  latencyEndpoint: retrievalLatencyEndpointSchema.optional(),
 });
 
 export const retrievalMatchSchema = z
@@ -271,6 +279,21 @@ export const retrievalSearchBodySchema = retrievalRequestSchema
   });
 
 export type RetrievalSearchBody = z.infer<typeof retrievalSearchBodySchema>;
+
+/**
+ * Body accepted by the **internal** retrieval hop (`/internal/retrieval/search`)
+ * and by the in-process host gateways.
+ *
+ * Adds the routing/attribution fields that the public `/v1|/v3` body must not
+ * carry: which pipeline to run and which endpoint label to emit. Kept separate
+ * from {@link retrievalSearchBodySchema} so the public surface never grows
+ * these knobs by accident.
+ */
+export const retrievalInternalSearchBodySchema = retrievalSearchBodySchema.extend({
+  latencyEndpoint: retrievalLatencyEndpointSchema.optional(),
+});
+
+export type RetrievalInternalSearchBody = z.infer<typeof retrievalInternalSearchBodySchema>;
 
 // =============================================================================
 // Phase 14: Seed-Only Retrieval v2 Contracts (RETR-01, RETR-02, RETR-04, COMP-01)

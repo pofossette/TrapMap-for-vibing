@@ -72,6 +72,9 @@ function createKnowledgeReadQueries(
     // judgment port (rule default = mergeCandidatesWithGraph); a replacement
     // strategy can be wired here without touching the pipeline.
     channelMerge: createRuleChannelMerge(),
+    // Latency sink: absent metrics means the pipeline still times for the RAG
+    // log but emits nothing to Prometheus.
+    ...(services.retrievalMetrics ? { retrievalMetrics: services.retrievalMetrics } : {}),
   });
 
   const resolveAuthContext = (params: { teamId?: string }) => ({

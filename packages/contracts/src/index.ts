@@ -35,6 +35,7 @@ export * from './domain/path-validation.js';
 export * from './domain/plans.js';
 export * from './domain/retrieval.js';
 export * from './domain/retrieval-fixtures.js';
+export * from './domain/retrieval-latency.js';
 export * from './domain/retrieval-projection.js';
 export * from './domain/review.js';
 export * from './domain/skills.js';

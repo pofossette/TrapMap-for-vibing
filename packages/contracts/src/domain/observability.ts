@@ -63,7 +63,12 @@ export const observabilityMetricNamespaceSchema = z.enum([
 
 export type ObservabilityMetricNamespace = z.infer<typeof observabilityMetricNamespaceSchema>;
 
-export const observabilityRouteFamilySchema = z.enum(['runtime', 'operator', 'gateway']);
+export const observabilityRouteFamilySchema = z.enum([
+  'runtime',
+  'operator',
+  'gateway',
+  'retrieval',
+]);
 
 export type ObservabilityRouteFamily = z.infer<typeof observabilityRouteFamilySchema>;
 
@@ -78,6 +83,15 @@ export function normalizeObservabilityRouteFamily(route: string): ObservabilityR
   }
   if (route === 'operator' || route.startsWith('/v1/operations')) {
     return 'operator';
+  }
+  // Retrieval first: `/v1/retrieval/*` would otherwise collapse into the
+  // generic gateway family together with candidates, cron and knowledge CRUD.
+  if (
+    route === 'retrieval' ||
+    route.startsWith('/v1/retrieval') ||
+    route.startsWith('/v3/retrieval')
+  ) {
+    return 'retrieval';
   }
   if (route === 'gateway' || route.startsWith('/v1/')) {
     return 'gateway';

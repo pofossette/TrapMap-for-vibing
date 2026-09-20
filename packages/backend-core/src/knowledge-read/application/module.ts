@@ -9,6 +9,7 @@ import type { SkillLookupResponse } from '@trapmap/contracts';
 import type { KnowledgeReadPort } from '../../ports/internal-ports.js';
 import type { KnowledgeEntryRecord } from '../../ports/repo-ports.js';
 import type {
+  GraphPlanSearchParams,
   KnowledgeReadProjectionPort,
   RetrievalQueryPort,
 } from '../../ports/retrieval-ports.js';
@@ -55,13 +56,29 @@ export function createKnowledgeReadModule(deps: KnowledgeReadDeps): KnowledgeRea
       });
     },
 
-    async search(params: { query: string; teamId?: string; limit?: number }) {
-      return deps.retrievalQuery.search({
-        query: params.query,
-        ...(params.teamId !== undefined ? { teamId: params.teamId } : {}),
-        ...(params.limit !== undefined ? { limit: params.limit } : {}),
-      });
+    // Params are forwarded wholesale, not rebuilt field by field: `variant`
+    // and `latencyEndpoint` are internal routing/attribution fields, and
+    // reconstructing the object silently dropped them.
+    async search(params) {
+      return deps.retrievalQuery.search(params);
     },
+
+    // Only exposed when the host wired the corresponding pipeline; the gateway
+    // checks for their presence before registering the v2/v3 surfaces.
+    ...(deps.retrievalQuery.searchCapsules
+      ? {
+          async searchCapsules(params: Parameters<KnowledgeReadPort['search']>[0]) {
+            return deps.retrievalQuery.searchCapsules!(params);
+          },
+        }
+      : {}),
+    ...(deps.retrievalQuery.searchGraphPlan
+      ? {
+          async searchGraphPlan(params: GraphPlanSearchParams) {
+            return deps.retrievalQuery.searchGraphPlan!(params);
+          },
+        }
+      : {}),
 
     async skillLookup(params: { text: string; teamId?: string; maxResults?: number }) {
       return deps.skillLookup({

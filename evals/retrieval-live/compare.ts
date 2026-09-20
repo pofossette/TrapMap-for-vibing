@@ -60,6 +60,39 @@ interface LiveReport {
 // Comparison Logic
 // =============================================================================
 
+/**
+ * Relative latency regression threshold.
+ *
+ * Deliberately generous: live eval latency depends on the host machine, so a
+ * tight absolute threshold would produce constant false alarms. Treat this as
+ * a smoke detector, not an SLO — use the Prometheus P95 for SLO decisions.
+ */
+const LATENCY_REGRESSION_RATIO = 0.5;
+
+function percentile(values: number[], ratio: number): number | undefined {
+  if (values.length === 0) return undefined;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * ratio) - 1));
+  return sorted[index];
+}
+
+function sliceLatency(cases: LiveReportCase[]) {
+  const values = cases.map((c) => c.durationMs);
+  return { p50: percentile(values, 0.5), p95: percentile(values, 0.95), count: values.length };
+}
+
+function latencyVerdict(
+  baselineP95: number | undefined,
+  currentP95: number | undefined,
+): LiveEvalSliceDiff['latencyVerdict'] {
+  if (baselineP95 === undefined || currentP95 === undefined) return 'no-data';
+  if (baselineP95 <= 0) return 'stable';
+  const delta = (currentP95 - baselineP95) / baselineP95;
+  if (delta > LATENCY_REGRESSION_RATIO) return 'slower';
+  if (delta < -LATENCY_REGRESSION_RATIO) return 'faster';
+  return 'stable';
+}
+
 function compareSlices(baseline: LiveReport, current: LiveReport): LiveEvalSliceDiff[] {
   const endpoints = new Set([
     ...baseline.cases.map((c) => c.endpoint),
@@ -78,6 +111,8 @@ function compareSlices(baseline: LiveReport, current: LiveReport): LiveEvalSlice
       cases.length > 0 ? cases.reduce((sum, c) => sum + c.mrr, 0) / cases.length : 0;
     const govFailures = (cases: LiveReportCase[]) =>
       cases.filter((c) => !c.governancePassed).length;
+    const baselineLatency = sliceLatency(baselineCases);
+    const currentLatency = sliceLatency(currentCases);
 
     const hitAt1Baseline = avgHitAt1(baselineCases);
     const hitAt1Current = avgHitAt1(currentCases);
@@ -107,6 +142,11 @@ function compareSlices(baseline: LiveReport, current: LiveReport): LiveEvalSlice
       mrrDiff,
       governanceFailuresBaseline: govFailures(baselineCases),
       governanceFailuresCurrent: govFailures(currentCases),
+      ...(baselineLatency.p50 !== undefined ? { p50MsBaseline: baselineLatency.p50 } : {}),
+      ...(currentLatency.p50 !== undefined ? { p50MsCurrent: currentLatency.p50 } : {}),
+      ...(baselineLatency.p95 !== undefined ? { p95MsBaseline: baselineLatency.p95 } : {}),
+      ...(currentLatency.p95 !== undefined ? { p95MsCurrent: currentLatency.p95 } : {}),
+      latencyVerdict: latencyVerdict(baselineLatency.p95, currentLatency.p95),
       verdict,
     });
   }
@@ -154,6 +194,7 @@ function compareCases(baseline: LiveReport, current: LiveReport): LiveEvalCaseDi
       endpoint: c.endpoint as LiveEvalCaseDiff['endpoint'],
       hitAt1Diff,
       mrrDiff,
+      durationMsDiff: c.durationMs - b.durationMs,
       outcomeChanged,
       governanceChanged,
       fallbackChanged,
@@ -194,13 +235,16 @@ async function main(): Promise<void> {
   const slices = compareSlices(baseline, current);
   const cases = compareCases(baseline, current);
 
-  // Overall verdict
+  // Overall verdict — latency regressions gate alongside relevance ones, so a
+  // run that stays relevant but doubles in latency still fails the comparison.
   const hasRegressed = slices.some((s) => s.verdict === 'regressed');
   const hasImproved = slices.some((s) => s.verdict === 'improved');
+  const hasSlower = slices.some((s) => s.latencyVerdict === 'slower');
+  const hasFaster = slices.some((s) => s.latencyVerdict === 'faster');
   let overallVerdict: LiveEvalComparisonReport['overallVerdict'];
-  if (hasRegressed && hasImproved) overallVerdict = 'mixed';
-  else if (hasRegressed) overallVerdict = 'regressed';
-  else if (hasImproved) overallVerdict = 'improved';
+  if ((hasRegressed || hasSlower) && (hasImproved || hasFaster)) overallVerdict = 'mixed';
+  else if (hasRegressed || hasSlower) overallVerdict = 'regressed';
+  else if (hasImproved || hasFaster) overallVerdict = 'improved';
   else overallVerdict = 'stable';
 
   const report: LiveEvalComparisonReport = {
@@ -246,6 +290,10 @@ async function main(): Promise<void> {
     );
     console.log(
       `  Gov failures: ${slice.governanceFailuresBaseline} → ${slice.governanceFailuresCurrent}`,
+    );
+    const fmtMs = (value: number | undefined) => (value === undefined ? 'n/a' : `${value}ms`);
+    console.log(
+      `  Latency P50: ${fmtMs(slice.p50MsBaseline)} → ${fmtMs(slice.p50MsCurrent)} · P95: ${fmtMs(slice.p95MsBaseline)} → ${fmtMs(slice.p95MsCurrent)} · ${(slice.latencyVerdict ?? 'no-data').toUpperCase()}`,
     );
   }
 

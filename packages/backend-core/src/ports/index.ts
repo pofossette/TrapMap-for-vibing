@@ -18,5 +18,6 @@ export * from './label-alignment-ports.js';
 export * from './lifecycle-ports.js';
 export * from './queue-ports.js';
 export * from './repo-ports.js';
+export * from './retrieval-metrics-ports.js';
 export * from './retrieval-ports.js';
 export * from './vector-search-ports.js';

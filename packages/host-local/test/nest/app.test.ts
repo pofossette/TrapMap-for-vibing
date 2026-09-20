@@ -226,6 +226,8 @@ describe('Nest host gateway surface (RouteDef-driven)', () => {
     expect(mockPort.search).toHaveBeenCalledWith({
       query: 'test query',
       limit: 10,
+      // Internal attribution field the gateway adds per route.
+      latencyEndpoint: 'v1-search',
     });
 
     await app.close();
