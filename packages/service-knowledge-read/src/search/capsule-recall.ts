@@ -65,7 +65,38 @@ interface RawCapsuleRow {
  * Ordering is by most recent revision so a later derivation wins over an older
  * one when both are present.
  */
+/**
+ * Pool cache: `loadCapsulePool` fetched EVERY capsule row + artifact join on
+ * every query (the snapshot stage's dominant cost). Keyed by the governance
+ * context; TTL bounds staleness for capsule writes that bypass this process
+ * (artifact derivation), matching the read-model cache precedent.
+ */
+const POOL_CACHE_TTL_MS = Number(process.env.TRAPMAP_CAPSULE_POOL_TTL_MS ?? 60_000);
+const poolCache = new Map<string, { rows: CapsuleRow[]; builtAt: number }>();
+
+function poolCacheKey(context: CapsuleRecallContext): string {
+  return JSON.stringify([context.teamId, context.maxRequiredLevel, context.scopes, context.labels]);
+}
+
+export function clearCapsulePoolCacheForTests(): void {
+  poolCache.clear();
+}
+
 export async function loadCapsulePool(
+  pool: Pool,
+  context: CapsuleRecallContext,
+): Promise<CapsuleRow[]> {
+  const cacheKey = poolCacheKey(context);
+  const cached = poolCache.get(cacheKey);
+  if (cached && Date.now() - cached.builtAt < POOL_CACHE_TTL_MS) {
+    return cached.rows;
+  }
+  const rows = await loadCapsulePoolFromDb(pool, context);
+  poolCache.set(cacheKey, { rows, builtAt: Date.now() });
+  return rows;
+}
+
+async function loadCapsulePoolFromDb(
   pool: Pool,
   context: CapsuleRecallContext,
 ): Promise<CapsuleRow[]> {

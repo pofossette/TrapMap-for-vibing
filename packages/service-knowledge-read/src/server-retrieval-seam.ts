@@ -41,6 +41,8 @@ import {
   semanticRecall,
 } from './retrieval-recall-coordinator.js';
 import { semanticChannel } from './retrieval-semantic.js';
+import { buildRetrievalReadModel } from './read-model.js';
+import { getCachedRetrievalReadModel } from './retrieval-read-model-cache.js';
 import { searchV2 } from './search/search-v2.js';
 import { searchV3 } from './search/search-v3-plan.js';
 import { RETRIEVAL_DEFAULT_LIMIT, searchKnowledge } from './search-knowledge.js';
@@ -446,6 +448,18 @@ export function createKnowledgeReadSkillLookupQuery(
     if (!artifactRepository?.listForRetrieval) {
       throw new Error('skill lookup requires the knowledge-read artifact retrieval projection');
     }
+    // Artifacts come from the cached read model (same listForRetrieval results,
+    // but the 60s cache removes the unbounded per-query projection load that
+    // made this surface ~2x v1-search). Falls back to a direct build when the
+    // cache infra is absent.
+    const loadArtifacts = async (): Promise<
+      Awaited<ReturnType<typeof buildRetrievalReadModel>>['skillArtifacts']
+    > => {
+      const cached = getCachedRetrievalReadModel()?.skillArtifacts;
+      if (cached) return cached;
+      const model = await buildRetrievalReadModel(options.services.repos);
+      return model.skillArtifacts;
+    };
     const [result, artifacts] = await Promise.all([
       searchKnowledge(options.services, auth, {
         seed: params.text,
@@ -462,7 +476,7 @@ export function createKnowledgeReadSkillLookupQuery(
         // attribution is fixed rather than per-call.
         latencyEndpoint: 'v1-skills',
       }),
-      artifactRepository.listForRetrieval({}),
+      loadArtifacts(),
     ]);
 
     const matchedIds = new Set(
