@@ -73,6 +73,7 @@ export class SkillsShAdapter implements RegistryAdapter {
         return json;
       }
     } catch {
+      // silent-fallback-ok: canonical fetch failed; falls back to the GitHub path or throws below
       // fall through
     }
     // Fallback: treat canonical as github path

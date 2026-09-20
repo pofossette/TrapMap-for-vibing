@@ -142,7 +142,9 @@ export function createRuleDedupStrategy(deps: RuleDedupStrategyDeps = {}): Dedup
               strategy: 'rule',
             };
           }
-        } catch {}
+        } catch {
+          // silent-fallback-ok: PG dedup lane failure falls back to the in-memory detector; no counter yet (see open-debt-and-compromises.md)
+        }
       }
       const detector = createCandidateDuplicateDetector(input.corpus, {
         now,

@@ -53,6 +53,7 @@ export function createGovernanceJsonEditRouteDefs(): RouteDef<
             });
           }
         } catch {
+          // silent-fallback-ok: governance layer is permissive for manual edits (see the comment below)
           // Fall through to still return savedAt; governance layer is permissive for manual edits
         }
         return { savedAt: now };

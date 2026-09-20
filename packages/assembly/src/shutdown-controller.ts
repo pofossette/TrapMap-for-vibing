@@ -60,6 +60,7 @@ export function createShutdownController(
       try {
         callback();
       } catch {
+        // silent-fallback-ok: shutdown callbacks are best-effort; a failing one must not block shutdown
         // Callbacks are best-effort; never let them break shutdown.
       }
     }
@@ -127,6 +128,7 @@ export function createShutdownController(
           try {
             callback();
           } catch {
+            // silent-fallback-ok: same best-effort shutdown-callback contract as above
             // best-effort
           }
         });

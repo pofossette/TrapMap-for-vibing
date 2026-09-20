@@ -56,6 +56,7 @@ export class LocalAdapter implements RegistryAdapter {
           }
         }
       } catch {
+        // silent-fallback-ok: a bundle without a references directory is valid
         // no references is ok
       }
     } else {

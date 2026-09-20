@@ -94,6 +94,7 @@ function safeInvokeSink(fn: () => void): void {
   try {
     fn();
   } catch {
+    // silent-fallback-ok: LLM observation sink failure must never affect the provider call
     // Sink failure is a safe diagnostic; never affects the provider path.
   }
 }

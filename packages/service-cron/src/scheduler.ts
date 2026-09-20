@@ -87,6 +87,8 @@ export function createCronScheduler(config: CronSchedulerConfig): CronScheduler 
           try {
             await tick();
           } catch (error) {
+            // silent-fallback-ok: a failed tick retries on the next poll; the missing
+            // counter that would make that visible is registered in open-debt-and-compromises.md
             console.error('[cron-scheduler] tick failed, retrying on next poll:', error);
           }
           await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));

@@ -27,7 +27,9 @@ export function registerSkillRemoveCommand(program: Command): void {
         delete lock.entries[slug];
         lock.generatedAt = new Date().toISOString();
         await writeFile(lockPath, JSON.stringify(lock, null, 2), 'utf-8');
-      } catch {}
+      } catch {
+        // silent-fallback-ok: lockfile cleanup after a removal is best-effort
+      }
       console.log(`Removed ${slug}`);
     });
 }

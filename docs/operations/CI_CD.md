@@ -32,7 +32,7 @@ TrapMap 跑两条独立流水线：
 | `doc-guardrails` | 见下表 | 文档、结构、表清单、导入边界、依赖、复杂度守卫 |
 | `e2e` | web-panel e2e | Playwright Chromium 构建并测 `@trapmap/web-panel` |
 
-`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:schema-parity` + `pnpm check:sql-columns` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`
+`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:schema-parity` + `pnpm check:sql-columns` + `pnpm check:silent-fallbacks` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`
 
 守卫全命令（含 `pnpm check:skills` 与 `pnpm check:imports`）见上表，`doc-guardrails` job 按该表顺序执行。
 

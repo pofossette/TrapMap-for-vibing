@@ -135,3 +135,12 @@
 **新增派生债务**：`experience_gene_embeddings.document` 运行时类型是 `tsvector`（读侧用 `@@`/`ts_rank`），而 drizzle 0.45 没有 tsvector 列类型，建模里仍声明 `text`——`check:schema-parity` 只比列名，这条类型差异靠字段注释与本节记录，drizzle 补上该类型后应同步。
 
 **已消项**：`conflict_relations` 的「双源例外」——该表此前只在 `service-governance-review` 的迁移/裸 SQL 里存在，`packages/db` 未建模，`DATABASE_SCHEMA.md` 明文标注为现状保留的例外，`check:schema-parity` 也为它挂了一条豁免。2026-09-20 补建模（`packages/db/src/schema/governance.ts`）后，建模、DDL、文档三处回到单一真源，豁免清空，冲突链路（检测 → 落库 → 检索回读）在真库端到端验证通过。
+
+## 静默降级（2026-09-20，由 `check:silent-fallbacks` 守卫固化）
+
+守卫扫 `packages/*/src`：593 文件 / 169 个 catch，其中 **36 个"只打日志（或空实现）就继续"的站点已逐个标注** `// silent-fallback-ok: <理由>`，其余靠重抛、指标或把失败转成显式返回值通过。标注时确认了两处**真实缺口**（不是"设计如此"），已挂账：
+
+- **cron 调度 tick 失败无计数**（`service-cron/src/scheduler.ts:89`）：tick 抛错只 `console.error` 后等下一个 poll 周期重试，`service-cron` 目前**完全没有指标端口**（无 deps.metrics）。要做"调度在持续失败"的可观测，需要按 `RetrievalMetricsPort` 的三段式加 port + 双宿主实现 + 组合根注入，属独立任务。
+- **候选去重 PG 通道降级无计数**（`service-candidate-ingestion/src/dedup-strategy/rule-dedup-strategy.ts:145`）：PG 去重通道失败后静默回落到内存规则检测器，与检索 DB 分支同类（同样形状的 catch 在检索链路已有 `trapmap_retrieval_degraded_total`）。修法与检索侧一致：给候选链路补 degraded 计数器。
+
+守卫的判定口径（写在脚本头注释）：catch 体去掉 `console.*`/`logger.*` 调用与注释后若为空，即视为"只打日志"；把失败转成显式返回值（`return false`、`return { status: 503 }`、`state = { reachable: false }`）不算静默，因为调用方拿得到失败信号。标注里没有理由（`// silent-fallback-ok:` 后为空）同样违规。

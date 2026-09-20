@@ -21,6 +21,7 @@ export function registerSkillListCommand(program: Command): void {
           for (const e of entries)
             console.log(`${e.slug}@${e.version} (${e.scope}) ${e.source.canonical}`);
       } catch {
+        // silent-fallback-ok: a missing lockfile is reported to the user as an empty list
         console.log(opts.json ? '[]' : 'No lockfile found');
       }
     });

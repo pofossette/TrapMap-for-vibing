@@ -12,7 +12,7 @@
 
 ## 当前主线
 
-- **SQL 列引用漂移治理（2026-09-20 起 active）：** 起点是"代码裸 SQL 引用 schema 中不存在的列"这一类运行时静默失败；已确认根因是 `packages/db/migrations/schema.sql`（运行时唯一应用的 DDL）比 TS 建模落后一整个 Phase-2 表压缩。当前状态：T1 守卫落地；T2 全量修复完成（补齐迁移 + 真库比对 0 差异，`check:sql-columns` 与 `check:schema-parity` 两个豁免清单均清零）；T4 的降级计数部分完成（`trapmap_retrieval_degraded_total` 覆盖三条静默降级路径）；`conflict_relations` 双源例外已收口（补建模后建模/DDL/文档三处一致，链路真库端到端验证通过）。剩余：T3（AST 升级降误报）、T4 的 ESLint 规则部分、T5（文档收口）。细则见 [docs/todos/sql-column-drift-guard.md](docs/todos/sql-column-drift-guard.md)。
+- **SQL 列引用漂移治理（2026-09-20 起 active）：** 起点是"代码裸 SQL 引用 schema 中不存在的列"这一类运行时静默失败；已确认根因是 `packages/db/migrations/schema.sql`（运行时唯一应用的 DDL）比 TS 建模落后一整个 Phase-2 表压缩。当前状态：T1 守卫落地；T2 全量修复完成（补齐迁移 + 真库比对 0 差异，`check:sql-columns` 与 `check:schema-parity` 两个豁免清单均清零）；T4 全量完成（`trapmap_retrieval_degraded_total` 覆盖三条静默降级路径 + `check:silent-fallbacks` 把"只打日志就继续"的 36 个站点逐个标注并纳入 CI）；`conflict_relations` 双源例外已收口（补建模后建模/DDL/文档三处一致，链路真库端到端验证通过）。剩余：T3（AST 升级）已按"零误报即无需升级"再定义并给出触发条件，T5 随各阶段同步回写完成。细则见 [docs/todos/sql-column-drift-guard.md](docs/todos/sql-column-drift-guard.md)。
 - 上一状态：2026-09-19 的检索延迟可观测化主线已随 PR #13 合入 main（T0-T8 完成，T6.2 接 Loki 转债务），见 [docs/todos/retrieval-latency-observability.md](docs/todos/retrieval-latency-observability.md)。
 
 ## 已排队（按顺序，非 active）

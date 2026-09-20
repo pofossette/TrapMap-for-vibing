@@ -149,6 +149,7 @@ export function createSinkFromClient(
       try {
         emitGeneration(observation, `${observation.provider}:${observation.operation}`);
       } catch {
+        // silent-fallback-ok: telemetry sink failure is a diagnostic, never a request failure
         // Sink failure is a safe diagnostic
       }
     },
@@ -157,6 +158,7 @@ export function createSinkFromClient(
       try {
         emitGeneration(observation, `${observation.provider}:embed`);
       } catch {
+        // silent-fallback-ok: same sink contract: observation failures never propagate
         // Sink failure is a safe diagnostic
       }
     },

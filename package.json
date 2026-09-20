@@ -84,7 +84,8 @@
     "generate:proto:check": "buf lint && buf breaking --against origin/main || echo 'buf check skip (no buf)'",
     "dev:web": "pnpm --filter @trapmap/web-panel dev",
     "test:cli-integration": "bash scripts/cli-integration-run.sh",
-    "test:cli-integration:dry": "bash scripts/cli-integration-run.sh --runs 1"
+    "test:cli-integration:dry": "bash scripts/cli-integration-run.sh --runs 1",
+    "check:silent-fallbacks": "pnpm exec tsx scripts/check-silent-fallbacks.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",

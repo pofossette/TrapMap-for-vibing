@@ -131,6 +131,7 @@ export async function boundedOtelShutdown(
       ),
     ]);
   } catch {
+    // silent-fallback-ok: the caller logs the timeout; swallowing keeps the bootstrap contract
     // Ignored: the caller logs the failure; timeout behavior is preserved.
   }
 }

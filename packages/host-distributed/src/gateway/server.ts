@@ -309,6 +309,7 @@ export async function createServer(config: ServiceConfig): Promise<GatewayServer
         try {
           await gatewayDiscovery.deregister();
         } catch {
+          // silent-fallback-ok: consul deregistration is best-effort during shutdown
           // Best-effort deregistration — never block shutdown
         }
       }
