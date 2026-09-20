@@ -62,16 +62,13 @@
 | P1-2 | 本提交 | 胶囊池 TTL 缓存（snapshot 23→0.5）+ v1-skills 走读模型缓存（弃 `listForRetrieval({})` 直连） | 1000: 9.78 / **9.90** / **26.57** / 11.42 / 1.31；3000: 26.6 / 28.19 / **69.39** / 33.06 / 1.25 | **v1-skills 8.9×**；v2@3000 69.39 比基线 95.75 好 27%（GIN 回退后）；数据 `optimize/after-p1-revert-*.json` |
 
 P0-0 关键发现：合并条目（`artifact_live_*`）在**每次查询**由 `mergeArtifactsIntoRetrievalPool` 重建为全新对象，任何 per-object 备忘录（embeddingCache 写回、WeakMap）都随对象丢弃——semantic 通道每查询对全部 artifact 条目重算 embedding（~30ms）。修复：`artifactToRetrievalEntry` 按 artifact 对象（来自缓存的读模型，身份稳定）用 WeakMap 复用同一 merged entry，写回自然跨查询存活。探针证据：修复前每查询 cacheMisses=全部 artifact 条目；修复后 knowledge+artifact 全部命中（semantic 通道 34ms → ~2ms）。
-| P0-2 | 待填 | 图运行时缓存 | 待填 | 待填 |
-| P1-1 | 待填 | 表达式 GIN | 待填 | 待填 |
-| P1-2 | 待填 | 池缓存 + skills 走读模型 | 待填 | 待填 |
 
 ## 4b. 调试坑点与难点（过程实录，防止重蹈）
 
 1. **假设先于路径核实（P0-1 证伪）**：HNSW 索引加上后 P50 纹丝不动（40.12 vs 41.55）。根因：v1/v3 的 DB 召回分支每次查询都在 SQL 报错后**静默降级**到内存 O(n) 路径——优化根本没作用到实际执行的代码。教训：**优化前必须先确认代码实际走的执行路径**，不能只看"某组件存在/不存在"。
 2. **测量脚本把关键信号滤掉了**：bench 输出用 `| grep -E "^\| v|failed requests"` 只留表格行，而 DB 分支降级的唯一线索是 `console.error('[hybridRecall] DB search failed...')`——恰好在被滤掉的 stderr 里。直到专门 `grep -iE "hybridRecall|falling back"` 才抓到实锤。教训：**性能测量时不要过滤 stderr**；更根本的修法是降级必须进指标而非 console。
 3. **降级被设计成静默**：`hybridRecall.ts:95-97` 的 catch 只打 console 就走内存分支，调用方与指标层全程无感。三重断裂（SQL 引用不存在列、表无写入方、特性开关默认关）因此能潜伏到生产默认配置而不被察觉。
-4. **答案写在注释里但没人执行**：胶囊向量索引的 schema 注释明言"由 `ensureCapsuleVectorIndex()` 编程创建"（`packages/db/src/schema/artifacts.ts:333`），该函数随 `packages/server` 退役后无人补——索引缺失是**退役残留**而非有意设计。教训：删除包时要审计"注释里点名的跨包函数"。
+4. **答案写在注释里但没人执行**：胶囊向量索引的 schema 注释明言"由 `ensureCapsuleVectorIndex()` 编程创建"（`packages/db/src/schema/artifacts.ts:333`），该函数随 `packages/server`（Wave-10 已删除）一起删除后无人补——索引缺失是**退役残留**而非有意设计。教训：删除包时要审计"注释里点名的跨包函数"。
 5. **Schema 漂移是系统性模式，不是孤例**：同一形态出现三次——`skill_artifact_capsules.keyword_tokens/team_id`、`knowledge_search_documents.tokens/field_tokens_*/team_id`，均为 Drizzle schema 声明了但 `schema.sql` 没有的列。教训：见到一个漂移就要全库 grep 同类。
 6. **写回缓存缺失是"半截工程"**：`getBatchEmbeddings` 只填局部 Map，从不写回 `entry.embeddingCache`——而校验逻辑（revision+textHash，`getCachedEmbedding`）早已就绪。说明原设计打算缓存但写回被丢；修复不是发明新机制而是补上断掉的一环。
 7. **热点不在向量数学，在字符串/哈希/分词**：semantic 通道每条目每次查询做 2× `buildEmbeddingText` + 1× sha256 + 2× 全量分词（`computeLexicalIntentBoost` 对**每条目**重复 `normalizeQuery(seed)` 与 `normalizeQuery(buildEmbeddingText(entry))`）+ `entryTokens.includes(token)` 的 O(query×entry) 比较。直觉会去找"cosine 太慢"，实际 cosine 384 维只需微秒。
