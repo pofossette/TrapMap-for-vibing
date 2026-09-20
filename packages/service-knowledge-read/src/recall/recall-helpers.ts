@@ -62,11 +62,6 @@ export async function rerankRecallResults(
   mergedCandidates: any,
   queryTokens: any,
   parsed: any,
-  /**
-   * Optional attribution for the degraded-path counter. Callers that have the
-   * request context pass it; without it the Go fallback stays as silent as it
-   * was (the port is optional everywhere).
-   */
   attribution?: { services?: SkillShareerServices; endpoint: RetrievalLatencyEndpoint },
 ) {
   const goClient = getGoAcceleratorClient();
@@ -114,8 +109,7 @@ export async function rerankRecallResults(
           .filter(Boolean) as any,
       };
     } catch (e) {
-      // Local scoring answers the request, so a failing accelerator would
-      // otherwise only show up as slightly worse ranking.
+      // Optional attribution; local scoring answers anyway, so the counter is the only signal.
       if (attribution) emitDegraded(attribution.services, attribution.endpoint, 'rerank-fallback');
       console.error('[rerank] go fallback', e);
     }
