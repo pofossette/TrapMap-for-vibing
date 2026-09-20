@@ -199,6 +199,8 @@ jobs:
       - run: pnpm check:structure
       - run: pnpm check:asserts
       - run: pnpm check:table-schema
+      - run: pnpm check:schema-parity
+      - run: pnpm check:sql-columns
       - run: pnpm check:pgtable-single-source
       - run: pnpm check:imports
       - run: pnpm check:eval-imports
