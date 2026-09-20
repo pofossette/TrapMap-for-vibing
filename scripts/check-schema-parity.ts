@@ -33,6 +33,7 @@ import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { parseAppliedSchema } from './lib/applied-schema.js';
 import { finishCheckRun } from './lib/check-result.js';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -106,52 +107,6 @@ export async function loadExpectedSchema(root: string): Promise<Map<string, Set<
     );
   }
   return tables;
-}
-
-// ── Applied side: the migration DDL ──────────────────────────────────
-
-/**
- * Parse the DDL that `runMigrations` executes. Both indentation styles used
- * in the file are matched (tabs from the generated blocks, two spaces from
- * hand-edited ones) — a partial match silently drops whole tables and reports
- * every column of that table as missing.
- */
-export function parseAppliedSchema(sql: string): {
-  tables: Map<string, Set<string>>;
-  drops: string[];
-} {
-  const tables = new Map<string, Set<string>>();
-  const drops: string[] = [];
-
-  for (const match of sql.matchAll(
-    /CREATE TABLE (?:IF NOT EXISTS )?"([a-z0-9_]+)" \(([\s\S]*?)\n\);/g,
-  )) {
-    const [, table, body] = match;
-    const columns = new Set<string>();
-    for (const columnMatch of body.matchAll(/^\s+"([a-z0-9_]+)"\s/gm)) {
-      columns.add(columnMatch[1]!);
-    }
-    tables.set(table!, columns);
-  }
-
-  // Column-level changes are applied in file order, exactly as the migrator
-  // runs them: a CREATE followed by a DROP must end up without the column.
-  for (const match of sql.matchAll(/ALTER TABLE (?:IF EXISTS )?"?([a-z0-9_]+)"?([\s\S]*?);/g)) {
-    const [, table, body] = match;
-    const applied = tables.get(table!);
-    for (const column of body!.matchAll(/ADD COLUMN (?:IF NOT EXISTS )?"?([a-z0-9_]+)"?/g)) {
-      applied?.add(column[1]!);
-    }
-    for (const column of body!.matchAll(/DROP COLUMN (?:IF EXISTS )?"?([a-z0-9_]+)"?/g)) {
-      applied?.delete(column[1]!);
-    }
-  }
-
-  for (const match of sql.matchAll(/DROP TABLE (?:IF EXISTS )?"?([a-z0-9_]+)"?/g)) {
-    drops.push(match[1]!);
-  }
-
-  return { tables, drops };
 }
 
 // ── Diff ─────────────────────────────────────────────────────────────

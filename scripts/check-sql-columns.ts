@@ -32,6 +32,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 
+import { parseAppliedSchema } from './lib/applied-schema.js';
 import { finishCheckRun } from './lib/check-result.js';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -93,28 +94,6 @@ const EXEMPTIONS: ReadonlyArray<{ table: string; column: string; reason: string 
     column: 'remediation',
     reason: 'experience-gene write side; fix needs caller-intent verification (T2)',
   },
-  {
-    table: 'candidates',
-    column: 'analysis',
-    reason: 'candidate-ingestion UPDATE; real column is analysis_snapshot (T2)',
-  },
-  {
-    table: 'candidate_duplicate_cases',
-    column: 'matches',
-    reason: 'candidate-ingestion INSERT; column absent from applied schema (T2)',
-  },
-  {
-    table: 'experience_gene_embeddings',
-    column: 'document',
-    reason:
-      'gene embedding UPDATE targets a table without this column; likely meant experience_gene_search_documents (T2)',
-  },
-  {
-    table: 'experience_gene_embeddings',
-    column: 'labels',
-    reason:
-      'gene embedding UPDATE targets a table without this column; likely meant experience_gene_search_documents (T2)',
-  },
 ];
 
 function isExempt(table: string, column: string): string | null {
@@ -124,24 +103,12 @@ function isExempt(table: string, column: string): string | null {
 
 // ── Schema parsing ───────────────────────────────────────────────────
 
-const NON_COLUMN_LINE = /^(PRIMARY KEY|CONSTRAINT|UNIQUE|FOREIGN|CHECK)/i;
-
 /** table -> column set, parsed from the applied DDL. */
 export function parseSchemaTables(schemaSql: string): Map<string, Set<string>> {
-  const tables = new Map<string, Set<string>>();
-  const createRe = /CREATE TABLE IF NOT EXISTS "(\w+)" \(([\s\S]*?)\n\);/g;
-  for (const match of schemaSql.matchAll(createRe)) {
-    const [, table, body] = match;
-    const columns = new Set<string>();
-    for (const rawLine of body.split('\n')) {
-      const line = rawLine.trim().replace(/,$/, '');
-      if (!line || NON_COLUMN_LINE.test(line)) continue;
-      const colMatch = /^"(\w+)"/.exec(line);
-      if (colMatch) columns.add(colMatch[1]!);
-    }
-    tables.set(table!, columns);
-  }
-  return tables;
+  // Delegates to the shared parser so this guard and check:schema-parity read
+  // the same applied schema — including columns added by later ALTER
+  // statements, which is how the Phase-2 catch-up migration adds its columns.
+  return parseAppliedSchema(schemaSql).tables;
 }
 
 // ── Source walking ───────────────────────────────────────────────────

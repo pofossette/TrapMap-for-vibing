@@ -38,7 +38,6 @@ export { detectServiceProfile, materializeCorpusRecords } from './snapshot-suppo
 const RETRIEVAL_TRUNCATE_TABLES = [
   'knowledge_entries',
   'knowledge_labels',
-  'knowledge_keywords',
   'knowledge_embeddings',
   'knowledge_revisions',
   'knowledge_search_documents',
@@ -48,21 +47,15 @@ const RETRIEVAL_TRUNCATE_TABLES = [
   'knowledge_boundary_prerequisites',
   'knowledge_boundary_signals',
   'knowledge_boundary_versions',
-  'knowledge_maintenance_assignments',
   'skill_artifacts',
   'skill_artifact_capsules',
   'skill_artifact_capsule_embeddings',
-  'skill_artifact_capsule_keywords',
   'skill_artifact_files',
   'skill_artifact_profiles',
   'skill_artifact_client_manifests',
   'skill_artifact_script_descriptors',
-  'skill_artifact_metadata',
   'skill_artifact_agent_reviews',
-  'skill_artifact_maintenance_assignments',
-  'skill_artifact_manifest_assets',
-  'skill_artifact_manifest_references',
-  'skill_artifact_manifest_scripts',
+  'skill_artifact_manifest_items',
   'skill_artifact_boundary_contexts',
   'skill_artifact_boundary_evidence',
   'skill_artifact_boundary_exclusions',
@@ -72,11 +65,8 @@ const RETRIEVAL_TRUNCATE_TABLES = [
   'artifact_revisions',
   'artifact_lifecycle_events',
   'candidates',
-  'candidate_analyses',
   'candidate_duplicate_cases',
-  'candidate_duplicate_matches',
-  'candidate_manual_results',
-  'candidate_resolution_outcomes',
+  'candidate_outcomes',
   'sessions',
   'users',
   'teams',
@@ -296,7 +286,13 @@ async function importCapsuleEmbeddings(
 }
 
 /**
- * Import capsule keyword rows into skill_artifact_capsule_keywords.
+ * Import capsule keyword tokens onto the capsule row itself.
+ *
+ * `skill_artifact_capsule_keywords` was merged into
+ * `skill_artifact_capsules.keyword_tokens` / `field_keyword_tokens` by the
+ * Phase-2 table compression, so keywords are folded into the already-imported
+ * capsule row instead of a side table. Capsules that were not part of the
+ * snapshot are skipped rather than resurrected.
  */
 async function importCapsuleKeywords(
   pool: import('pg').Pool,
@@ -304,17 +300,10 @@ async function importCapsuleKeywords(
 ): Promise<void> {
   for (const row of keywords) {
     await pool.query(
-      `INSERT INTO skill_artifact_capsule_keywords (capsule_id, artifact_id, tokens, field_tokens, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (capsule_id) DO UPDATE SET tokens = EXCLUDED.tokens, field_tokens = EXCLUDED.field_tokens, updated_at = EXCLUDED.updated_at`,
-      [
-        row.capsule_id,
-        row.artifact_id,
-        row.tokens,
-        row.field_tokens,
-        row.created_at ?? nowIso(),
-        row.updated_at ?? nowIso(),
-      ],
+      `UPDATE skill_artifact_capsules
+          SET keyword_tokens = $2::jsonb, field_keyword_tokens = $3::jsonb
+        WHERE capsule_id = $1`,
+      [row.capsule_id, JSON.stringify(row.tokens ?? []), JSON.stringify(row.field_tokens ?? {})],
     );
   }
 }

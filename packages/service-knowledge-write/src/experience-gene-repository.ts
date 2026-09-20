@@ -233,7 +233,9 @@ export class PgExperienceGeneRepository
           ],
         );
         await this.pool.query(
-          `UPDATE experience_gene_embeddings SET document = $2, labels = $3, status = 'pending', last_error = NULL, updated_at = now() WHERE gene_id = $1`,
+          // document is a tsvector: the read side ranks with ts_rank/@@, so the
+          // text has to be vectorized on write rather than stored raw.
+          `UPDATE experience_gene_embeddings SET document = to_tsvector('english', $2), labels = $3, status = 'pending', last_error = NULL, updated_at = now() WHERE gene_id = $1`,
           [gene.geneId, searchDocument(gene), gene.labels],
         );
         return mapGene(insertedRow);
@@ -362,7 +364,7 @@ export class PgExperienceGeneRepository
       }
 
       await this.pool.query(
-        `UPDATE experience_gene_embeddings SET document = $2, labels = $3, status = 'ready', last_error = NULL, updated_at = now() WHERE gene_id = $1`,
+        `UPDATE experience_gene_embeddings SET document = to_tsvector('english', $2), labels = $3, status = 'ready', last_error = NULL, updated_at = now() WHERE gene_id = $1`,
         [geneId, searchDocument(current), current.labels],
       );
 

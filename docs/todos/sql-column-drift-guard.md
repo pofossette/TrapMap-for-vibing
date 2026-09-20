@@ -69,7 +69,9 @@ python 原型扫描器：解析 `packages/db/migrations/schema.sql` 的 56 张�
 | 阶段 | 状态 | 结果 |
 |---|---|---|
 | T1 | 完成 | `scripts/check-sql-columns.ts` 落地 + `pnpm check:sql-columns` 接入。首跑：解析 schema.sql 56 表、扫描 9 个包 **210 条裸 SQL**（其中 63 条含 `${}` 动态片段——改为替换插值占位符后仍校验静态列部分，覆盖从 147 提升到 210），命中 **5 处实锤 / 8 个 table.column 对 / 14 处代码位置**（含手工扫描漏掉的 `experience_gene_embeddings.document/labels`），已进内置豁免清单并登记债务。有效性自检：注入 `bogus_column` 守卫报违规退出非 0，删除后恢复绿灯。 |
-| T2-T5 | 未开始 | 见 §4 |
+| T2（前半，DDL 漂移） | 完成 | 根因不是"代码写错列名"而是**迁移缺失**：`schema.sql` 比 TS 建模落后一整个 Phase-2（56 表 vs 42 表，缺 2 张表与 8 组列，16 张应退役旧表仍在）。已把补齐迁移写进 `schema.sql`（新表 `candidate_outcomes` / `skill_artifact_manifest_items`、8 组缺列、`experience_gene_embeddings.document` 按 `tsvector` 建、DROP 15 张已合并旧表），并同步改完随之失效的代码（gene 读侧改 JOIN 合并表、写侧 `to_tsvector` 落库、bench 播种脚本、evals snapshot-orchestrator、candidate README）。真 PG（docker pgvector）验证：迁移后 `information_schema` 与建模比对 **0 差异**（43 表 = 42 建模 + `conflict_relations` 例外）。`check:sql-columns` 豁免由 8 条降到 4 条（只剩 `skill_artifacts.latest_revision/remediation` 这一处真 bug）。 |
+| T2（后半，真代码 bug） | 未开始 | `skill_artifacts.latest_revision` / `.remediation` 在两个世界里都不存在，需核实调用方原意再改（见 §4 与债务册） |
+| T3-T5 | 未开始 | 见 §4 |
 
 ## 5. 验收门禁
 

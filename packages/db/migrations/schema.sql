@@ -970,3 +970,85 @@ CREATE INDEX IF NOT EXISTS "idx_experience_gene_embeddings_content_hash" ON "exp
 CREATE INDEX IF NOT EXISTS "idx_experience_gene_embeddings_vector_hnsw" ON "experience_gene_embeddings" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_experience_gene_search_documents_content_hash" ON "experience_gene_search_documents" USING btree ("content_hash");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_experience_gene_search_documents_document_gin" ON "experience_gene_search_documents" USING gin ("document");
+
+-- Phase-2 table compression catch-up (applied DDL behind the models)
+-- Source: packages/db/src/schema (compression commit 25f34fe2)
+-- That commit moved the drizzle models and the service SQL to the compressed
+-- shape (42 tables) but never wrote a migration, so the applied database kept
+-- the pre-compression shape and every raw SQL touching a merged column failed
+-- at runtime — swallowed by try/catch, which turned a schema drift into the
+-- retrieval-latency incident (see docs/todos/sql-column-drift-guard.md).
+-- Order below matters: new tables, then new columns, then retire legacy tables
+-- (indexes on a dropped table go away with the table).
+CREATE TABLE IF NOT EXISTS "candidate_outcomes" (
+	"candidate_id" text NOT NULL,
+	"kind" text NOT NULL,
+	"decision" text NOT NULL,
+	"notes" text DEFAULT '' NOT NULL,
+	"merged_with_entity_type" text,
+	"merged_with_entity_id" text,
+	"merged_with_entity_title" text,
+	"submitted_at" timestamp with time zone,
+	"submitted_by_user_id" text,
+	"published_entity_id" text,
+	"merged_into_entity_id" text,
+	"entity_type" text,
+	"resolved_at" timestamp with time zone,
+	"resolved_by" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "candidate_outcomes_candidate_id_kind_pk" PRIMARY KEY("candidate_id","kind"),
+	CONSTRAINT "ck_candidate_outcomes_kind" CHECK ("candidate_outcomes"."kind" IN ('manual', 'resolution')),
+	CONSTRAINT "ck_candidate_outcomes_decision" CHECK ("candidate_outcomes"."decision" IN ('independent', 'merged'))
+);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_candidate_outcomes_kind" ON "candidate_outcomes" USING btree ("kind");--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "skill_artifact_manifest_items" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "skill_artifact_manifest_items_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"artifact_revision_id" text NOT NULL,
+	"path" text NOT NULL,
+	"sha256" text NOT NULL,
+	"size_bytes" integer NOT NULL,
+	"media_type" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"kind" text NOT NULL,
+	"capability" text,
+	"args_schema_summary" text,
+	"side_effect_summary" text,
+	"default_policy" text,
+	CONSTRAINT "ck_skill_artifact_manifest_items_kind" CHECK ("skill_artifact_manifest_items"."kind" IN ('references', 'assets', 'scripts'))
+);--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_skill_artifact_manifest_items_revision" ON "skill_artifact_manifest_items" USING btree ("artifact_revision_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_skill_artifact_manifest_items_kind" ON "skill_artifact_manifest_items" USING btree ("kind");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_skill_artifact_manifest_items_revision_kind_path" ON "skill_artifact_manifest_items" USING btree ("artifact_revision_id","kind","path");--> statement-breakpoint
+ALTER TABLE "candidates" ADD COLUMN IF NOT EXISTS "analysis" jsonb;--> statement-breakpoint
+ALTER TABLE "candidate_duplicate_cases" ADD COLUMN IF NOT EXISTS "matches" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "candidate_duplicate_cases" DROP COLUMN IF EXISTS "created_at";--> statement-breakpoint
+ALTER TABLE "experience_gene_embeddings" ADD COLUMN IF NOT EXISTS "document" tsvector DEFAULT ''::tsvector NOT NULL;--> statement-breakpoint
+ALTER TABLE "experience_gene_embeddings" ADD COLUMN IF NOT EXISTS "labels" text[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_experience_gene_embeddings_document_gin" ON "experience_gene_embeddings" USING gin ("document");--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "tokens" text[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "field_tokens_shortcut" text[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "field_tokens_detail" text[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "field_tokens_labels" text[] DEFAULT '{}' NOT NULL;--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "content_hash" text DEFAULT '' NOT NULL;--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "team_id" text;--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "scope" text DEFAULT 'project' NOT NULL;--> statement-breakpoint
+ALTER TABLE "knowledge_search_documents" ADD COLUMN IF NOT EXISTS "required_level" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_knowledge_search_documents_tokens_gin" ON "knowledge_search_documents" USING gin ("tokens");--> statement-breakpoint
+ALTER TABLE "skill_artifact_capsules" ADD COLUMN IF NOT EXISTS "keyword_tokens" jsonb DEFAULT '[]'::jsonb;--> statement-breakpoint
+ALTER TABLE "skill_artifact_capsules" ADD COLUMN IF NOT EXISTS "field_keyword_tokens" jsonb DEFAULT '{}'::jsonb;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "idx_skill_artifact_capsules_keyword_gin" ON "skill_artifact_capsules" USING gin ("keyword_tokens");--> statement-breakpoint
+DROP TABLE IF EXISTS "candidate_analyses";--> statement-breakpoint
+DROP TABLE IF EXISTS "candidate_duplicate_matches";--> statement-breakpoint
+DROP TABLE IF EXISTS "candidate_manual_results";--> statement-breakpoint
+DROP TABLE IF EXISTS "candidate_resolution_outcomes";--> statement-breakpoint
+DROP TABLE IF EXISTS "experience_gene_search_documents";--> statement-breakpoint
+DROP TABLE IF EXISTS "knowledge_keywords";--> statement-breakpoint
+DROP TABLE IF EXISTS "knowledge_maintenance_assignments";--> statement-breakpoint
+DROP TABLE IF EXISTS "knowledge_review_decisions";--> statement-breakpoint
+DROP TABLE IF EXISTS "retrieval_badcase_traces";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_capsule_keywords";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_maintenance_assignments";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_manifest_assets";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_manifest_references";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_manifest_scripts";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_metadata";

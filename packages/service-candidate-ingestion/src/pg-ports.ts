@@ -298,7 +298,7 @@ async function writeManualResult(
        candidate_id, kind, decision, notes, merged_with_entity_type, merged_with_entity_id,
        merged_with_entity_title, submitted_at, submitted_by_user_id
      ) VALUES ($1, 'manual', $2, $3, $4, $5, $6, $7, $8)
-     ON CONFLICT (candidate_id) DO UPDATE SET kind='manual', decision = EXCLUDED.decision, notes = EXCLUDED.notes,
+     ON CONFLICT (candidate_id, kind) DO UPDATE SET kind='manual', decision = EXCLUDED.decision, notes = EXCLUDED.notes,
        merged_with_entity_type = EXCLUDED.merged_with_entity_type,
        merged_with_entity_id = EXCLUDED.merged_with_entity_id,
        merged_with_entity_title = EXCLUDED.merged_with_entity_title,
@@ -501,7 +501,7 @@ export function createCandidateIngestionPgOwnerBundle(
           `INSERT INTO candidate_outcomes (
              candidate_id, kind, decision, published_entity_id, merged_into_entity_id, entity_type, resolved_at, resolved_by, notes
            ) VALUES ($1, 'resolution', $2, $3, $4, $5, $6, $7, $8)
-           ON CONFLICT (candidate_id) DO UPDATE SET kind='resolution', decision = EXCLUDED.decision,
+           ON CONFLICT (candidate_id, kind) DO UPDATE SET kind='resolution', decision = EXCLUDED.decision,
              published_entity_id = EXCLUDED.published_entity_id,
              merged_into_entity_id = EXCLUDED.merged_into_entity_id, entity_type = EXCLUDED.entity_type,
              resolved_at = EXCLUDED.resolved_at, resolved_by = EXCLUDED.resolved_by, notes = EXCLUDED.notes`,

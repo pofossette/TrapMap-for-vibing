@@ -147,6 +147,8 @@ pnpm check:docs
 | Runtime foundations | `pnpm test:runtime-foundations` | runtime 元数据、readiness、ownership、启动地基 |
 | 文档守卫 | `pnpm check:docs` 加 `pnpm check:structure` | 叙事与命令一致性、目录规则 |
 | 表清单守卫 | `pnpm check:table-schema` | `db` 的 42 张 `pgTable` 对 `DATABASE_SCHEMA.md` 的 diff |
+| 建模 vs 应用 DDL 守卫 | `pnpm check:schema-parity` | `packages/db/src/schema` 的建模对 `packages/db/migrations/schema.sql`（运行时真正执行的 DDL）的表/列 diff |
+| 裸 SQL 列引用守卫 | `pnpm check:sql-columns` | service 裸 SQL 引用的列是否存在于应用 DDL |
 | pgTable 单源守卫 | `pnpm check:pgtable-single-source` | service 包不重定义表 |
 | Eval import 边界守卫 | `pnpm check:eval-imports` | evals 不直连 service 内部文件 |
 | @eval-only 标记守卫 | `pnpm check:eval-only` | eval-only 模块带标记 |

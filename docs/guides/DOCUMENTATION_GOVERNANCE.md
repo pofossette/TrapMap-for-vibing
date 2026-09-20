@@ -51,6 +51,8 @@
 以下守卫已接入 CI `doc-guardrails` job 与 `scripts/run-ci.ts`。你新增表、改表清单、改 evals 或服务包导入关系时保持它们通过：
 
 - `pnpm check:table-schema`：表清单守卫。以 `packages/db/src/schema/` 的 `pgTable` 为权威，对照 `docs/reference/DATABASE_SCHEMA.md` 校验。新增表同步更新文档。
+- `pnpm check:schema-parity`：建模 vs 应用 DDL 守卫。`packages/db/src/schema/` 建模的表与列必须与 `packages/db/migrations/schema.sql`（`runMigrations` 真正执行的文件）一致。改了建模就写迁移，改了迁移就同步建模。
+- `pnpm check:sql-columns`：裸 SQL 列引用守卫。service 裸 SQL 引用的列必须存在于应用 DDL。
 - `pnpm check:pgtable-single-source`：pgTable 单源守卫。`packages/service-*` src 禁止直接 `pgTable(...)`，schema 只 re-export `@trapmap/db`。
 - `pnpm check:eval-imports`：eval import 边界守卫。evals 经 `@trapmap/*` 包名、`packages/contracts/**`、host-local eval allowlist 或 `@eval-only` 模块接入 packages，其余深路径直连失败。
 - `pnpm check:eval-only`：`@eval-only` 标记守卫。只被 evals 引用、无产品消费者、不经包 index 导出的模块带头注释。

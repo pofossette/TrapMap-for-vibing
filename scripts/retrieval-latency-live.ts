@@ -312,19 +312,19 @@ async function seedGenes(
     const magnitude = Math.sqrt(vec.reduce((total, value) => total + value * value, 0));
     const vector = magnitude === 0 ? vec : vec.map((value) => value / magnitude);
 
-    await pool.query(
-      `INSERT INTO experience_gene_search_documents
-         (gene_id, content_hash, document, status, updated_at)
-       VALUES ($1,$2, to_tsvector('english', $3), 'ready', now())
-       ON CONFLICT (gene_id) DO NOTHING`,
-      [geneId, contentHash, `${topic} bound refill concurrency singleflight`],
-    );
+    // The search document lives on the embeddings row (Phase-2 compression
+    // merged experience_gene_search_documents into it).
     await pool.query(
       `INSERT INTO experience_gene_embeddings
-         (gene_id, content_hash, embedding, embedding_model_version, status, updated_at)
-       VALUES ($1,$2,$3::vector,'bench-hash-1','ready', now())
+         (gene_id, content_hash, embedding, embedding_model_version, document, labels, status, updated_at)
+       VALUES ($1,$2,$3::vector,'bench-hash-1', to_tsvector('english', $4), '{}'::text[], 'ready', now())
        ON CONFLICT (gene_id) DO NOTHING`,
-      [geneId, contentHash, `[${vector.join(',')}]`],
+      [
+        geneId,
+        contentHash,
+        `[${vector.join(',')}]`,
+        `${topic} bound refill concurrency singleflight`,
+      ],
     );
   }
 }
