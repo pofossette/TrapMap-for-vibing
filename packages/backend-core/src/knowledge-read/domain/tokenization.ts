@@ -27,10 +27,34 @@ export function tokenizeText(text: string): string[] {
   return Array.from(tokenSet);
 }
 
+/** Set form of {@link normalizeQuery} with its own memo — membership checks
+ * (`has`) instead of `Array.includes`, which the lexical boost was running
+ * O(queryTokens x entryTokens) times per query. */
+const normalizeQuerySetMemo = new Map<string, Set<string>>();
+
+export function normalizeQuerySet(query: string): Set<string> {
+  const cached = normalizeQuerySetMemo.get(query);
+  if (cached !== undefined) return cached;
+  const set = new Set(normalizeQuery(query));
+  if (normalizeQuerySetMemo.size >= NORMALIZE_QUERY_MEMO_LIMIT) normalizeQuerySetMemo.clear();
+  normalizeQuerySetMemo.set(query, set);
+  return set;
+}
+
 /** Query tokens, dropping single-character noise tokens. */
+const NORMALIZE_QUERY_MEMO_LIMIT = 10_000;
+const normalizeQueryMemo = new Map<string, string[]>();
+
 export function normalizeQuery(query: string): string[] {
-  const tokens = tokenizeText(query);
-  return tokens.filter((t) => t.length >= 2);
+  // Bounded memo: this is pure and hot — the semantic channel calls it once
+  // per entry per query with identical texts (computeLexicalIntentBoost), so
+  // the tokenize would otherwise run 1000x per request on the same strings.
+  const cached = normalizeQueryMemo.get(query);
+  if (cached !== undefined) return cached;
+  const tokens = tokenizeText(query).filter((t) => t.length >= 2);
+  if (normalizeQueryMemo.size >= NORMALIZE_QUERY_MEMO_LIMIT) normalizeQueryMemo.clear();
+  normalizeQueryMemo.set(query, tokens);
+  return tokens;
 }
 
 // ---------------------------------------------------------------------------

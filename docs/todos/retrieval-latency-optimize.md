@@ -55,11 +55,26 @@
 | # | 提交 | 改动 | P50@1k 前 → 后（五路） | 结论 |
 |---|---|---|---|---|
 | 基线 | c16b4faf | — | 41.55 / 87.85 / 50.98 / 80.12 / 1.02 | 见第 1 节 |
-| P0-1 | 待填 | HNSW ×2（DDL） | 40.12 / 92.29 / 50.36 / 78.61 / 1.10——无收益，根因是 DB 分支三重断裂 | 假设证伪；索引保留铺路 |
-| P0-0 | 待填 | embedding 写回 | 待填 | 待填 |
+| P0-1 | b88d0deb 后 | HNSW ×2（DDL） | 40.12 / 92.29 / 50.36 / 78.61 / 1.10——无收益，根因是 DB 分支三重断裂 | 假设证伪；索引保留铺路 |
+| P0-0 | 本提交 | embedding 写回 + 纯函数备忘录 + **artifact 合并条目 WeakMap 备忘录**（真正主因） | 1000: **9.55** / 55.09 / 50.41 / **47.81** / 1.11；200: 3.33 / 13.79 / 8.65 / 12.85 / 1.01；3000: 26.88 / 168.24 / 84.06 / 149.93 / 1.18 | v1 3.6-4.4×、v3 ~1.7×、skills ~1.5×；v2 不变（不同池）；数据 `optimize/after-p0-0d-*.json` |
+
+P0-0 关键发现：合并条目（`artifact_live_*`）在**每次查询**由 `mergeArtifactsIntoRetrievalPool` 重建为全新对象，任何 per-object 备忘录（embeddingCache 写回、WeakMap）都随对象丢弃——semantic 通道每查询对全部 artifact 条目重算 embedding（~30ms）。修复：`artifactToRetrievalEntry` 按 artifact 对象（来自缓存的读模型，身份稳定）用 WeakMap 复用同一 merged entry，写回自然跨查询存活。探针证据：修复前每查询 cacheMisses=全部 artifact 条目；修复后 knowledge+artifact 全部命中（semantic 通道 34ms → ~2ms）。
 | P0-2 | 待填 | 图运行时缓存 | 待填 | 待填 |
 | P1-1 | 待填 | 表达式 GIN | 待填 | 待填 |
 | P1-2 | 待填 | 池缓存 + skills 走读模型 | 待填 | 待填 |
+
+## 4b. 调试坑点与难点（过程实录，防止重蹈）
+
+1. **假设先于路径核实（P0-1 证伪）**：HNSW 索引加上后 P50 纹丝不动（40.12 vs 41.55）。根因：v1/v3 的 DB 召回分支每次查询都在 SQL 报错后**静默降级**到内存 O(n) 路径——优化根本没作用到实际执行的代码。教训：**优化前必须先确认代码实际走的执行路径**，不能只看"某组件存在/不存在"。
+2. **测量脚本把关键信号滤掉了**：bench 输出用 `| grep -E "^\| v|failed requests"` 只留表格行，而 DB 分支降级的唯一线索是 `console.error('[hybridRecall] DB search failed...')`——恰好在被滤掉的 stderr 里。直到专门 `grep -iE "hybridRecall|falling back"` 才抓到实锤。教训：**性能测量时不要过滤 stderr**；更根本的修法是降级必须进指标而非 console。
+3. **降级被设计成静默**：`hybridRecall.ts:95-97` 的 catch 只打 console 就走内存分支，调用方与指标层全程无感。三重断裂（SQL 引用不存在列、表无写入方、特性开关默认关）因此能潜伏到生产默认配置而不被察觉。
+4. **答案写在注释里但没人执行**：胶囊向量索引的 schema 注释明言"由 `ensureCapsuleVectorIndex()` 编程创建"（`packages/db/src/schema/artifacts.ts:333`），该函数随 `packages/server` 退役后无人补——索引缺失是**退役残留**而非有意设计。教训：删除包时要审计"注释里点名的跨包函数"。
+5. **Schema 漂移是系统性模式，不是孤例**：同一形态出现三次——`skill_artifact_capsules.keyword_tokens/team_id`、`knowledge_search_documents.tokens/field_tokens_*/team_id`，均为 Drizzle schema 声明了但 `schema.sql` 没有的列。教训：见到一个漂移就要全库 grep 同类。
+6. **写回缓存缺失是"半截工程"**：`getBatchEmbeddings` 只填局部 Map，从不写回 `entry.embeddingCache`——而校验逻辑（revision+textHash，`getCachedEmbedding`）早已就绪。说明原设计打算缓存但写回被丢；修复不是发明新机制而是补上断掉的一环。
+7. **热点不在向量数学，在字符串/哈希/分词**：semantic 通道每条目每次查询做 2× `buildEmbeddingText` + 1× sha256 + 2× 全量分词（`computeLexicalIntentBoost` 对**每条目**重复 `normalizeQuery(seed)` 与 `normalizeQuery(buildEmbeddingText(entry))`）+ `entryTokens.includes(token)` 的 O(query×entry) 比较。直觉会去找"cosine 太慢"，实际 cosine 384 维只需微秒。
+8. **EXPLAIN 在空表上无意义**：索引验证时临时库 rows=0，planner 走平凡计划，输出既不包含 Seq Scan 也不包含 Index Scan 的有效对比。教训：**验证索引必须带数据量跑**，或直接用端到端延迟差作为证据。
+9. **环境依赖脆弱**：coordinated runner 依赖 docker daemon，宕机即中断且无法自愈（sudo 需要密码）；长扫描前应先 `docker ps` 探活。
+10. **正确的记忆化位置是纯函数边界**：`normalizeQuery`/`buildEmbeddingText` 都是纯函数，在函数体内加备忘录（有界 Map / WeakMap）零行为风险；若试图改 `computeScore` 签名传预计算 tokens，会波及全部调用方——选错了改起来翻倍。
 
 ## 5. 债务与边界
 

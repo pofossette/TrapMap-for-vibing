@@ -8,6 +8,8 @@ import type { RetrievalQuery } from '@trapmap/contracts';
 import { getGoAcceleratorClient } from '@trapmap/infra/go-accelerator/client.js';
 import { batchCosineWithFallback } from '@trapmap/infra/go-accelerator/fallback.js';
 
+import { nowIso } from '@trapmap/lib';
+
 import type { SkillShareerServices } from './context.js';
 import { getDefaultRetrievalInfra, getRetrievalInfra } from './retrieval-infra.js';
 import type { KnowledgeReadRecallChannel } from './retrieval-orchestration.js';
@@ -48,13 +50,24 @@ interface OptimizedSemanticRecallResult {
   cacheStats: BatchCacheStats;
 }
 
+/** sha256 per entry, memoized: the hit path re-hashes the full embedding text
+ * on every query otherwise. Deterministic hash → memo keyed by entry object. */
+const entryTextHashMemo = new WeakMap<object, string>();
+
+function textHashOf(services: SkillShareerServices, entry: KnowledgeRecord): string {
+  const entryKey = entry as object;
+  const cached = entryTextHashMemo.get(entryKey);
+  if (cached !== undefined) return cached;
+  const hash = getRetrievalInfra(services).embeddings.hashText(buildEmbeddingText(entry));
+  entryTextHashMemo.set(entryKey, hash);
+  return hash;
+}
+
 function getCachedEmbedding(
   services: SkillShareerServices,
   entry: KnowledgeRecord,
 ): number[] | null {
-  const infra = getRetrievalInfra(services);
-  const text = buildEmbeddingText(entry);
-  const textHash = infra.embeddings.hashText(text);
+  const textHash = textHashOf(services, entry);
 
   if (
     entry.indexState?.vector?.status === 'synced' &&
@@ -99,20 +112,56 @@ async function getBatchEmbeddings(
         try {
           const text = buildEmbeddingText(entry);
           const vector = await getRetrievalInfra(services).embeddings.generate(text);
-          return { entryId: entry.id, vector };
+          return { entryId: entry.id, vector, textHash: textHashOf(services, entry) };
         } catch (_error) {
-          return { entryId: entry.id, vector: null };
+          return { entryId: entry.id, vector: null, textHash: null };
         }
       }),
     );
 
-    for (const result of computedVectors) {
-      if (result.vector) {
-        embeddings.set(result.entryId, { vector: result.vector, fromCache: false });
-      }
-    }
+    computedVectors.forEach((result, index) => {
+      const entry = misses[index];
+      if (!result.vector || !entry) return;
+      embeddings.set(result.entryId, { vector: result.vector, fromCache: false });
+      // Write-back memo: without this, every query recomputes hash embeddings
+      // for the whole eligible set (the semantic channel's dominant cost).
+      // Safe because getCachedEmbedding re-validates revision + textHash on
+      // every read; the memo dies with its read-model snapshot.
+      entry.embeddingCache = {
+        vector: result.vector,
+        textHash: result.textHash!,
+        createdAt: nowIso(),
+        revision: entry.history.length,
+      };
+    });
   }
 
+  if (process.env.TRAPMAP_DEBUG_SEMANTIC && misses.length > 0) {
+    console.error(
+      '[semantic-debug] missIds:',
+      misses
+        .slice(0, 4)
+        .map((e) => e.id)
+        .join(','),
+      '| hitIds:',
+      entries
+        .filter((e) => !misses.includes(e))
+        .slice(0, 3)
+        .map((e) => e.id)
+        .join(','),
+      '| missCacheState:',
+      misses
+        .slice(0, 2)
+        .map((e) =>
+          JSON.stringify({
+            rev: e.embeddingCache?.revision,
+            hist: e.history?.length,
+            hashOk: e.embeddingCache ? 'set' : 'null',
+          }),
+        )
+        .join(' | '),
+    );
+  }
   const actualCacheHits = entries.length - misses.length;
   const totalEntries = entries.length;
   const stats: BatchCacheStats = {
@@ -133,7 +182,15 @@ export async function optimizedSemanticRecall(
   seed?: string,
   queryVersions?: ReadonlyArray<{ package: string; version: string }> | null,
 ): Promise<OptimizedSemanticRecallResult> {
+  const t0 = process.env.TRAPMAP_DEBUG_SEMANTIC ? performance.now() : 0;
   const { embeddings, stats } = await getBatchEmbeddings(services, entries);
+  if (process.env.TRAPMAP_DEBUG_SEMANTIC) {
+    console.error(
+      '[semantic-debug] batchEmbeddings',
+      JSON.stringify(stats),
+      (performance.now() - t0).toFixed(2) + 'ms',
+    );
+  }
   const freshnessConfig = getRetrievalInfra(services).scoring.freshnessConfig;
 
   const scoredEntries: Array<{ entry: KnowledgeRecord; score: number }> = [];
@@ -194,6 +251,14 @@ export async function optimizedSemanticRecall(
   }
 
   scoredEntries.sort((a, b) => b.score - a.score);
+  if (process.env.TRAPMAP_DEBUG_SEMANTIC) {
+    console.error(
+      '[semantic-debug] recall total',
+      (performance.now() - t0).toFixed(2) + 'ms',
+      'entries:',
+      entries.length,
+    );
+  }
 
   return { scoredEntries, cacheStats: stats };
 }

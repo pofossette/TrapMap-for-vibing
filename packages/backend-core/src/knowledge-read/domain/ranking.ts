@@ -23,7 +23,7 @@ export { DEFAULT_FRESHNESS_DECAY_CONFIG } from '@trapmap/contracts';
 import { cosineSimilarity as sharedCosineSimilarity } from '@trapmap/lib';
 
 import { type BoundaryEntryView, computeBoundaryScoreDelta } from './boundary.js';
-import { normalizeQuery, type TokenMatchDetailLike } from './tokenization.js';
+import { normalizeQuerySet, type TokenMatchDetailLike } from './tokenization.js';
 
 export const cosineSimilarity = sharedCosineSimilarity;
 
@@ -368,9 +368,18 @@ export interface ScorableEntryView {
   detail: string;
 }
 
+/** Memo per entry object: the semantic channel rebuilds this text twice per
+ * entry per query (embedding-cache validation + lexical boost). Entries are
+ * stable read-model objects; WeakMap lets the memo GC with the snapshot. */
+const embeddingTextMemo = new WeakMap<object, string>();
+
 export function buildEmbeddingText(entry: ScorableEntryView): string {
+  const cached = embeddingTextMemo.get(entry);
+  if (cached !== undefined) return cached;
   const labelsText = entry.labels.join(' ');
-  return `${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim();
+  const text = `${entry.shortcut}\n${entry.detail}\n${labelsText}`.trim();
+  embeddingTextMemo.set(entry, text);
+  return text;
 }
 
 export const LEXICAL_BOOST_FULL_MATCH = 0.55;
@@ -379,16 +388,22 @@ export const LABEL_SCORE_BOOST = 0.05;
 export const SCOPE_SCORE_BOOST = 0.03;
 
 export function computeLexicalIntentBoost(seed: string, entry: ScorableEntryView): number {
-  const queryTokens = normalizeQuery(seed);
-  if (queryTokens.length === 0) return 0;
+  const queryTokenSet = normalizeQuerySet(seed);
+  if (queryTokenSet.size === 0) return 0;
 
-  const entryTokens = normalizeQuery(buildEmbeddingText(entry));
-  if (entryTokens.length === 0) return 0;
+  // Set membership (O(1) per token) instead of Array.includes — this loop ran
+  // O(queryTokens x entryTokens) string comparisons per entry per query and
+  // was the dominant cost of the in-memory semantic channel.
+  const entryTokenSet = normalizeQuerySet(buildEmbeddingText(entry));
+  if (entryTokenSet.size === 0) return 0;
 
-  const overlapCount = queryTokens.filter((token) => entryTokens.includes(token)).length;
+  let overlapCount = 0;
+  for (const token of queryTokenSet) {
+    if (entryTokenSet.has(token)) overlapCount += 1;
+  }
   if (overlapCount === 0) return 0;
 
-  const ratio = overlapCount / queryTokens.length;
+  const ratio = overlapCount / queryTokenSet.size;
   const baseBoost = ratio >= 1 ? LEXICAL_BOOST_FULL_MATCH : ratio * LEXICAL_BOOST_PER_TOKEN;
   return Math.min(LEXICAL_BOOST_FULL_MATCH, baseBoost);
 }
