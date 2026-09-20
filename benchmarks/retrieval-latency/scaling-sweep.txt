@@ -1,0 +1,20 @@
+
+corpus scaling sweep (values in ms)
+
+| corpus | endpoint | total p50 | total p95 | recall p50 | semantic p50 |
+| --- | --- | --- | --- | --- | --- |
+| 100 | v1-search | 5 | 33 | 5 | 5 |
+| 100 | v1-skills | 5 | 40 | 5 | 4 |
+| 100 | v3-graph-plan | 5 | 43 | 4 | 4 |
+| 500 | v1-search | 41 | 63 | 40 | 23 |
+| 500 | v1-skills | 43 | 60 | 43 | 23 |
+| 500 | v3-graph-plan | 42 | 60 | 42 | 22 |
+| 1000 | v1-search | 70 | 95 | 68 | 64 |
+| 1000 | v1-skills | 68 | 94 | 66 | 65 |
+| 1000 | v3-graph-plan | 68 | 96 | 66 | 64 |
+| 2000 | v1-search | 146 | 167 | 140 | 136 |
+| 2000 | v1-skills | 145 | 163 | 140 | 133 |
+| 2000 | v3-graph-plan | 146 | 156 | 142 | 138 |
+
+full report for the largest corpus written to benchmarks/retrieval-latency/bench-sweep-largest.json
+Note: DB-backed recall branches are inactive without PostgreSQL — these numbers are a CPU floor, not a service SLO.

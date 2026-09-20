@@ -486,6 +486,9 @@ describe('distributed gateway acceptance', () => {
       query: 'hello',
       teamId: 'team-1',
       limit: 3,
+      // Internal attribution field the gateway adds per route and the internal
+      // hop carries verbatim.
+      latencyEndpoint: 'v1-search',
     });
     expect(knowledgeReadHeaders).toEqual([
       {

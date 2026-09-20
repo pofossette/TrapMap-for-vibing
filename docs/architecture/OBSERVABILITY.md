@@ -4,9 +4,10 @@
 
 ## 归属
 
-- `packages/host-local/src/nest/observability/` 持有 light 宿主的 `/metrics`、OTel bootstrap 与 shutdown、Prometheus、Loki 与对应 adapter（含 `otel.service.ts`、`prometheus.service.ts`、`sentry.service.ts`、`langfuse.service.ts`、`langfuse-sink.ts`、`http-metrics.middleware.ts`）。
+- `packages/host-local/src/nest/observability/` 持有 light 宿主的 `/metrics`、OTel bootstrap 与 shutdown、Prometheus、Loki 与对应 adapter（含 `otel.service.ts`、`prometheus.service.ts`、`sentry.service.ts`、`langfuse.service.ts`、`langfuse-sink.ts`、`http-metrics.middleware.ts`、`retrieval-metrics.ts`）。
+- 检索延迟：port 在 `packages/backend-core/src/ports/retrieval-metrics-ports.ts`（`RetrievalMetricsPort`），host-local 的 Prometheus 实现在 `packages/host-local/src/nest/observability/retrieval-metrics.ts`，host-distributed 的 OTel 实现在 `packages/host-distributed/src/gateway/internal-observability.ts:createRetrievalOtelMetrics`；打点在 `packages/service-knowledge-read/src/search-knowledge.ts:timedStep` 与 `src/recall/*-channel.ts` 的 `timedChannel`。
 - `packages/host-distributed/src/shared/telemetry.ts` 负责 distributed 内部 hop 的 traceparent / span 传播与 OTLP traces / metrics 导出。
-- `services/knowledge-read-go/internal/api/router.go:21` 暴露 Go 侧 `GET /metrics`（Prometheus 文本，`trapmap_go_requests_total` / `trapmap_go_fallback_total` / `trapmap_go_duration_ms`）。
+- `services/knowledge-read-go/internal/api/router.go:21` 暴露 Go 侧 `GET /metrics`（Prometheus 文本，实际序列名为 `trapmap_knowledge_read_requests_total` / `trapmap_knowledge_read_fallback_total` / `trapmap_knowledge_read_duration_ms`，见 `services/knowledge-read-go/internal/observability/metrics.go:11-25`）。
 
 ## Sentry
 

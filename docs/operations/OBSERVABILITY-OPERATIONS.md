@@ -131,6 +131,21 @@ interface HealthStatus {
 
 label 只取低基数枚举（mode、source、generator、outcome、reason-class），raw seed、source id、tenant id、prompt 文本禁止进 label。host-local 经 Prometheus 输出，distributed knowledge-write 与 knowledge-read 经共享 OTel registry 在 `/metrics` 输出同名序列。
 
+#### Retrieval metric families
+
+| Metric family | Labels | 用途 |
+|---|---|---|
+| `trapmap_retrieval_search_duration_ms` | `endpoint`, `mode`, `outcome` | 四路检索端到端延迟 |
+| `trapmap_retrieval_search_total` | `endpoint`, `outcome` | 请求量与结果分类 |
+| `trapmap_retrieval_stage_duration_ms` | `endpoint`, `stage` | 管道阶段分解（parse / snapshot / eligibility / boundary-filter / routing / recall / assembly / summary / refinement） |
+| `trapmap_retrieval_channel_duration_ms` | `endpoint`, `channel` | 召回通道分解（keyword / semantic / graph / heuristic） |
+
+Buckets：`[5, 10, 25, 50, 100, 200, 400, 800, 1600, 3200]` ms。host-local 经 Prometheus 输出，host-distributed 经共享 OTel registry 输出同名序列。
+
+`endpoint` 取值 `v1-search` / `v1-skills` / `v2-capsule` / `v3-graph-plan` / `unknown`。`v2-capsule` 与 `channel="heuristic"` 是**保留但无实现**的维度：`/v2/retrieval/search` 没有宿主注册（`scripts/check-route-surface.ts` 的 `SURFACE_EXEMPTIONS`），`heuristic` 随已删除的 `packages/server`（Wave-10）退役。它们的序列恒为 0，不得解读为"极快"，也不参与告警。
+
+`endpoint` 由路由层逐次调用传入（`RetrievalSearchParams.latencyEndpoint`）：`/v1` 与 `/v3` 共用同一个 `RetrievalQueryPort` 实例，无法在构造期绑定。
+
 ### 探针配置参考
 
 Kubernetes Deployment 建议配置：
@@ -164,7 +179,11 @@ readinessProbe:
 
 | SLI | SLO 目标 | 度量窗口 | 度量方式 |
 |-----|---------|---------|---------|
-| 网关路由 P95 请求延迟 | < 500ms | 5 分钟滚动窗口 | Prometheus: `histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{route_family="gateway"}[5m])) by (le))` |
+| 网关路由 P95 请求延迟 | < 500ms | 5 分钟滚动窗口 | Prometheus: `histogram_quantile(0.95, sum(rate(trapmap_http_request_duration_seconds_bucket{route_family="gateway"}[5m])) by (le))` |
+| 检索 P95 端到端延迟 | 待基线（不预设） | 5 分钟滚动窗口 | Prometheus: `histogram_quantile(0.95, sum by (le, endpoint) (rate(trapmap_retrieval_search_duration_ms_bucket[5m])))` |
+| 检索召回阶段 P95 延迟 | 待基线（不预设） | 5 分钟滚动窗口 | Prometheus: `histogram_quantile(0.95, sum by (le, endpoint, stage) (rate(trapmap_retrieval_stage_duration_ms_bucket{stage="recall"}[5m])))` |
+
+检索 SLO 不预设数值：既有 500ms 是**网关整体**目标，检索基线与语料规模强相关（离线 bench 在 1000 条语料下 P95 ≈ 95ms、2000 条下 ≈ 165ms，且不含 PG 与 HTTP 开销）。先采集一周真实流量再定阈值，见 `benchmarks/retrieval-latency/`。
 
 ### 错误率（Error Rate）
 
@@ -174,7 +193,7 @@ readinessProbe:
 
 ### 告警规则
 
-初期建议配这五条 Grafana alert rule：`ReadinessDegraded`（`/ready` SLO 连 2 窗口低于 99.5%，warning）、`HighErrorRate`（5xx 连 2 窗口超 1%，critical）、`HighLatency`（P95 连 3 窗口超 500ms，warning）、`DependencyUnhealthy`（任一依赖 `unhealthy` 持续 2 分钟，critical）、`InstanceNotReady`（`not-ready` 持续 1 分钟，critical）。具体 JSON 与 YAML 定义后续迭代补到 `infra/grafana/alerts/` 目录。
+初期建议配这五条 Grafana alert rule：`ReadinessDegraded`（`/ready` SLO 连 2 窗口低于 99.5%，warning）、`HighErrorRate`（5xx 连 2 窗口超 1%，critical）、`HighLatency`（P95 连 3 窗口超 500ms，warning）、`RetrievalLatencyRegressed`（任一 `endpoint` 的检索 P95 连 3 窗口超基线 2 倍，warning；`v2-capsule` 因无实现除外）、`DependencyUnhealthy`（任一依赖 `unhealthy` 持续 2 分钟，critical）、`InstanceNotReady`（`not-ready` 持续 1 分钟，critical）。具体 JSON 与 YAML 定义后续迭代补到 `infra/grafana/alerts/` 目录。
 
 ## 故障排查快速参考
 
@@ -234,6 +253,28 @@ grep -i traceparent /tmp/trapmap-trace-headers.txt
 ```
 
 对外只传 `traceparent`，不要写 `X-Trace-Id`。
+
+### 你量检索延迟（离线，不要活服务）
+
+前置条件：依赖已装；不需要 PostgreSQL 与网关。
+
+```bash
+pnpm retrieval:latency:bench -- --entries 1000 --queries 60 --warmup 10 \
+  --out benchmarks/retrieval-latency/bench-1000.json \
+  --log-dir benchmarks/retrieval-latency/rag-log
+pnpm retrieval:latency:report -- --dir benchmarks/retrieval-latency/rag-log
+```
+
+前者驱动真实 `searchKnowledge` 管道并按 endpoint × stage × channel 采样；后者从 RAG 日志（JSONL）聚合同一张表。语料规模扫描用 `--sweep 100,500,1000,2000`。
+
+口径说明：离线 bench 走默认检索 infra 的哈希 embedding，DB 召回分支因无连接池不激活，所以结果只含 CPU 开销，是**下限**而非服务 SLO。要含 PG 与 HTTP，用 live bench：
+
+```bash
+TRAPMAP_POSTGRES_COORDINATOR_URL=postgres://trapmap:trapmap@127.0.0.1:5434/trapmap \
+  pnpm retrieval:latency:live -- --entries 1000 --queries 40 --warmup 5
+```
+
+live bench 会建库、跑迁移、播种语料与 pgvector 索引，再经真 HTTP 打 `/bench/*` 路由。两套数据的关键差别：离线 bench 随语料线性增长（1000 条 P50 70ms → 2000 条 146ms），live bench 基本持平（200→3000 条 P50 均为约 5ms，P95 约 22ms）——**DB 召回路径把 O(n) 的逐条 embedding 换成了 SQL 查询**。
 
 ### 跑性能基线（要运行中的网关）
 

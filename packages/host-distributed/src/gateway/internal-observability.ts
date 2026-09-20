@@ -19,7 +19,7 @@ import {
   MetricReader,
 } from '@opentelemetry/sdk-metrics';
 
-import type { ExperienceGeneMetricsPort } from '@trapmap/backend-core';
+import type { ExperienceGeneMetricsPort, RetrievalMetricsPort } from '@trapmap/backend-core';
 import type { AsyncLifecycleEventName } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
@@ -67,6 +67,10 @@ interface ObservabilityRegistry {
   geneSearchDuration: Histogram;
   genePrimarySelected: Counter;
   geneEmptyResults: Counter;
+  retrievalSearchDuration: Histogram;
+  retrievalSearchTotal: Counter;
+  retrievalStageDuration: Histogram;
+  retrievalChannelDuration: Histogram;
 }
 
 function createRegistry(): ObservabilityRegistry {
@@ -120,6 +124,18 @@ function createRegistry(): ObservabilityRegistry {
     }),
     geneEmptyResults: meter.createCounter('trapmap_experience_gene_empty_results_total', {
       description: 'Gene searches that returned no primary Gene',
+    }),
+    retrievalSearchDuration: meter.createHistogram('trapmap_retrieval_search_duration_ms', {
+      description: 'Retrieval request duration in milliseconds by endpoint',
+    }),
+    retrievalSearchTotal: meter.createCounter('trapmap_retrieval_search_total', {
+      description: 'Retrieval requests by endpoint and outcome',
+    }),
+    retrievalStageDuration: meter.createHistogram('trapmap_retrieval_stage_duration_ms', {
+      description: 'Retrieval pipeline stage duration in milliseconds',
+    }),
+    retrievalChannelDuration: meter.createHistogram('trapmap_retrieval_channel_duration_ms', {
+      description: 'Retrieval recall-channel duration in milliseconds',
     }),
   };
 }
@@ -220,6 +236,40 @@ export function createExperienceGeneOtelMetrics(): ExperienceGeneMetricsPort {
     },
     recordEmptyResult(params) {
       registry.geneEmptyResults.add(1, { mode: params.mode });
+    },
+  };
+}
+
+/**
+ * OTel implementation of {@link RetrievalMetricsPort} for the distributed host.
+ *
+ * Emits the same metric names as the host-local Prometheus implementation so
+ * dashboards and alerts are portable across deployment profiles.
+ */
+export function createRetrievalOtelMetrics(): RetrievalMetricsPort {
+  return {
+    recordSearch(params) {
+      registry.retrievalSearchDuration.record(params.durationMs, {
+        endpoint: params.endpoint,
+        mode: params.mode,
+        outcome: params.outcome,
+      });
+      registry.retrievalSearchTotal.add(1, {
+        endpoint: params.endpoint,
+        outcome: params.outcome,
+      });
+    },
+    recordStage(params) {
+      registry.retrievalStageDuration.record(params.durationMs, {
+        endpoint: params.endpoint,
+        stage: params.stage,
+      });
+    },
+    recordChannel(params) {
+      registry.retrievalChannelDuration.record(params.durationMs, {
+        endpoint: params.endpoint,
+        channel: params.channel,
+      });
     },
   };
 }

@@ -27,12 +27,18 @@ import type {
   FeedbackStatsResponse,
   GovernanceConflictDetectionPayload,
   RemediationReactivationPayload,
+  GraphPlanSearchResponse,
   RetrievalResponse,
+  RetrievalV2Response,
   SkillLookupResponse,
 } from '@trapmap/contracts';
 
 import type { FeedbackQueueRecord, KnowledgeEntryRecord } from './repo-ports.js';
-import type { ReadModelProjectionStatus } from './retrieval-ports.js';
+import type {
+  GraphPlanSearchParams,
+  ReadModelProjectionStatus,
+  RetrievalSearchParams,
+} from './retrieval-ports.js';
 
 // ---------------------------------------------------------------------------
 // Identity & Access port
@@ -78,7 +84,7 @@ export interface IdentityAccessPort {
 export interface KnowledgeReadPort {
   getById(entryId: string): Promise<KnowledgeEntryRecord | null>;
   listMine(userId: string, teamId?: string): Promise<KnowledgeEntryRecord[]>;
-  search(params: { query: string; teamId?: string; limit?: number }): Promise<RetrievalResponse>;
+  search(params: RetrievalSearchParams): Promise<RetrievalResponse>;
   skillLookup(params: {
     text: string;
     teamId?: string;
@@ -87,6 +93,16 @@ export interface KnowledgeReadPort {
   getProjectionStatus(): Promise<ReadModelProjectionStatus>;
   /** Rebuild the owner projection; available only on operator-facing hosts. */
   rebuildProjection?(): Promise<ReadModelProjectionStatus>;
+  /**
+   * Capsule-native v2 retrieval. Optional so hosts that have not wired the
+   * capsule pipeline still satisfy the port; callers must check.
+   */
+  searchCapsules?(params: RetrievalSearchParams): Promise<RetrievalV2Response>;
+
+  /**
+   * v3 trap-first graph-plan retrieval. Optional for the same reason.
+   */
+  searchGraphPlan?(params: GraphPlanSearchParams): Promise<GraphPlanSearchResponse>;
 }
 
 // ---------------------------------------------------------------------------

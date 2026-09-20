@@ -6,7 +6,13 @@
  * implementations backed by the retrieval pipeline.
  */
 
-import type { RetrievalResponse } from '@trapmap/contracts';
+import type {
+  GraphPlanSearchQuery,
+  GraphPlanSearchResponse,
+  RetrievalLatencyEndpoint,
+  RetrievalResponse,
+  RetrievalV2Response,
+} from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // Retrieval query port
@@ -17,6 +23,21 @@ export interface RetrievalSearchParams {
   teamId?: string;
   limit?: number;
   filters?: Record<string, unknown>;
+  /**
+   * Internal latency attribution for the calling route. `v1` and `v3` share one
+   * `RetrievalQueryPort` instance, so the endpoint cannot be bound at
+   * construction time — every route passes its own value per call.
+   */
+  latencyEndpoint?: RetrievalLatencyEndpoint;
+}
+
+/** Parameters for the v3 trap-first graph-plan surface. */
+export interface GraphPlanSearchParams {
+  seed: string;
+  skillBudget?: number;
+  maxDepth?: number;
+  fallbackMode?: GraphPlanSearchQuery['fallbackMode'];
+  latencyEndpoint?: RetrievalLatencyEndpoint;
 }
 
 export type ReadModelConsistency = 'strong' | 'eventual';
@@ -75,6 +96,20 @@ export interface RetrievalQueryPort {
    * Execute a retrieval plan (structured multi-step search).
    */
   plan?(params: RetrievalSearchParams): Promise<unknown>;
+
+  /**
+   * Execute the capsule-native v2 retrieval. Separate from {@link search}
+   * because v2 returns a different response shape (capsules + profile hints)
+   * rather than bucketed knowledge entries.
+   */
+  searchCapsules?(params: RetrievalSearchParams): Promise<RetrievalV2Response>;
+
+  /**
+   * Execute the v3 trap-first graph-plan retrieval. Separate from
+   * {@link search} because v3 returns a `GraphPlanSearchResponse` wrapper
+   * (plan + governed fallback), not bucketed knowledge entries.
+   */
+  searchGraphPlan?(params: GraphPlanSearchParams): Promise<GraphPlanSearchResponse>;
 }
 
 // ---------------------------------------------------------------------------

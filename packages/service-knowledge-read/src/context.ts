@@ -1,4 +1,8 @@
-import type { ChannelMergePort, IntentRecognitionPort } from '@trapmap/backend-core';
+import type {
+  ChannelMergePort,
+  IntentRecognitionPort,
+  RetrievalMetricsPort,
+} from '@trapmap/backend-core';
 import type {
   BoundaryContext,
   BoundaryExplanation,
@@ -9,6 +13,7 @@ import type {
   GraphQueryRuntimeState,
   Permission,
   RetrievalGovernanceProjection,
+  RetrievalLatencySample,
   RetrievalQuery,
   RetrievalReadModelRepositories,
 } from '@trapmap/contracts';
@@ -263,4 +268,16 @@ export interface SkillShareerServices {
   intentRecognition?: IntentRecognitionPort;
   /** D8 channel-merge judgment port (rule default when absent). */
   channelMerge?: ChannelMergePort<KnowledgeRecord>;
+  /**
+   * Optional latency emission sink. Absent means "no metrics" — the pipeline
+   * keeps timing internally for the RAG log either way, so nothing else
+   * changes behaviour when this is unset.
+   */
+  retrievalMetrics?: RetrievalMetricsPort;
+  /**
+   * Per-request collector for recall-channel latency samples. `searchKnowledge`
+   * sets it on a shallow per-request clone of the services bundle so the
+   * host-level shared bundle stays immutable across requests.
+   */
+  latencyChannelSamples?: RetrievalLatencySample[];
 }

@@ -11,10 +11,17 @@ import {
   registerFastifyRoutes,
   routeResponse,
 } from '@trapmap/backend-core';
-import type { AdminGraphQuery, AdminGraphResponse } from '@trapmap/contracts';
+import type {
+  AdminGraphQuery,
+  AdminGraphResponse,
+  RetrievalLatencyEndpoint,
+} from '@trapmap/contracts';
 import {
   adminGraphQuerySchema,
+  graphPlanSearchQuerySchema,
+  retrievalInternalSearchBodySchema,
   retrievalSearchBodySchema,
+  retrievalV2QuerySchema,
   skillLookupQuerySchema,
 } from '@trapmap/contracts';
 import type { FastifyInstance } from 'fastify';
@@ -44,6 +51,31 @@ export const knowledgeReadSearchSchema = z.object({
   body: retrievalSearchBodySchema,
 });
 
+/**
+ * Internal-hop variant of {@link knowledgeReadSearchSchema}. Accepts the
+ * routing (`variant`) and attribution (`latencyEndpoint`) fields the gateway
+ * adds, without widening the public body.
+ */
+/** Capsule-native v2 body on the internal hop. */
+export const knowledgeReadCapsuleSearchSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: retrievalV2QuerySchema,
+});
+
+/** Trap-first graph-plan (v3) body on the internal hop. */
+export const knowledgeReadGraphPlanSearchSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: graphPlanSearchQuerySchema,
+});
+
+export const knowledgeReadInternalSearchSchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: retrievalInternalSearchBodySchema,
+});
+
 export const knowledgeReadSkillLookupSchema = z.object({
   params: emptyRecord,
   query: emptyRecord,
@@ -54,15 +86,20 @@ export function toKnowledgeReadSearchArgs(body: {
   limit?: number;
   query: string;
   teamId?: string;
+  latencyEndpoint?: RetrievalLatencyEndpoint;
 }): {
   limit?: number;
   query: string;
   teamId?: string;
+  latencyEndpoint?: RetrievalLatencyEndpoint;
 } {
+  // `latencyEndpoint` is an internal attribution field: it must survive this
+  // rebuild or the metric label is silently dropped on the way to the service.
   return {
     query: body.query,
     ...(body.teamId !== undefined ? { teamId: body.teamId } : {}),
     ...(body.limit !== undefined ? { limit: body.limit } : {}),
+    ...(body.latencyEndpoint !== undefined ? { latencyEndpoint: body.latencyEndpoint } : {}),
   };
 }
 
@@ -475,11 +512,37 @@ function createKnowledgeReadRouteDefsInternal(
     knowledgeReadRouteDef({
       method: 'POST',
       path: '/internal/retrieval/search',
-      schema: knowledgeReadSearchSchema,
+      schema: knowledgeReadInternalSearchSchema,
       handler: async (ctx, deps) => {
         return deps.search(
           toKnowledgeReadSearchArgs(ctx.body as Parameters<typeof toKnowledgeReadSearchArgs>[0]),
         );
+      },
+    }),
+
+    knowledgeReadRouteDef({
+      method: 'POST',
+      path: '/internal/retrieval/graph-plan/search',
+      schema: knowledgeReadGraphPlanSearchSchema,
+      handler: async (ctx, deps) => {
+        if (!deps.searchGraphPlan) {
+          throw InvocationError.validation(
+            'graph-plan retrieval is not configured on this knowledge-read instance',
+          );
+        }
+        const body = ctx.body as {
+          seed: string;
+          skillBudget?: number;
+          maxDepth?: number;
+          fallbackMode?: 'auto' | 'v2-capsule' | 'v1-graph-assisted';
+        };
+        return deps.searchGraphPlan({
+          seed: body.seed,
+          ...(body.skillBudget !== undefined ? { skillBudget: body.skillBudget } : {}),
+          ...(body.maxDepth !== undefined ? { maxDepth: body.maxDepth } : {}),
+          ...(body.fallbackMode !== undefined ? { fallbackMode: body.fallbackMode } : {}),
+          latencyEndpoint: 'v3-graph-plan',
+        });
       },
     }),
 

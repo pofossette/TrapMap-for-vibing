@@ -28,6 +28,7 @@
 | 工件系统 | `packages/service-knowledge-write/src/` + `packages/db/src/schema/artifacts.ts` | `docs/architecture/components/ARTIFACTS.md` |
 | 治理面 | `packages/service-governance-review/src/` | `docs/architecture/components/GOVERNANCE.md` |
 | 可观测性 | `packages/host-local/src/nest/` + `packages/host-distributed/src/gateway/` + `packages/contracts/src/domain/observability.ts` | `docs/architecture/OBSERVABILITY.md` |
+| 检索延迟度量 | `packages/backend-core/src/ports/retrieval-metrics-ports.ts` + `packages/contracts/src/enum-types/retrieval-latency.ts` + `packages/service-knowledge-read/src/retrieval-latency.ts` + `scripts/retrieval-latency-bench.ts` / `scripts/retrieval-latency-report.ts` | `docs/operations/OBSERVABILITY-OPERATIONS.md` |
 | 服务发现 | `packages/host-distributed/src/config/service-config.ts` + 网关 `internal-client` | `docs/architecture/SERVICE-DISCOVERY.md` |
 | 运行时健康 | `packages/host-distributed/src/gateway/routes.ts`（`/health`、`/live`、`/ready`）+ `packages/host-distributed/src/gateway/server.ts`（`/metrics`） | `docs/architecture/DEPLOYMENT.md` |
 | 环境配置 | `packages/host-local/src/nest/config/config.ts` + `packages/host-distributed/src/config/service-config.ts` | `docs/reference/ENVIRONMENT.md` |

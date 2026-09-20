@@ -132,6 +132,24 @@ export function createInternalServiceClients(
           'POST',
           body,
         ),
+      searchCapsules: async (body) =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/retrieval/capsules/search`,
+          'POST',
+          // The capsule hop speaks the v2 body: seed + maxResults only.
+          { seed: body.query, ...(body.limit !== undefined ? { maxResults: body.limit } : {}) },
+        ),
+      searchGraphPlan: async (body) =>
+        callInternalService(
+          `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/retrieval/graph-plan/search`,
+          'POST',
+          {
+            seed: body.seed,
+            ...(body.skillBudget !== undefined ? { skillBudget: body.skillBudget } : {}),
+            ...(body.maxDepth !== undefined ? { maxDepth: body.maxDepth } : {}),
+            ...(body.fallbackMode !== undefined ? { fallbackMode: body.fallbackMode } : {}),
+          },
+        ),
       searchByContent: async (params) => {
         const response = await callInternalService(
           `${await baseUrl('knowledge-read', urls.knowledgeRead)}/internal/retrieval/skills/search-by-content`,

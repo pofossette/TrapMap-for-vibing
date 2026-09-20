@@ -1,6 +1,7 @@
 import type {
   BadcaseExportDraftPayload,
   RemediationReactivationPayload,
+  RetrievalLatencyEndpoint,
   SkillLookupQuery,
 } from '@trapmap/contracts';
 import type { InternalRequestOptions, InternalRpcEnvelope, ServiceResponse } from './types.js';
@@ -29,7 +30,26 @@ export interface InternalServiceClients {
   knowledgeRead: {
     getById(entryId: string): Promise<ServiceResponse>;
     listMine(userId: string, teamId?: string): Promise<ServiceResponse>;
-    search(body: { query: string; teamId?: string; limit?: number }): Promise<ServiceResponse>;
+    search(body: {
+      query: string;
+      teamId?: string;
+      limit?: number;
+      /** Internal attribution field carried over the hop. */
+      latencyEndpoint?: RetrievalLatencyEndpoint;
+    }): Promise<ServiceResponse>;
+    searchGraphPlan(body: {
+      seed: string;
+      skillBudget?: number;
+      maxDepth?: number;
+      fallbackMode?: 'auto' | 'v2-capsule' | 'v1-graph-assisted';
+      latencyEndpoint?: RetrievalLatencyEndpoint;
+    }): Promise<ServiceResponse>;
+    searchCapsules(body: {
+      query: string;
+      teamId?: string;
+      limit?: number;
+      latencyEndpoint?: RetrievalLatencyEndpoint;
+    }): Promise<ServiceResponse>;
     searchByContent(params: SkillLookupQuery): Promise<ServiceResponse>;
     searchGenes(body: unknown, options?: InternalRequestOptions): Promise<ServiceResponse>;
     getProjectionStatus(): Promise<ServiceResponse>;

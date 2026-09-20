@@ -22,6 +22,7 @@ import {
   adminArtifactQuerySchema,
   adminGraphQuerySchema,
   adminReviewQueueQuerySchema,
+  graphPlanSearchQuerySchema,
   type SkillLookupQuery,
   skillLookupQuerySchema,
 } from '@trapmap/contracts';
@@ -387,6 +388,23 @@ export const searchBodySchema = z.object({
     query: z.string(),
     teamId: z.string().optional(),
     limit: z.number().optional(),
+  }),
+});
+
+/** Trap-first graph-plan (v3) body: seed plus plan-compilation knobs. */
+export const graphPlanSearchBodySchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: graphPlanSearchQuerySchema,
+});
+
+/** Capsule-native v2 body: the seed is the only required client input. */
+export const capsuleSearchBodySchema = z.object({
+  params: emptyRecord,
+  query: emptyRecord,
+  body: z.object({
+    seed: z.string().min(1),
+    maxResults: z.number().int().positive().optional(),
   }),
 });
 
