@@ -897,7 +897,6 @@ CREATE INDEX IF NOT EXISTS "idx_retrieval_badcase_entry" ON "retrieval_badcase_t
 CREATE INDEX IF NOT EXISTS "idx_capsule_embeddings_artifact_revision" ON "skill_artifact_capsule_embeddings" USING btree ("artifact_id","revision_no");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_embeddings_status" ON "skill_artifact_capsule_embeddings" USING btree ("status");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_embeddings_vector_hnsw" ON "skill_artifact_capsule_embeddings" USING hnsw ("embedding" vector_cosine_ops);--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "idx_capsules_fulltext_gin" ON "skill_artifact_capsules" USING gin (to_tsvector('english', content || ' ' || coalesce(contextual_prefix, '')));--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_keywords_artifact_revision" ON "skill_artifact_capsule_keywords" USING btree ("artifact_id","revision_no");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_keywords_tokens_gin" ON "skill_artifact_capsule_keywords" USING gin ("tokens");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_capsule_keywords_status" ON "skill_artifact_capsule_keywords" USING btree ("status");
