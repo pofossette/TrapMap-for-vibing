@@ -66,7 +66,7 @@ pnpm check:fallow
 
 1. 下载 baseline 产物（缺失时跳过）
 2. 自检 eval 帮助面：`pnpm --filter @trapmap/evals eval -- smoke --help`
-3. 构建 candidate-worker 与 outbox-worker 镜像，校验 `replicas: 2` closeout 接线
+3. 构建分布式 worker 镜像（candidate-worker 与 outbox-worker 共用 `trap-map-host-distributed`，单次 `docker build`），校验 `replicas: 2` closeout 接线
 4. 跑 `pnpm --filter @trapmap/evals eval:ci`（默认 smoke tier，带 baseline 对比）
 5. 跑 PG 协调的 `pnpm --filter @trapmap/evals eval:smoke`（需要 Docker）
 6. 跑 experience-gene smoke（shadow）与 core（serve）两道门

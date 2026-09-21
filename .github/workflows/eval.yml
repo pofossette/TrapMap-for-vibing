@@ -50,7 +50,10 @@ jobs:
         run: pnpm --filter @trapmap/evals eval -- smoke --help
 
       - name: Build candidate-worker and outbox-worker images
-        run: docker compose --profile distributed build candidate-worker outbox-worker
+        # Both workers share the same image tag (trap-map-host-distributed),
+        # so building the image once avoids compose's two concurrent exports
+        # of an identical image, which kept exhausting the hosted runner.
+        run: docker build -f apps/distributed/Dockerfile -t trap-map-host-distributed:latest .
 
       - name: Verify replicas=2 closeout wiring (docker compose config)
         run: |
@@ -181,7 +184,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build candidate-worker and outbox-worker images
-        run: docker compose --profile distributed build candidate-worker outbox-worker
+        # Both workers share the same image tag (trap-map-host-distributed),
+        # so building the image once avoids compose's two concurrent exports
+        # of an identical image, which kept exhausting the hosted runner.
+        run: docker build -f apps/distributed/Dockerfile -t trap-map-host-distributed:latest .
 
       - name: Verify replicas=2 closeout wiring (docker compose config)
         run: |
