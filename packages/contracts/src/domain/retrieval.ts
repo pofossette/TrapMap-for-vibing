@@ -1,6 +1,6 @@
 import { z } from 'zod';
+import { retrievalLatencyEndpointSchema } from '../enum-types/retrieval-latency.js';
 import { skillCapsuleSchema, skillScriptDescriptorSchema } from './artifacts.js';
-
 import { boundaryContextSchema, boundaryExplanationSchema } from './boundary.js';
 import {
   entityIdSchema,
@@ -11,7 +11,6 @@ import {
 } from './common.js';
 import { conflictHintSchema } from './conflict.js';
 import { canonicalPathSchema } from './path-validation.js';
-import { retrievalLatencyEndpointSchema } from '../enum-types/retrieval-latency.js';
 import { planQuerySchema, trapFirstPlanSchema } from './plans.js';
 
 /**

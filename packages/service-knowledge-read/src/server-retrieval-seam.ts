@@ -28,6 +28,7 @@ import type {
   ResolvedAuthContext,
   SkillShareerRepos,
 } from './context.js';
+import { buildRetrievalReadModel } from './read-model.js';
 import { createDefaultKnowledgeReadRetrievalInfra } from './retrieval-infra-default.js';
 import { keywordChannel } from './retrieval-keyword.js';
 import {
@@ -35,14 +36,13 @@ import {
   type RetrievalStrategy,
   StrategyRegistry,
 } from './retrieval-orchestration.js';
+import { getCachedRetrievalReadModel } from './retrieval-read-model-cache.js';
 import {
   graphAssistedHybridRecall,
   hybridRecall,
   semanticRecall,
 } from './retrieval-recall-coordinator.js';
 import { semanticChannel } from './retrieval-semantic.js';
-import { buildRetrievalReadModel } from './read-model.js';
-import { getCachedRetrievalReadModel } from './retrieval-read-model-cache.js';
 import { searchV2 } from './search/search-v2.js';
 import { searchV3 } from './search/search-v3-plan.js';
 import { RETRIEVAL_DEFAULT_LIMIT, searchKnowledge } from './search-knowledge.js';

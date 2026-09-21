@@ -188,7 +188,7 @@ export async function optimizedSemanticRecall(
     console.error(
       '[semantic-debug] batchEmbeddings',
       JSON.stringify(stats),
-      (performance.now() - t0).toFixed(2) + 'ms',
+      `${(performance.now() - t0).toFixed(2)}ms`,
     );
   }
   const freshnessConfig = getRetrievalInfra(services).scoring.freshnessConfig;
@@ -254,7 +254,7 @@ export async function optimizedSemanticRecall(
   if (process.env.TRAPMAP_DEBUG_SEMANTIC) {
     console.error(
       '[semantic-debug] recall total',
-      (performance.now() - t0).toFixed(2) + 'ms',
+      `${(performance.now() - t0).toFixed(2)}ms`,
       'entries:',
       entries.length,
     );

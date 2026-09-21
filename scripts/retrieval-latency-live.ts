@@ -21,16 +21,16 @@
  *       --entries 500 --queries 40 --warmup 5
  */
 
-import { writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
 
 import {
   type LatencySummary,
   type RetrievalLatencyEndpoint,
   summarizeLatency,
 } from '@trapmap/contracts';
-import { createKnowledgeEmbeddingsVectorSearchPort } from '../packages/service-knowledge-read/src/knowledge-vector-search-port.js';
 import { nowIso } from '@trapmap/lib';
+import { createKnowledgeEmbeddingsVectorSearchPort } from '../packages/service-knowledge-read/src/knowledge-vector-search-port.js';
 
 import { buildPostgresComposedServer } from './testing/postgres-server-composition.js';
 
@@ -119,15 +119,6 @@ async function seedCapsules(
     const goal = `mitigate ${topic} by bounding concurrency and adding backpressure`;
     const contextualPrefix = `${topic} in the ${label} area`;
     const content = `${situation}\n${problem}\n${goal}`;
-    const keywords = [
-      ...new Set(
-        `${topic} ${label} ${contextualPrefix}`
-          .toLowerCase()
-          .split(/[^a-z0-9]+/)
-          .filter((token) => token.length > 1),
-      ),
-    ];
-
     await pool.query(
       `INSERT INTO skill_artifacts
          (id, team_id, scope, labels, title, slug, required_level, lifecycle_state,

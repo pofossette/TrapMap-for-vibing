@@ -25,28 +25,26 @@ import path from 'node:path';
 import type { RetrievalMetricsPort } from '@trapmap/backend-core';
 import {
   channelDimension,
-  type LatencySummary,
-  type RetrievalLatencyEndpoint,
-  type RetrievalLatencyRecord,
-  type RetrievalLatencyReport,
-  type RetrievalLatencySlice,
-  retrievalLatencyEndpointSchema,
-  summarizeLatency,
+  createRetrievalKnowledgeFixture,
   DEAD_RETRIEVAL_LATENCY_ENDPOINTS,
   DEAD_RETRIEVAL_RECALL_CHANNELS,
+  type LatencySummary,
   RETRIEVAL_PIPELINE_STAGES,
   RETRIEVAL_RECALL_CHANNELS,
+  type RetrievalLatencyEndpoint,
+  type RetrievalLatencyReport,
+  type RetrievalLatencySlice,
+  summarizeLatency,
 } from '@trapmap/contracts';
+import type { SkillShareerServices } from '@trapmap/service-knowledge-read';
 import {
   createKnowledgeReadChannelRegistry,
-  createKnowledgeReadStrategyRegistry,
   createKnowledgeReadRetrievalInfra,
+  createKnowledgeReadStrategyRegistry,
   loadRagLogConfig,
   resetRetrievalReadModelCacheForTests,
   searchKnowledge,
 } from '@trapmap/service-knowledge-read';
-import type { SkillShareerServices } from '@trapmap/service-knowledge-read';
-import { createRetrievalKnowledgeFixture } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -444,5 +442,5 @@ if (isDirectExecution) {
   });
 }
 
-export { buildCorpus, buildQueries, buildReport, formatTable, parseArgs };
 export type { BenchOptions };
+export { buildCorpus, buildQueries, buildReport, formatTable, parseArgs };

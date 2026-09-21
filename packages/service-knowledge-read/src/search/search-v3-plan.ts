@@ -1,3 +1,14 @@
+import {
+  compileExecutionPlan,
+  computePlanConfidence,
+  type GraphPlanEdgeInput,
+  type GraphPlanNodeInput,
+  normalizeGraphPlanQuery,
+  planNodeQueryCoverage,
+  resolveGraphPlanRoutingReason,
+  toGraphPlanEdgeType,
+  toPlanEdgeType,
+} from '@trapmap/backend-core';
 import type {
   GraphPlanSearchQuery,
   GraphPlanSearchResponse,
@@ -12,20 +23,9 @@ import {
   retrievalV2ResponseWithHintsSchema,
   trapFirstPlanSchema,
 } from '@trapmap/contracts';
-import { timedChannel } from '../retrieval-latency.js';
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
-import {
-  compileExecutionPlan,
-  computePlanConfidence,
-  normalizeGraphPlanQuery,
-  planNodeQueryCoverage,
-  resolveGraphPlanRoutingReason,
-  toGraphPlanEdgeType,
-  toPlanEdgeType,
-  type GraphPlanEdgeInput,
-  type GraphPlanNodeInput,
-} from '@trapmap/backend-core';
 import { generateQueryId, logRagRetrieval, type PipelineStep } from '../rag-log.js';
+import { timedChannel } from '../retrieval-latency.js';
 import { searchKnowledge } from '../search-knowledge.js';
 import { searchV2 } from './search-v2.js';
 
@@ -275,7 +275,6 @@ export function buildTrapFirstPlan(input: {
   const skills = allSkills.slice(0, input.skillBudget);
 
   const selectedIds = new Set([...traps, ...skills].map((node) => node.nodeId));
-  const byId = new Map([...traps, ...skills].map((node) => [node.nodeId, node]));
 
   const planEdges = [];
   const graphEdges = [];
@@ -372,5 +371,4 @@ export function buildTrapFirstPlan(input: {
       },
     },
   });
-  void byId;
 }

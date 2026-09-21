@@ -20,15 +20,15 @@ import path from 'node:path';
 
 import {
   channelDimension,
+  DEAD_RETRIEVAL_LATENCY_ENDPOINTS,
+  DEAD_RETRIEVAL_RECALL_CHANNELS,
+  RETRIEVAL_PIPELINE_STAGES,
+  RETRIEVAL_RECALL_CHANNELS,
   type RetrievalLatencyEndpoint,
   type RetrievalLatencyReport,
   type RetrievalLatencySlice,
   retrievalLatencyEndpointSchema,
   summarizeLatency,
-  DEAD_RETRIEVAL_LATENCY_ENDPOINTS,
-  DEAD_RETRIEVAL_RECALL_CHANNELS,
-  RETRIEVAL_PIPELINE_STAGES,
-  RETRIEVAL_RECALL_CHANNELS,
 } from '@trapmap/contracts';
 
 interface RagLogLine {

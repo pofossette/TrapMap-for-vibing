@@ -1,11 +1,11 @@
 import type {
   RetrievalLatencyEndpoint,
+  RetrievalLatencySample,
   RetrievalV2Query,
   RetrievalV2Response,
+  RoutingTrace,
 } from '@trapmap/contracts';
 import { retrievalV2ResponseSchema } from '@trapmap/contracts';
-
-import type { RetrievalLatencySample, RoutingTrace } from '@trapmap/contracts';
 
 import type { ResolvedAuthContext, SkillShareerServices } from '../context.js';
 import { generateQueryId, logRagRetrieval, type PipelineStep } from '../rag-log.js';
@@ -13,11 +13,11 @@ import { getRetrievalInfra } from '../retrieval-infra.js';
 import { timedChannel } from '../retrieval-latency.js';
 import {
   assembleCapsuleResults,
+  type CapsuleRecallContext,
   heuristicCapsuleChannel,
   keywordCapsuleChannel,
   loadCapsulePool,
   semanticCapsuleChannel,
-  type CapsuleRecallContext,
 } from './capsule-recall.js';
 import { tokenizeForScoring } from './capsule-scoring.js';
 

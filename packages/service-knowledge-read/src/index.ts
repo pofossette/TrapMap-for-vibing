@@ -67,6 +67,13 @@ export {
   tokenize,
 } from './retrieval-keyword.js';
 export {
+  DEFAULT_LATENCY_ENDPOINT,
+  emitStage,
+  resolveLatencyEndpoint,
+  timedChannel,
+  toPipelineStage,
+} from './retrieval-latency.js';
+export {
   ChannelRegistry,
   type KnowledgeReadRecallChannel,
   type RetrievalStrategy,
@@ -82,37 +89,7 @@ export {
   type RecallExecutionResult,
   semanticRecall,
 } from './retrieval-recall-coordinator.js';
-export { searchV2, searchV2Channel } from './search/search-v2.js';
-export { buildTrapFirstPlan, searchV3 } from './search/search-v3-plan.js';
-export {
-  assembleCapsuleResults,
-  heuristicCapsuleChannel,
-  keywordCapsuleChannel,
-  loadCapsulePool,
-  semanticCapsuleChannel,
-  type CapsuleRecallContext,
-  type CapsuleRecallResult,
-  type CapsuleRow,
-} from './search/capsule-recall.js';
-export {
-  CAPSULE_DIMENSION_WEIGHTS,
-  combineFinalScore,
-  DEFAULT_MIN_CAPSULE_SCORE,
-  fuseChannelRanks,
-  normalizeFused,
-  resolveMinCapsuleScore,
-  rrfContribution,
-  scoreCapsuleDimensions,
-  tokenizeForScoring,
-} from './search/capsule-scoring.js';
 export { semanticChannel } from './retrieval-semantic.js';
-export {
-  DEFAULT_LATENCY_ENDPOINT,
-  emitStage,
-  resolveLatencyEndpoint,
-  timedChannel,
-  toPipelineStage,
-} from './retrieval-latency.js';
 export {
   createKnowledgeAdminGraphRouteDefs,
   createKnowledgeReadRouteDefs,
@@ -126,6 +103,29 @@ export {
   toKnowledgeReadSearchArgs,
   toKnowledgeReadSkillLookupArgs,
 } from './routes.js';
+export {
+  assembleCapsuleResults,
+  type CapsuleRecallContext,
+  type CapsuleRecallResult,
+  type CapsuleRow,
+  heuristicCapsuleChannel,
+  keywordCapsuleChannel,
+  loadCapsulePool,
+  semanticCapsuleChannel,
+} from './search/capsule-recall.js';
+export {
+  CAPSULE_DIMENSION_WEIGHTS,
+  combineFinalScore,
+  DEFAULT_MIN_CAPSULE_SCORE,
+  fuseChannelRanks,
+  normalizeFused,
+  resolveMinCapsuleScore,
+  rrfContribution,
+  scoreCapsuleDimensions,
+  tokenizeForScoring,
+} from './search/capsule-scoring.js';
+export { searchV2, searchV2Channel } from './search/search-v2.js';
+export { buildTrapFirstPlan, searchV3 } from './search/search-v3-plan.js';
 export { searchKnowledge, updateEntryEmbeddingCache } from './search-knowledge.js';
 export {
   createKnowledgeReadServer,

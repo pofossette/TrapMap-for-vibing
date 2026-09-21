@@ -29,9 +29,9 @@ import {
   type KnowledgeReadOwnerRetrievalServicesOptions,
   loadRagLogConfig,
 } from '@trapmap/service-knowledge-read';
-import { createRetrievalOtelMetrics } from '../gateway/internal-observability.js';
 import { createKnowledgeWriteOwnerBundle } from '@trapmap/service-knowledge-write';
 import type { Pool } from 'pg';
+import { createRetrievalOtelMetrics } from '../gateway/internal-observability.js';
 
 type RetrievalServices = ReturnType<typeof createKnowledgeReadOwnerRetrievalServices>;
 

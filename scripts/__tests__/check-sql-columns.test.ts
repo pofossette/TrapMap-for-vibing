@@ -136,6 +136,7 @@ describe('sql AST analysis — acceptances', () => {
   });
 
   it('classifies a fully interpolated statement as dynamic rather than broken', () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional dynamic-SQL fixture
     expect(analyze('UPDATE ${table} SET ${cols} WHERE id = $1')).toEqual(['dynamic-statement:.']);
   });
 });
@@ -143,6 +144,7 @@ describe('sql AST analysis — acceptances', () => {
 describe('sql extraction', () => {
   it('substitutes interpolation, keeping the parameter idiom intact', () => {
     const [fragment] = extractSqlFragments(
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional dynamic-SQL fixture
       'const q = `SELECT id FROM widgets WHERE name = $${index} AND ${column} IS NULL`;',
     );
     expect(fragment?.dynamic).toBe(true);
@@ -186,6 +188,7 @@ describe('check:sql-columns end to end', () => {
       [
         'export async function load(pool: { query: (sql: string) => Promise<unknown> }) {',
         '  await pool.query(`SELECT nick_name FROM widgets WHERE id = $1`);',
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional dynamic-SQL fixture
         '  await pool.query(`UPDATE ${table} SET ${sets} WHERE id = $1`);',
         '}',
       ].join('\n'),
@@ -209,6 +212,7 @@ describe('check:sql-columns end to end', () => {
       'packages/demo/src/repository.ts',
       [
         'export async function update(pool: { query: (sql: string) => Promise<unknown> }) {',
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: intentional dynamic-SQL fixture
         '  await pool.query(`UPDATE ${table} SET ${sets} WHERE id = $1`);',
         '}',
       ].join('\n'),

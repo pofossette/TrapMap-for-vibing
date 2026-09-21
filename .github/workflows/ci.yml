@@ -140,7 +140,7 @@ jobs:
       - run: pnpm build
 
       - name: Run PG integration tests
-        run: pnpm exec vitest run packages/contracts/src/domain/task-queue.test.ts packages/host-distributed/src/shared/database-ownership.test.ts
+        run: pnpm exec vitest run packages/contracts/test/domain/task-queue.test.ts packages/host-distributed/test/shared/database-ownership.test.ts
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/trapmap
           NODE_ENV: test
@@ -224,7 +224,11 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm exec playwright install --with-deps chromium
+      # playwright is a devDependency of @trapmap/web-panel, so the install and
+      # the test run must happen inside that package's workspace context.
+      - run: pnpm --filter @trapmap/web-panel exec playwright install --with-deps chromium
+
+      - run: pnpm build
 
       - run: pnpm --filter @trapmap/web-panel build
 

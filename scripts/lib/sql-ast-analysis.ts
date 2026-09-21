@@ -285,7 +285,7 @@ function walkExpr(
 /** Columns named in an `ON CONFLICT (...)` target list. */
 function conflictTargetColumns(action: OnConflictAction): Expr[] {
   const on = action.on;
-  if (!on || on.type !== 'on expr') return [];
+  if (on?.type !== 'on expr') return [];
   return on.exprs;
 }
 

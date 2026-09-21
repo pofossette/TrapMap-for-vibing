@@ -1,11 +1,11 @@
 import type { IntentRecognitionPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
+import type { RetrievalLatencyEndpoint, RetrievalLatencySample } from '@trapmap/contracts';
 import {
   type RetrievalQuery,
   type RetrievalResponse,
   retrievalQuerySchema,
 } from '@trapmap/contracts';
-import type { RetrievalLatencyEndpoint, RetrievalLatencySample } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
 
 import { mergeArtifactsIntoRetrievalPool } from './artifact-entry-merge.js';
@@ -14,7 +14,6 @@ import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
 import { generateQueryId, logRagRetrieval, type PipelineStep } from './rag-log.js';
 import { buildRetrievalReadModel } from './read-model.js';
-import { buildRagLogEntry, buildRoutingTrace } from './search-observation.js';
 import {
   assembleResponseBuckets,
   buildEmptyResponse,
@@ -28,6 +27,7 @@ import { emitStage, resolveLatencyEndpoint, toPipelineStage } from './retrieval-
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
+import { buildRagLogEntry, buildRoutingTrace } from './search-observation.js';
 import type { KnowledgeRecord } from './store.js';
 
 /** Default max results when the caller omits an explicit limit. */

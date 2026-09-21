@@ -1,5 +1,6 @@
 import type { RouteDef } from '@trapmap/backend-core';
 import { z } from 'zod';
+import { createRetrievalRoutes } from './retrieval.js';
 import {
   actorHeadersSchema,
   artifactActivateSchema,
@@ -23,7 +24,6 @@ import {
   trustedActorOptions,
   trustedArtifactImportOptions,
 } from './shared.js';
-import { createRetrievalRoutes } from './retrieval.js';
 
 export function createKnowledgeRoutes(): RouteDef[] {
   return [

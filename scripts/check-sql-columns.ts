@@ -34,12 +34,12 @@ import { join, relative, resolve } from 'node:path';
 
 import { parseAppliedSchema } from './lib/applied-schema.js';
 import { finishCheckRun } from './lib/check-result.js';
-import { createHoleResolver } from './lib/sql-constants.js';
 import {
   analyzeSqlStatement,
   normalizeForAnalysis,
   type SqlAnalysisKind,
 } from './lib/sql-ast-analysis.js';
+import { createHoleResolver } from './lib/sql-constants.js';
 import { extractSqlFragments } from './lib/sql-extraction.js';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -206,11 +206,6 @@ function walk(dir: string, out: string[]): void {
   }
 }
 
-/** Collapse whitespace so a shape survives reformatting. */
-function statementShape(sql: string): string {
-  return sql.replace(/\s+/g, ' ').trim();
-}
-
 // ── Analysis ─────────────────────────────────────────────────────────
 
 export async function checkSqlColumns(
@@ -241,7 +236,6 @@ export async function checkSqlColumns(
       if (fragment.dynamic) dynamic += 1;
       const unresolved = fragment.holes.filter((hole) => resolveHole(hole) === null).length;
       const normalized = normalizeForAnalysis(fragment.sql);
-      const shape = statementShape(normalized);
 
       // A statement whose structure still depends on runtime values cannot be
       // verified; it must be declared, and it is reported either way.

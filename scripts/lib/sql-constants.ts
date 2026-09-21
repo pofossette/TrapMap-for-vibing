@@ -20,7 +20,7 @@
  */
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 /**
@@ -116,9 +116,7 @@ async function loadExportedTableNames(root: string): Promise<Map<string, string>
   return names;
 }
 
-export interface HoleResolver {
-  (expression: string): string | null;
-}
+export type HoleResolver = (expression: string) => string | null;
 
 /** Exported constants per package `src` dir, cached across files. */
 const packageConstantsCache = new Map<string, Map<string, string>>();

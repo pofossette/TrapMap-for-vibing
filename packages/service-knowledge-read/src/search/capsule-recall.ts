@@ -18,8 +18,8 @@ import {
   fuseChannelRanks,
   normalizeFused,
   resolveMinCapsuleScore,
-  scoreCapsuleDimensions,
   type ScorableCapsule,
+  scoreCapsuleDimensions,
 } from './capsule-scoring.js';
 
 export interface CapsuleRecallContext {
