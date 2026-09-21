@@ -51,8 +51,11 @@ jobs:
 
       - name: Build candidate-worker and outbox-worker images
         # Both workers share the same image tag (trap-map-host-distributed),
-        # so building the image once avoids compose's two concurrent exports
-        # of an identical image, which kept exhausting the hosted runner.
+        # so a single build produces the artifact both services consume.
+        # Note: the hosted runner has still been killed during the export
+        # phase with this single build (see open-debt-and-compromises.md,
+        # eval-smoke entry) — the production stage likely needs a prod-only
+        # install instead of copying the full dev-inclusive node_modules.
         run: docker build -f apps/distributed/Dockerfile -t trap-map-host-distributed:latest .
 
       - name: Verify replicas=2 closeout wiring (docker compose config)
@@ -185,8 +188,11 @@ jobs:
 
       - name: Build candidate-worker and outbox-worker images
         # Both workers share the same image tag (trap-map-host-distributed),
-        # so building the image once avoids compose's two concurrent exports
-        # of an identical image, which kept exhausting the hosted runner.
+        # so a single build produces the artifact both services consume.
+        # Note: the hosted runner has still been killed during the export
+        # phase with this single build (see open-debt-and-compromises.md,
+        # eval-smoke entry) — the production stage likely needs a prod-only
+        # install instead of copying the full dev-inclusive node_modules.
         run: docker build -f apps/distributed/Dockerfile -t trap-map-host-distributed:latest .
 
       - name: Verify replicas=2 closeout wiring (docker compose config)
