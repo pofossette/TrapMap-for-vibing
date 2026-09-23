@@ -4,14 +4,14 @@ import {
   compileExecutionPlan,
   computePlanConfidence,
   GRAPH_PLAN_MIN_CONFIDENCE,
+  type GraphPlanEdgeInput,
+  type GraphPlanNodeInput,
   normalizeGraphPlanQuery,
   planNodeQueryCoverage,
   planPredecessorsOf,
   resolveGraphPlanRoutingReason,
   toGraphPlanEdgeType,
   toPlanEdgeType,
-  type GraphPlanEdgeInput,
-  type GraphPlanNodeInput,
 } from '../../src/knowledge-read/domain/graph-plan.js';
 
 function node(overrides: Partial<GraphPlanNodeInput> & { nodeId: string }): GraphPlanNodeInput {

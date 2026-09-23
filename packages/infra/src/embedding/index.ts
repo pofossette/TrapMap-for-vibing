@@ -44,6 +44,7 @@ export async function embedWithFallback(text: string): Promise<number[]> {
     try {
       return await deterministicFallbackWithFallback(text, FALLBACK_EMBEDDING_DIMENSION, client);
     } catch {
+      // silent-fallback-ok: provider unavailable falls back to the local embedding below
       // fall through to local
     }
   }
@@ -62,7 +63,9 @@ export async function embedWithFallbackAndClient(
   if (client?.isEnabled) {
     try {
       return await deterministicFallbackWithFallback(text, dimension, client);
-    } catch {}
+    } catch {
+      // silent-fallback-ok: same local-embedding fallback as above
+    }
   }
   return createFallbackEmbedding(text, dimension);
 }

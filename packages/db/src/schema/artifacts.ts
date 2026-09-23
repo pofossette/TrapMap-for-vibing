@@ -2,9 +2,14 @@
  * Shared skill artifact domain tables.
  *
  * Covers: skill artifacts, revisions, files, script descriptors,
- * derived outputs (profiles, capsules, embeddings, keywords,
- * client manifests), boundary sub-tables, maintenance assignments,
- * agent reviews, metadata, and lifecycle events.
+ * derived capsules and their embeddings, agent reviews,
+ * and lifecycle events.
+ *
+ * Retired 2026-09-23 (zero readers/writers since the Phase-2 compression):
+ * `skill_artifact_profiles`, `skill_artifact_client_manifests` and
+ * `skill_artifact_manifest_items`. Profile/client-manifest reads go through
+ * `artifact_revisions.derived` jsonb, which is the only place those shapes are
+ * persisted today.
  */
 
 import type { Boundary, LifecycleState, Scope } from '@trapmap/contracts';
@@ -22,7 +27,6 @@ import {
   vector,
 } from 'drizzle-orm/pg-core';
 import {
-  artifactFileDetailsColumns,
   artifactRevisionItemColumns,
   artifactScriptDetailsColumns,
   auditTimestamps,
@@ -272,23 +276,6 @@ export const skillArtifactScriptDescriptors = pgTable(
   ],
 );
 
-export const skillArtifactProfiles = pgTable(
-  'skill_artifact_profiles',
-  {
-    artifactRevisionId: text('artifact_revision_id').primaryKey(),
-    artifactId: text('artifact_id').notNull(),
-    revisionNo: integer('revision_no').notNull(),
-    sourceHash: text('source_hash').notNull(),
-    title: text('title').notNull(),
-    summary: text('summary').notNull(),
-    keywords: jsonb('keywords').notNull().$type<string[]>().default([]),
-    referencePaths: jsonb('reference_paths').notNull().$type<string[]>().default([]),
-    contentHash: text('content_hash').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [index('idx_skill_artifact_profiles_artifact').on(table.artifactId, table.revisionNo)],
-);
-
 export const skillArtifactCapsules = pgTable(
   'skill_artifact_capsules',
   {
@@ -347,47 +334,6 @@ export const skillArtifactCapsuleEmbeddings = pgTable(
     check(
       'ck_skill_artifact_capsule_embeddings_scope',
       sql`${table.scope} IN ('global', 'project')`,
-    ),
-  ],
-);
-
-export const skillArtifactClientManifests = pgTable(
-  'skill_artifact_client_manifests',
-  {
-    artifactRevisionId: text('artifact_revision_id').primaryKey(),
-    artifactId: text('artifact_id').notNull(),
-    revisionNo: integer('revision_no').notNull(),
-    sourceHash: text('source_hash').notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    index('idx_skill_artifact_client_manifests_artifact').on(table.artifactId, table.revisionNo),
-  ],
-);
-
-export const skillArtifactManifestItems = pgTable(
-  'skill_artifact_manifest_items',
-  {
-    ...artifactRevisionItemColumns(),
-    ...artifactFileDetailsColumns(),
-    kind: text('kind').notNull().$type<'references' | 'assets' | 'scripts'>(),
-    // script-only columns nullable for references/assets
-    capability: text('capability'),
-    argsSchemaSummary: text('args_schema_summary'),
-    sideEffectSummary: text('side_effect_summary'),
-    defaultPolicy: text('default_policy'),
-  },
-  (table) => [
-    index('idx_skill_artifact_manifest_items_revision').on(table.artifactRevisionId),
-    index('idx_skill_artifact_manifest_items_kind').on(table.kind),
-    uniqueIndex('idx_skill_artifact_manifest_items_revision_kind_path').on(
-      table.artifactRevisionId,
-      table.kind,
-      table.path,
-    ),
-    check(
-      'ck_skill_artifact_manifest_items_kind',
-      sql`${table.kind} IN ('references', 'assets', 'scripts')`,
     ),
   ],
 );

@@ -71,6 +71,7 @@ interface ObservabilityRegistry {
   retrievalSearchTotal: Counter;
   retrievalStageDuration: Histogram;
   retrievalChannelDuration: Histogram;
+  retrievalDegradedTotal: Counter;
 }
 
 function createRegistry(): ObservabilityRegistry {
@@ -136,6 +137,9 @@ function createRegistry(): ObservabilityRegistry {
     }),
     retrievalChannelDuration: meter.createHistogram('trapmap_retrieval_channel_duration_ms', {
       description: 'Retrieval recall-channel duration in milliseconds',
+    }),
+    retrievalDegradedTotal: meter.createCounter('trapmap_retrieval_degraded_total', {
+      description: 'Retrieval requests served by a fallback path instead of the primary one',
     }),
   };
 }
@@ -269,6 +273,12 @@ export function createRetrievalOtelMetrics(): RetrievalMetricsPort {
       registry.retrievalChannelDuration.record(params.durationMs, {
         endpoint: params.endpoint,
         channel: params.channel,
+      });
+    },
+    recordDegraded(params) {
+      registry.retrievalDegradedTotal.add(1, {
+        endpoint: params.endpoint,
+        reason: params.reason,
       });
     },
   };

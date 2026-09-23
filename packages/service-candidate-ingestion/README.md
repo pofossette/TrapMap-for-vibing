@@ -14,7 +14,7 @@
 | --- | --- |
 | `@trapmap/backend-core` | 端口契约与模块底座 |
 | `@trapmap/contracts` | 候选 schema |
-| `@trapmap/db` | 表定义（`candidates`、`candidate_analyses`、`candidate_duplicate_*`、`candidate_manual_results`、`candidate_resolution_outcomes`、`entity_lineage`） |
+| `@trapmap/db` | 表定义（`candidates`（含 `analysis` jsonb）、`candidate_duplicate_cases`（含 `matches` jsonb）、`candidate_outcomes`（`kind` 区分 `manual`/`resolution`，主键 `(candidate_id, kind)`）、`entity_lineage`） |
 | `@trapmap/ai-providers` | LLM 辅助分析 |
 | `@trapmap/infra` | 共享基础设施 |
 | `@trapmap/lib` | 纯函数工具 |

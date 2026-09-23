@@ -152,7 +152,7 @@ async function keywordRecall(
               ts_rank(p.document, websearch_to_tsquery('english', $1)) * 5)) AS keyword_score,
             0.0 AS semantic_score
      FROM experience_genes g
-     JOIN experience_gene_search_documents p ON p.gene_id = g.id
+     JOIN experience_gene_embeddings p ON p.gene_id = g.id
      WHERE ${conditions.join(' AND ')}
        AND p.document @@ websearch_to_tsquery('english', $1)
      ORDER BY keyword_score DESC, g.id ASC

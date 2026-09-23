@@ -237,7 +237,9 @@ export async function deriveExperienceGeneFromRule(
         ],
         goClient,
       );
-    } catch {}
+    } catch {
+      // silent-fallback-ok: warm-up call for Go bottleneck metrics only; its result is unused
+    }
   }
   const extracted = extractRuleExperienceGene({
     snapshot,

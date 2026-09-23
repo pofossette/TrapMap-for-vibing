@@ -136,6 +136,7 @@ export async function createHostLocalSharedInfra(
       ai = wrapProvidersWithObservation(ai, langfuseSink, correlationGetter);
     }
   } catch {
+    // silent-fallback-ok: optional telemetry sink: absent or failing sink is a supported mode
     // Sink creation failure is a safe diagnostic
   }
 

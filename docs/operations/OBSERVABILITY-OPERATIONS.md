@@ -139,10 +139,18 @@ label 只取低基数枚举（mode、source、generator、outcome、reason-class
 | `trapmap_retrieval_search_total` | `endpoint`, `outcome` | 请求量与结果分类 |
 | `trapmap_retrieval_stage_duration_ms` | `endpoint`, `stage` | 管道阶段分解（parse / snapshot / eligibility / boundary-filter / routing / recall / assembly / summary / refinement） |
 | `trapmap_retrieval_channel_duration_ms` | `endpoint`, `channel` | 召回通道分解（keyword / semantic / graph / heuristic） |
+| `trapmap_retrieval_degraded_total` | `endpoint`, `reason` | 走了降级路径的请求数（**不是**延迟，是正确性信号） |
 
 Buckets：`[5, 10, 25, 50, 100, 200, 400, 800, 1600, 3200]` ms。host-local 经 Prometheus 输出，host-distributed 经共享 OTel registry 输出同名序列。
 
-`endpoint` 取值 `v1-search` / `v1-skills` / `v2-capsule` / `v3-graph-plan` / `unknown`。`v2-capsule` 与 `channel="heuristic"` 是**保留但无实现**的维度：`/v2/retrieval/search` 没有宿主注册（`scripts/check-route-surface.ts` 的 `SURFACE_EXEMPTIONS`），`heuristic` 随已删除的 `packages/server`（Wave-10）退役。它们的序列恒为 0，不得解读为"极快"，也不参与告警。
+`endpoint` 取值 `v1-search` / `v1-skills` / `v2-capsule` / `v3-graph-plan` / `unknown`，四路端点都有宿主注册（`/v2/retrieval/search` 自 2026-09-19 起在双宿主就位，`scripts/check-route-surface.ts` 的 `SURFACE_EXEMPTIONS` 已清空）；`channel="heuristic"` 随已删除的 `packages/server`（Wave-10）退役，序列恒为 0，不得解读为"极快"，也不参与告警。
+
+`trapmap_retrieval_degraded_total` 的 `reason` 取值见契约枚举 `RETRIEVAL_DEGRADED_REASONS`：`db-search-failed`（hybrid 的 DB 召回失败，回落到内存 O(n) 路径）、`db-vector-search-failed`（semantic 的向量检索失败，同上）、`rerank-fallback`（Go 排序加速器失败，回落本地排序）。**这三条路径都会正常返回 200**，所以本计数器是判断"主路径是否真的在工作"的唯一外部依据：
+
+```promql
+# 任一降级路径的速率 > 0 即表示主路径有问题，按 endpoint × reason 下钻
+sum by (endpoint, reason) (rate(trapmap_retrieval_degraded_total[5m]))
+```
 
 `endpoint` 由路由层逐次调用传入（`RetrievalSearchParams.latencyEndpoint`）：`/v1` 与 `/v3` 共用同一个 `RetrievalQueryPort` 实例，无法在构造期绑定。
 
@@ -193,7 +201,7 @@ readinessProbe:
 
 ### 告警规则
 
-初期建议配这五条 Grafana alert rule：`ReadinessDegraded`（`/ready` SLO 连 2 窗口低于 99.5%，warning）、`HighErrorRate`（5xx 连 2 窗口超 1%，critical）、`HighLatency`（P95 连 3 窗口超 500ms，warning）、`RetrievalLatencyRegressed`（任一 `endpoint` 的检索 P95 连 3 窗口超基线 2 倍，warning；`v2-capsule` 因无实现除外）、`DependencyUnhealthy`（任一依赖 `unhealthy` 持续 2 分钟，critical）、`InstanceNotReady`（`not-ready` 持续 1 分钟，critical）。具体 JSON 与 YAML 定义后续迭代补到 `infra/grafana/alerts/` 目录。
+初期建议配这些 Grafana alert rule：`ReadinessDegraded`（`/ready` SLO 连 2 窗口低于 99.5%，warning）、`HighErrorRate`（5xx 连 2 窗口超 1%，critical）、`HighLatency`（P95 连 3 窗口超 500ms，warning）、`RetrievalLatencyRegressed`（任一 `endpoint` 的检索 P95 连 3 窗口超基线 2 倍，warning）、`RetrievalDegraded`（`sum by (endpoint, reason) (rate(trapmap_retrieval_degraded_total[5m])) > 0` 连 2 窗口，warning——降级路径仍返回 200，延迟类告警抓不到它）、`DependencyUnhealthy`（任一依赖 `unhealthy` 持续 2 分钟，critical）、`InstanceNotReady`（`not-ready` 持续 1 分钟，critical）。具体 JSON 与 YAML 定义后续迭代补到 `infra/grafana/alerts/` 目录。
 
 ## 故障排查快速参考
 

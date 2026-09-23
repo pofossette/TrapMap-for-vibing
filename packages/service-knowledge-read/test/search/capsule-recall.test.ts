@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assembleCapsuleResults,
-  heuristicCapsuleChannel,
   type CapsuleRow,
+  heuristicCapsuleChannel,
 } from '../../src/search/capsule-recall.js';
 import {
   CAPSULE_DIMENSION_WEIGHTS,

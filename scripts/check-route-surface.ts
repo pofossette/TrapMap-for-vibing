@@ -54,8 +54,10 @@ export const SURFACE_EXEMPTIONS: readonly string[] = [];
  * (Wave-10 deleted) docs still present in `docs/reference/api-surface.md`
  * for historical reference but not implemented in any host gateway. They are
  * tracked together in `docs/todos/open-debt-and-compromises.md` and
- * `SURFACE_EXEMPTIONS` still only holds `/v2/retrieval/search`. New paths must
- * never be added here; fix the route or documentation instead.
+ * `SURFACE_EXEMPTIONS` is empty (2026-09-19): its only entry,
+ * `/v2/retrieval/search`, became a real route when the capsule pipeline landed
+ * on both hosts. New paths must never be added there; fix the route or the
+ * documentation instead.
  */
 export const SURFACE_INVENTORY_DRIFT: readonly string[] = [
   '/v1/admin/reconcile-knowledge-indexes',
@@ -236,9 +238,11 @@ const REAL_ROUTE_FILES = [
   'packages/service-knowledge-read/src/experience-gene-routes.ts',
   'packages/host-local/src/nest/gateway/gateway.route-defs.ts',
   'packages/host-local/src/nest/gateway/gateway.cron-route-defs.ts',
+  'packages/host-local/src/nest/gateway/gateway.retrieval-route-defs.ts',
   'packages/host-distributed/src/gateway/route-defs.ts',
   'packages/host-distributed/src/gateway/route-defs/shared.ts',
   'packages/host-distributed/src/gateway/route-defs/knowledge.ts',
+  'packages/host-distributed/src/gateway/route-defs/retrieval.ts',
   'packages/host-distributed/src/gateway/route-defs/identity.ts',
   'packages/host-distributed/src/gateway/route-defs/candidate.ts',
   'packages/host-distributed/src/gateway/route-defs/governance.ts',

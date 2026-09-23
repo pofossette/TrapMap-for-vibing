@@ -116,3 +116,30 @@ export type RetrievalPipelineStage = z.infer<typeof retrievalPipelineStageSchema
 export const retrievalLatencyOutcomeSchema = z.enum(['ok', 'empty', 'error']);
 
 export type RetrievalLatencyOutcome = z.infer<typeof retrievalLatencyOutcomeSchema>;
+
+// ---------------------------------------------------------------------------
+// Degraded paths (silent fallbacks)
+// ---------------------------------------------------------------------------
+
+/**
+ * Reasons a retrieval request fell back to a cheaper code path.
+ *
+ * Every value here names a `catch` branch that used to end in `console.error`
+ * and nothing else: the DB recall branches degrade to the in-memory O(n) path
+ * and the Go rerank call degrades to local scoring. The retrieval-latency
+ * incident proved those fallbacks are invisible from the outside — a broken
+ * DB query looked like a fast memory-only response — so each one now emits a
+ * counter sample as well.
+ *
+ * Names stay coarse on purpose: this enum is a metric label, so the set must
+ * remain closed and low-cardinality (no error text, no entry ids).
+ */
+export const RETRIEVAL_DEGRADED_REASONS = [
+  'db-search-failed',
+  'db-vector-search-failed',
+  'rerank-fallback',
+] as const;
+
+export const retrievalDegradedReasonSchema = z.enum(RETRIEVAL_DEGRADED_REASONS);
+
+export type RetrievalDegradedReason = z.infer<typeof retrievalDegradedReasonSchema>;

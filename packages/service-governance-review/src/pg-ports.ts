@@ -110,7 +110,9 @@ async function getCustomAnswers(
     try {
       const parsed = JSON.parse(raw as string);
       if (Array.isArray(parsed)) return parsed as Array<{ prompt: string; answer: string }>;
-    } catch {}
+    } catch {
+      // silent-fallback-ok: a malformed custom_answers row is tolerated: absent answers read as empty
+    }
   }
   return [];
 }

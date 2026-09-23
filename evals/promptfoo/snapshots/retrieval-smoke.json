@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "suiteId": "retrieval",
   "tier": "smoke",
-  "generatedAt": "2026-08-09T07:08:38.724Z",
+  "generatedAt": "2026-09-21T02:39:02.655Z",
   "command": "tsx scripts/run-postgres-coordinated.ts -- pnpm exec tsx evals/promptfoo/scripts/generate-snapshots.ts",
   "cases": [
     {
@@ -42,10 +42,10 @@
     },
     {
       "caseId": "v1-skill-lookup-positive-smoke",
-      "passed": false,
-      "hitAt1": 0,
-      "mrr": 0,
-      "ndcg": 0
+      "passed": true,
+      "hitAt1": 1,
+      "mrr": 1,
+      "ndcg": 1
     },
     {
       "caseId": "v2-capsule-empty-smoke",
@@ -154,14 +154,14 @@
     },
     {
       "caseId": "v3-graph-plan-fallback-v1-smoke",
-      "passed": false,
-      "hitAt1": 0,
-      "mrr": 0,
-      "ndcg": 0
+      "passed": true,
+      "hitAt1": 1,
+      "mrr": 1,
+      "ndcg": 1
     },
     {
       "caseId": "v3-graph-plan-fallback-v2-smoke",
-      "passed": false,
+      "passed": true,
       "hitAt1": 0,
       "mrr": 0,
       "ndcg": 0

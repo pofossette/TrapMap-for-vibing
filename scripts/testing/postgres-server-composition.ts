@@ -6,10 +6,10 @@
  */
 
 import { createHash } from 'node:crypto';
-
+import { registerFastifyRoutes } from '@trapmap/backend-core';
+import { createExperienceGeneRouteDefs } from '@trapmap/service-knowledge-read';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import Fastify from 'fastify';
-
 import type { KnowledgeOwnerPort } from '../../packages/contracts/src/index.js';
 import {
   createHostLocalRuntime,
@@ -17,8 +17,6 @@ import {
 } from '../../packages/host-local/src/nest/runtime/host-runtime.js';
 import type { HostLocalServices } from '../../packages/host-local/src/nest/runtime/host-services.js';
 import type { ArtifactWritePort } from '../../packages/service-knowledge-write/src/artifact-ports.js';
-import { createExperienceGeneRouteDefs } from '@trapmap/service-knowledge-read';
-import { registerFastifyRoutes } from '@trapmap/backend-core';
 
 export interface PostgresComposedServer {
   /** Fastify app for HTTP injection testing. */

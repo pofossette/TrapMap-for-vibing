@@ -110,7 +110,7 @@ async function trapSignal(pool: Queryable, entryId: string) {
 
 const ARTIFACT_SQL = `
   SELECT sa.id AS artifact_id, sa.title, sa.labels, sa.scope, sa.team_id, sa.required_level,
-         sa.lifecycle_state, sa.remediation, ar.revision_no, ar.source_hash
+         sa.lifecycle_state, ar.revision_no, ar.source_hash
   FROM skill_artifacts sa
   LEFT JOIN LATERAL (
     SELECT revision_no, source_hash FROM artifact_revisions
@@ -125,7 +125,7 @@ async function artifactTargets(pool: Queryable, artifactId: string) {
     `SELECT cap.capsule_id, cap.content, cap.situation, cap.problem, cap.goal,
             cap.error_text, cap.contextual_prefix, cap.source_paths, cap.revision_no,
             sa.title AS artifact_title, sa.labels, sa.scope, sa.team_id, sa.required_level,
-            sa.lifecycle_state, sa.remediation
+            sa.lifecycle_state
      FROM skill_artifact_capsules cap
      JOIN skill_artifacts sa ON sa.id = cap.artifact_id
      WHERE cap.artifact_id = $1 ORDER BY cap.capsule_id`,
@@ -133,9 +133,10 @@ async function artifactTargets(pool: Queryable, artifactId: string) {
   );
   const shared = governanceSignal(artifact);
   const lifecycleState = stalenessLifecycle(artifact.lifecycle_state);
-  const remediationSuppressed =
-    suppressed((artifact.remediation as Row | null)?.suppressedFromRetrieval) ||
-    suppressed((artifact.remediation as Row | null)?.suppressedFromIndex);
+  // Remediation suppression is tracked on knowledge entries only; artifacts
+  // have no remediation column, so their derived genes are never suppressed
+  // by it (lifecycle_state is their gate).
+  const remediationSuppressed = false;
   const targets: Array<{
     kind: ExperienceGene['source']['kind'];
     sourceId: string;

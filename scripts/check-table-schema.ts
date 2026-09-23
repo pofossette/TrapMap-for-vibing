@@ -15,11 +15,16 @@
  * Doc index rows (names ending in `_idx`) inside "### ... 关键索引" tables are
  * not tables and are excluded from the inventory.
  *
- * store_snapshot note: the identity-access migration SQL still contains a
- * legacy `CREATE TABLE store_snapshot` (66 CREATE TABLE total = 64 +
- * conflict_relations + store_snapshot). The guard intentionally scopes to
- * db/src/schema, the authoritative 64-table source; migration-SQL
- * residue is tracked in the cleanup mainline, not here.
+ * Scope: models vs documentation only. The other half — models vs the DDL that
+ * `runMigrations` actually executes (`packages/db/migrations/schema.sql`) — is
+ * `check:schema-parity`, which exists because a compression commit once moved
+ * the models without writing a migration. The two once diverged on
+ * `conflict_relations` (present in the DDL, missing from the models and listed
+ * here as a documented exception); as of 2026-09-20 it is modelled in
+ * `packages/db/src/schema/governance.ts`, so both guards cover one inventory.
+ *
+ * store_snapshot note: the identity-access migration SQL no longer creates it
+ * (retired in the A7 batch); this guard never depended on the migration file.
  */
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs';

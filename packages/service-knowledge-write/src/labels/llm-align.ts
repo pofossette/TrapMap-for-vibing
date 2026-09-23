@@ -255,6 +255,7 @@ async function invokeWithParseRetry<T>(options: {
       );
       if (parsed.success) return parsed.data;
     } catch {
+      // silent-fallback-ok: invalid provider output shares the provider-error retry policy
       // Invalid provider output follows the same retry policy as provider errors.
     }
     if (attempt < options.maxRetries) {

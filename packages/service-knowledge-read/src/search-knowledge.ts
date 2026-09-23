@@ -1,24 +1,18 @@
 import type { IntentRecognitionPort } from '@trapmap/backend-core';
 import { InvocationError } from '@trapmap/backend-core';
+import type { RetrievalLatencyEndpoint, RetrievalLatencySample } from '@trapmap/contracts';
 import {
   type RetrievalQuery,
   type RetrievalResponse,
-  type RoutingTrace,
   retrievalQuerySchema,
 } from '@trapmap/contracts';
-import type { RetrievalLatencyEndpoint, RetrievalLatencySample } from '@trapmap/contracts';
 import { nowIso } from '@trapmap/lib';
 
 import { mergeArtifactsIntoRetrievalPool } from './artifact-entry-merge.js';
 import type { ResolvedAuthContext, SkillShareerServices } from './context.js';
 import { filterByBoundaryContext, filterEligibleEntries } from './filters.js';
 import { createRuleIntentRecognition } from './intent-recognition/rule-intent-recognition.js';
-import {
-  generateQueryId,
-  logRagRetrieval,
-  type PipelineStep,
-  type RagLogEntry,
-} from './rag-log.js';
+import { generateQueryId, logRagRetrieval, type PipelineStep } from './rag-log.js';
 import { buildRetrievalReadModel } from './read-model.js';
 import {
   assembleResponseBuckets,
@@ -33,22 +27,11 @@ import { emitStage, resolveLatencyEndpoint, toPipelineStage } from './retrieval-
 import { dispatchByMode, inferChannelsFromMerged } from './retrieval-recall-coordinator.js';
 import { buildEmbeddingText } from './retrieval-semantic.js';
 import type { ScoredEntry } from './retrieval-types.js';
+import { buildRagLogEntry, buildRoutingTrace } from './search-observation.js';
 import type { KnowledgeRecord } from './store.js';
 
 /** Default max results when the caller omits an explicit limit. */
 export const RETRIEVAL_DEFAULT_LIMIT = Number(process.env.TRAPMAP_RETRIEVAL_DEFAULT_LIMIT ?? 10);
-
-function buildRoutingTrace(
-  services: SkillShareerServices,
-  routingDecision: ReturnType<ReturnType<typeof getRetrievalInfra>['routing']['selectStrategy']>,
-  recallTrace?: { graph?: unknown },
-): RoutingTrace {
-  const infra = getRetrievalInfra(services);
-  return {
-    ...infra.routing.toRoutingTrace(routingDecision),
-    ...(recallTrace?.graph ? { graphRetrieval: recallTrace.graph } : {}),
-  } as RoutingTrace;
-}
 
 /**
  * Resolve the D8 intent-recognition judgment port (design D8 call-site
@@ -89,52 +72,6 @@ async function timedStep<T>(
   }
   steps.push(step);
   return result;
-}
-
-function buildRagLogEntry(options: {
-  auth: ResolvedAuthContext;
-  endpoint: RetrievalLatencyEndpoint;
-  includeRefinement: boolean;
-  includeSummary: boolean;
-  maxResults: number;
-  mode: string;
-  queryId: string;
-  resultCount: number;
-  routingTrace: RoutingTrace;
-  seed: string;
-  startedAtMs: number;
-  steps: PipelineStep[];
-  channelSteps?: RetrievalLatencySample[];
-  filters?: RetrievalQuery['filters'];
-}): RagLogEntry {
-  const metadata: RagLogEntry['metadata'] = {
-    maxResults: options.maxResults,
-    includeSummary: options.includeSummary,
-    includeRefinement: options.includeRefinement,
-    routingTrace: options.routingTrace,
-    latencyEndpoint: options.endpoint,
-  };
-  if (options.filters) {
-    metadata.filters = {
-      labels: options.filters.labels,
-      scopes: options.filters.scopes,
-    };
-  }
-  return {
-    timestamp: new Date(options.startedAtMs).toISOString(),
-    queryId: options.queryId,
-    seed: options.seed,
-    mode: options.mode as RagLogEntry['mode'],
-    actorId: options.auth.actorId,
-    teamId: options.auth.activeTeamId,
-    pipelineSteps: options.steps,
-    ...(options.channelSteps && options.channelSteps.length > 0
-      ? { channelSteps: options.channelSteps }
-      : {}),
-    totalLatencyMs: Date.now() - options.startedAtMs,
-    resultCount: options.resultCount,
-    metadata,
-  };
 }
 
 export async function searchKnowledge(

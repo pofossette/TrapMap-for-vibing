@@ -1,6 +1,8 @@
 # 异步模型
 
-> 真源：`packages/service-job-runtime`（queue / outbox / workflow）、`packages/contracts/src/domain/async.ts`。各 shared job 的契约表见 [ASYNC_SHARED_JOB_CONTRACTS](ASYNC_SHARED_JOB_CONTRACTS.md)，本页只讲模型。状态：Active。
+> 真源：`packages/service-job-runtime`（queue / outbox）、`packages/contracts/src/domain/async.ts`。各 shared job 的契约表见 [ASYNC_SHARED_JOB_CONTRACTS](ASYNC_SHARED_JOB_CONTRACTS.md)，本页只讲模型。状态：Active。
+
+> 2026-09-23：`workflow_runs` 表退役（建模与 DDL 都在，但从未被任何 job handler 读写），长任务 checkpoint 由 `task_queue` 行与 outbox 事件承载。
 
 ## 模型
 
@@ -10,7 +12,7 @@ Authoritative Write (PG 事务内)
   ├─ domain_event_outbox 注册
   └─ task_queue 注册
        ↓
-Async Substrate (task_queue + domain_event_outbox + workflow_runs)
+Async Substrate (task_queue + domain_event_outbox)
        ↓
 Workers (Outbox Worker + Task Worker, 携带 lease)
        ↓
@@ -32,7 +34,7 @@ Operator (/v1/operations/status/async, /metrics)
 
 ## Queue 与 Outbox 约束
 
-`queueFactory` 与 `outboxFactory` 由 `service-job-runtime` 暴露（`packages/service-job-runtime/src/deps.ts`），host 在 bootstrap 阶段装配。重试为指数退避，失败进 `failed`，需人工介入的进 `dead`；`workflow_runs` 记录长任务 checkpoint。job handler 以 `dedupeKey` 去重，支持 `reclaim / retry / resume`。
+`queueFactory` 与 `outboxFactory` 由 `service-job-runtime` 暴露（`packages/service-job-runtime/src/deps.ts`），host 在 bootstrap 阶段装配。重试为指数退避，失败进 `failed`，需人工介入的进 `dead`；`dedupeKey` 去重，支持 `reclaim / retry / resume`。
 
 ```mermaid
 flowchart TB
@@ -45,12 +47,10 @@ flowchart TB
     OW --> Sub[生命周期订阅]
     TW --> Cand[candidate-processing]
     TW --> Shared[shared jobs]
-    Cand --> Wf[workflow_runs]
-    Shared --> Wf
-    Sub --> RM[read-model cache]
+    OW --> RM[read-model cache]
     Shared --> RM
     Queue --> AS[/v1\/operations\/status\/async/]
-    Wf --> AS
+    RM --> AS
 ```
 
 ## Transport

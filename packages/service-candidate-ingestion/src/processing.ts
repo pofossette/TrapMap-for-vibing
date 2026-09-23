@@ -94,6 +94,7 @@ export async function processCandidate(
           }
         }
       } catch {
+        // silent-fallback-ok: the fallback path is already handled by the caller below
         // fallback already handled
       }
     }

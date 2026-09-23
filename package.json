@@ -41,6 +41,8 @@
     "check:complexity": "pnpm exec tsx scripts/check-complexity-budgets.ts",
     "duplication": "jscpd --config .jscpd.json packages apps scripts evals",
     "check:asserts": "pnpm exec tsx scripts/check-naked-asserts.ts",
+    "check:sql-columns": "pnpm exec tsx scripts/check-sql-columns.ts",
+    "check:schema-parity": "pnpm exec tsx scripts/check-schema-parity.ts",
     "check:table-schema": "pnpm exec tsx scripts/check-table-schema.ts",
     "check:pgtable-single-source": "pnpm exec tsx scripts/check-pgtable-single-source.ts",
     "check:eval-imports": "pnpm exec tsx scripts/check-eval-imports.ts",
@@ -48,7 +50,7 @@
     "test:distributed-acceptance": "pnpm --filter @trapmap/host-distributed test:acceptance",
     "test:light-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test light",
     "test:heavy-target": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/run-backend-target.ts test heavy",
-    "test:observability-closeout": "vitest run packages/host-local/test/nest/health/health.controller.test.ts packages/host-local/test/nest/observability/observability-chain.test.ts packages/host-local/test/nest/observability/prometheus.service.test.ts packages/contracts/src/domain/log-schema.test.ts packages/host-local/test/nest/observability/langfuse.service.test.ts packages/contracts/src/domain/observability-config.test.ts packages/ai-providers/src/observability.test.ts packages/host-local/test/nest/observability/langfuse-sink.test.ts",
+    "test:observability-closeout": "vitest run packages/host-local/test/nest/health/health.controller.test.ts packages/host-local/test/nest/observability/observability-chain.test.ts packages/host-local/test/nest/observability/prometheus.service.test.ts packages/contracts/src/domain/log-schema.test.ts packages/host-local/test/nest/observability/langfuse.service.test.ts packages/contracts/src/domain/observability-config.test.ts packages/ai-providers/src/observability.test.ts packages/host-local/test/nest/observability/langfuse-sink.test.ts packages/host-local/test/nest/observability/retrieval-metrics.test.ts packages/host-distributed/test/gateway/retrieval-metrics.test.ts",
     "test:observability-benchmark": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/observability-benchmark.ts",
     "retrieval:latency:bench": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/retrieval-latency-bench.ts",
     "retrieval:latency:report": "pnpm exec tsx --tsconfig tsconfig.base.json scripts/retrieval-latency-report.ts",
@@ -82,7 +84,8 @@
     "generate:proto:check": "buf lint && buf breaking --against origin/main || echo 'buf check skip (no buf)'",
     "dev:web": "pnpm --filter @trapmap/web-panel dev",
     "test:cli-integration": "bash scripts/cli-integration-run.sh",
-    "test:cli-integration:dry": "bash scripts/cli-integration-run.sh --runs 1"
+    "test:cli-integration:dry": "bash scripts/cli-integration-run.sh --runs 1",
+    "check:silent-fallbacks": "pnpm exec tsx scripts/check-silent-fallbacks.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.12",
@@ -90,8 +93,6 @@
     "@trapmap/service-knowledge-read": "workspace:*",
     "@types/node": "^26.4.1",
     "@vitest/coverage-v8": "^5.0.0",
-    "promptfoo": "0.122.2",
-    "zod": "^4.1.12",
     "dependency-cruiser": "^18.0.0",
     "fallow": "^3.22.0",
     "fastify": "^5.6.1",
@@ -105,9 +106,12 @@
     "markdownlint-cli2": "^0.23.2",
     "mermaid": "^11.15.0",
     "pg": "8.23.0",
+    "pgsql-ast-parser": "^12.0.2",
+    "promptfoo": "0.122.2",
     "tsx": "^4.20.3",
     "typedoc": "^0.28.19",
     "typescript": "^6.0.3",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "zod": "^4.1.12"
   }
 }

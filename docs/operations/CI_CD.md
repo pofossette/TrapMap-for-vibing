@@ -32,7 +32,7 @@ TrapMap 跑两条独立流水线：
 | `doc-guardrails` | 见下表 | 文档、结构、表清单、导入边界、依赖、复杂度守卫 |
 | `e2e` | web-panel e2e | Playwright Chromium 构建并测 `@trapmap/web-panel` |
 
-`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`
+`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:schema-parity` + `pnpm check:sql-columns` + `pnpm check:silent-fallbacks` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`
 
 守卫全命令（含 `pnpm check:skills` 与 `pnpm check:imports`）见上表，`doc-guardrails` job 按该表顺序执行。
 
@@ -66,7 +66,7 @@ pnpm check:fallow
 
 1. 下载 baseline 产物（缺失时跳过）
 2. 自检 eval 帮助面：`pnpm --filter @trapmap/evals eval -- smoke --help`
-3. 构建 candidate-worker 与 outbox-worker 镜像，校验 `replicas: 2` closeout 接线
+3. 构建分布式 worker 镜像（candidate-worker 与 outbox-worker 共用 `trap-map-host-distributed`，单次 `docker build`），校验 `replicas: 2` closeout 接线
 4. 跑 `pnpm --filter @trapmap/evals eval:ci`（默认 smoke tier，带 baseline 对比）
 5. 跑 PG 协调的 `pnpm --filter @trapmap/evals eval:smoke`（需要 Docker）
 6. 跑 experience-gene smoke（shadow）与 core（serve）两道门

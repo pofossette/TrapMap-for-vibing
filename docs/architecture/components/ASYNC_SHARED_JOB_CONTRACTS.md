@@ -1,6 +1,6 @@
 # Shared Async Job Contracts
 
-> 本页是 shared async jobs 的契约表。模型（queue / outbox / workflow、lease、operator）见 [异步模型](ASYNC_MODEL.md)，本页只收录逐任务契约。状态：Active。
+> 本页是 shared async jobs 的契约表。模型（queue / outbox、lease、operator）见 [异步模型](ASYNC_MODEL.md)，本页只收录逐任务契约。状态：Active。
 
 ## 统一规则
 
@@ -8,7 +8,7 @@
 - `subjectId` 表业务归属对象，供 operator 按 entry / feedback 定位问题。
 - `runId` 表任务实例绑定，至少与该任务的幂等单元同粒度。
 - authoritative write 仍在命令事务内完成；这些 jobs 只做 derived / retryable follow-up。
-- `workflow_runs.stats` 是 checkpoint / resume 面；需恢复的进度写这里，不依赖进程内状态。
+- `task_queue` 行是 checkpoint / resume 面；需恢复的进度写在任务行的 retry 语义里，不依赖进程内状态（原 `workflow_runs.stats` 表已于 2026-09-23 退役）。
 
 payload 的 Zod 真源在 `packages/contracts/src/domain/async.ts`：`candidateProcessingPayloadSchema`、`remediationReactivationPayloadSchema`、`badcaseExportDraftPayloadSchema`、`governanceConflictDetectionPayloadSchema`（同文件第 13-47 行）。`knowledge.index-follow-up` 与 `skill.index-follow-up` 的 payload schema 未在该文件中出现，标未知/待确认（2026-09-08）。
 

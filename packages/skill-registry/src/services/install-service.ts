@@ -129,6 +129,7 @@ export class InstallService {
       const validated = skillLockfileSchema.safeParse(parsed);
       if (validated.success) lockfile = validated.data;
     } catch {
+      // silent-fallback-ok: a missing or unreadable lockfile starts a fresh one
       // new lockfile
     }
     lockfile.entries[slug] = entry;

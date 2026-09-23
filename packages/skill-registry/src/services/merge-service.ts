@@ -22,6 +22,7 @@ async function readSnapshot(dir: string, slug: string, version?: string): Promis
   try {
     await walk(dir, dir);
   } catch {
+    // silent-fallback-ok: no snapshot means there is nothing to compare
     // empty snapshot if not exists
   }
   return { slug, version, files };

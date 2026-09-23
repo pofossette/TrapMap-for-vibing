@@ -55,6 +55,11 @@ export function createPrometheusRetrievalMetrics(): RetrievalMetricsPort {
     help: 'Retrieval requests by endpoint and outcome',
     labelNames: ['endpoint', 'outcome'] as const,
   });
+  const degradedTotal = counter({
+    name: 'trapmap_retrieval_degraded_total',
+    help: 'Retrieval requests served by a fallback path instead of the primary one',
+    labelNames: ['endpoint', 'reason'] as const,
+  });
 
   return {
     recordSearch(params) {
@@ -76,6 +81,9 @@ export function createPrometheusRetrievalMetrics(): RetrievalMetricsPort {
         { endpoint: params.endpoint, channel: params.channel },
         params.durationMs,
       );
+    },
+    recordDegraded(params) {
+      degradedTotal?.inc({ endpoint: params.endpoint, reason: params.reason });
     },
   };
 }

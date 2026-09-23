@@ -54,14 +54,18 @@
       "mustContain": [
         "docs/reference/DATABASE_SCHEMA.md",
         "PostgreSQL 是主要且权威的生产存储后端",
-        "42 表"
+        "37 表"
       ],
-      "mustNotContain": ["48 张表", "56 张表"]
+      "mustNotContain": ["42 表", "48 张表", "56 张表"]
     },
     {
       "file": "docs/architecture/components/ASYNC_MODEL.md",
-      "mustContain": ["task_queue", "domain_event_outbox", "workflow_runs"],
-      "mustNotContain": ["Phase 4 closeout", "packages/server"]
+      "mustContain": ["task_queue", "domain_event_outbox", "checkpoint"],
+      "mustNotContain": [
+        "Phase 4 closeout",
+        "packages/server",
+        "workflow_runs 记录长任务 checkpoint"
+      ]
     }
   ]
 }

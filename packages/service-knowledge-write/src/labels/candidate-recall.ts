@@ -192,6 +192,7 @@ async function recallByEmbedding(
       if (candidates.length >= cappedMax) break;
     }
   } catch {
+    // silent-fallback-ok: embedding provider failure is non-fatal: semantic recall is skipped by design
     // Embedding provider failure is non-fatal; skip semantic recall
   }
 }

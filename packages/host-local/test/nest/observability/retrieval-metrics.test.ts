@@ -26,6 +26,7 @@ describe('Prometheus retrieval latency metrics', () => {
     });
     metrics.recordStage({ endpoint: 'v1-search', stage: 'recall', durationMs: 30 });
     metrics.recordChannel({ endpoint: 'v1-search', channel: 'semantic', durationMs: 28 });
+    metrics.recordDegraded({ endpoint: 'v1-search', reason: 'db-search-failed' });
 
     const output = await register.metrics();
     expect(output).toContain('trapmap_retrieval_search_duration_ms_count');
@@ -36,6 +37,27 @@ describe('Prometheus retrieval latency metrics', () => {
     expect(output).toContain('stage="recall"');
     expect(output).toContain('channel="semantic"');
     expect(output).toContain('outcome="ok"');
+    expect(output).toContain('trapmap_retrieval_degraded_total');
+    expect(output).toContain('reason="db-search-failed"');
+  });
+
+  it('counts each degraded fallback separately by endpoint and reason', async () => {
+    // A degraded request answers successfully, so the counter is the only
+    // signal that the primary path is broken — it must never be folded into
+    // the latency histograms alone.
+    const metrics = createPrometheusRetrievalMetrics();
+
+    metrics.recordDegraded({ endpoint: 'v1-search', reason: 'db-search-failed' });
+    metrics.recordDegraded({ endpoint: 'v1-search', reason: 'db-search-failed' });
+    metrics.recordDegraded({ endpoint: 'v3-graph-plan', reason: 'rerank-fallback' });
+
+    const output = await register.metrics();
+    expect(output).toContain(
+      'trapmap_retrieval_degraded_total{endpoint="v1-search",reason="db-search-failed"} 2',
+    );
+    expect(output).toContain(
+      'trapmap_retrieval_degraded_total{endpoint="v3-graph-plan",reason="rerank-fallback"} 1',
+    );
   });
 
   it('keeps the live/dead split in the shared contract, not in the metric layer', async () => {

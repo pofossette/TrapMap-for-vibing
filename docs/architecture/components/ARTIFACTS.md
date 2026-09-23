@@ -8,11 +8,13 @@
 SkillArtifact (聚合根: id, teamId, scope, labels, title, slug, lifecycleState, owner, history)
  ├─ artifact_revisions (history: SourceFile[] + derived 缓存)
  ├─ skill_artifact_files + skill_artifact_script_descriptors (结构化事实源)
- ├─ skill_artifact_profiles / capsules / capsule_embeddings / client_manifests / manifest_items (派生事实源)
+ ├─ skill_artifact_capsules + skill_artifact_capsule_embeddings (胶囊事实源；Profile / Manifest 落在 artifact_revisions.derived jsonb)
  └─ skill_artifact_agent_reviews / artifact_lifecycle_events (治理事实源)
 ```
 
-表定义在 `packages/db/src/schema/artifacts.ts:1-440`，物理表名含 `skill_artifact_capsule_embeddings`（capsule_embeddings 事实表）、`skill_artifact_client_manifests`、`skill_artifact_manifest_items`。`skill_artifacts` / `artifact_revisions` 上的 JSONB 只做兼容缓存，结构化子表是事实源。
+派生结果的事实源是 `artifact_revisions.derived` jsonb（`profile` / `capsules` / `clientManifest`）；只有需要独立索引的胶囊形态另立物理表（`skill_artifact_capsules` 的 `keywordTokens` GIN 与 `skill_artifact_capsule_embeddings` 的 HNSW）。
+
+> 2026-09-23 退役：`skill_artifact_profiles`、`skill_artifact_client_manifests`、`skill_artifact_manifest_items` 三张结构化派生表。它们自 Phase-2 压缩后没有任何写入方与读取方，Profile / Manifest 的实际读写一直走 `artifact_revisions.derived`；本页此前"结构化子表是事实源、JSONB 只做缓存"的表述与代码相反，已纠正。
 
 ```mermaid
 flowchart TB
@@ -45,11 +47,11 @@ flowchart TB
 ## 导入导出
 
 - 导入 / 导出 / 激活经 gateway artifact route_defs 暴露，由 `service-knowledge-write` 处理；逐条路径见 [TrapMap API 契约表面](../../reference/api-surface.md)。
-- 客户端激活时下发 `ClientManifest` 与清单条目（`skill_artifact_manifest_items` 三合一：references / assets / scripts）。
+- 客户端激活时下发 `ClientManifest` 与清单条目（`artifact_revisions.derived.clientManifest`，references / assets / scripts 三合一）。
 
 ## 契约
 
-Zod：`skillArtifactSchema` / `SkillArtifact` 在 `packages/contracts/src/domain/artifacts.ts`。42 表中的 11 张工件表见 [数据库表清单](../../reference/DATABASE_SCHEMA.md)。
+Zod：`skillArtifactSchema` / `SkillArtifact` 在 `packages/contracts/src/domain/artifacts.ts`。全库 37 表中的 8 张工件表见 [数据库表清单](../../reference/DATABASE_SCHEMA.md)。
 
 ## 常见用法
 

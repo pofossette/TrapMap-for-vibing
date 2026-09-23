@@ -118,6 +118,7 @@ export class LokiService implements LoggerService, OnModuleInit {
         this.winstonLogger.log(level, message, meta);
         return;
       } catch {
+        // silent-fallback-ok: Loki write failure degrades to the stdout fallback right below
         // Loki write failed — fall through to stdout
       }
     }

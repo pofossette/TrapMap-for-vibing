@@ -4,6 +4,7 @@ export * from './candidates.js';
 export * from './column-factories.js';
 export * from './cron.js';
 export * from './experience-genes.js';
+export * from './governance.js';
 export * from './knowledge.js';
 export * from './labels.js';
 export * from './queue.js';

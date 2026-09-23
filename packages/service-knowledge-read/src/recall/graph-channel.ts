@@ -4,8 +4,8 @@ import type { retrievalQuerySchema } from '@trapmap/contracts';
 import { createRuleChannelMerge } from '../channel-merge/rule-channel-merge.js';
 import type { SkillShareerServices } from '../context.js';
 import { getRetrievalInfra } from '../retrieval-infra.js';
-import { resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
 import { keywordRecall, normalizeQuery } from '../retrieval-keyword.js';
+import { resolveLatencyEndpoint, timedChannel } from '../retrieval-latency.js';
 import type { RecallExecutionResult } from '../retrieval-recall-coordinator.js';
 import type { KnowledgeRecord } from '../store.js';
 import { computeSemanticCandidates, rerankRecallResults } from './recall-helpers.js';
@@ -69,7 +69,10 @@ export async function graphAssistedHybridRecall(
     hybridCandidates: hybridMerged,
     graphCandidates: governedGraphCandidates,
   });
-  const reranked = await rerankRecallResults(infra!, finalMerged, queryTokens, parsed);
+  const reranked = await rerankRecallResults(infra!, finalMerged, queryTokens, parsed, {
+    ...(services ? { services } : {}),
+    endpoint,
+  });
   return {
     ...reranked,
     trace: {

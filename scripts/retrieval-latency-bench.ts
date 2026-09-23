@@ -25,28 +25,26 @@ import path from 'node:path';
 import type { RetrievalMetricsPort } from '@trapmap/backend-core';
 import {
   channelDimension,
-  type LatencySummary,
-  type RetrievalLatencyEndpoint,
-  type RetrievalLatencyRecord,
-  type RetrievalLatencyReport,
-  type RetrievalLatencySlice,
-  retrievalLatencyEndpointSchema,
-  summarizeLatency,
+  createRetrievalKnowledgeFixture,
   DEAD_RETRIEVAL_LATENCY_ENDPOINTS,
   DEAD_RETRIEVAL_RECALL_CHANNELS,
+  type LatencySummary,
   RETRIEVAL_PIPELINE_STAGES,
   RETRIEVAL_RECALL_CHANNELS,
+  type RetrievalLatencyEndpoint,
+  type RetrievalLatencyReport,
+  type RetrievalLatencySlice,
+  summarizeLatency,
 } from '@trapmap/contracts';
+import type { SkillShareerServices } from '@trapmap/service-knowledge-read';
 import {
   createKnowledgeReadChannelRegistry,
-  createKnowledgeReadStrategyRegistry,
   createKnowledgeReadRetrievalInfra,
+  createKnowledgeReadStrategyRegistry,
   loadRagLogConfig,
   resetRetrievalReadModelCacheForTests,
   searchKnowledge,
 } from '@trapmap/service-knowledge-read';
-import type { SkillShareerServices } from '@trapmap/service-knowledge-read';
-import { createRetrievalKnowledgeFixture } from '@trapmap/contracts';
 
 // ---------------------------------------------------------------------------
 // CLI
@@ -160,6 +158,7 @@ interface CollectedSamples {
   searches: Array<{ endpoint: string; mode: string; outcome: string; durationMs: number }>;
   stages: Array<{ endpoint: string; stage: string; durationMs: number }>;
   channels: Array<{ endpoint: string; channel: string; durationMs: number }>;
+  degraded: Array<{ endpoint: string; reason: string }>;
 }
 
 function createCollectingMetrics(sink: CollectedSamples): RetrievalMetricsPort {
@@ -185,6 +184,9 @@ function createCollectingMetrics(sink: CollectedSamples): RetrievalMetricsPort {
         channel: params.channel,
         durationMs: params.durationMs,
       });
+    },
+    recordDegraded(params) {
+      sink.degraded.push({ endpoint: params.endpoint, reason: params.reason });
     },
   };
 }
@@ -297,7 +299,7 @@ async function runBench(options: BenchOptions, corpusSize: number) {
   resetRetrievalReadModelCacheForTests();
   const corpus = buildCorpus(corpusSize);
   const queries = buildQueries(options.queries);
-  const sink: CollectedSamples = { searches: [], stages: [], channels: [] };
+  const sink: CollectedSamples = { searches: [], stages: [], channels: [], degraded: [] };
 
   const services: SkillShareerServices = {
     config: {
@@ -440,5 +442,5 @@ if (isDirectExecution) {
   });
 }
 
-export { buildCorpus, buildQueries, buildReport, formatTable, parseArgs };
 export type { BenchOptions };
+export { buildCorpus, buildQueries, buildReport, formatTable, parseArgs };

@@ -71,7 +71,7 @@
       "file": "docs/operations/CI_CD.md",
       "mustContain": [
         "Node.js 24 + pnpm 10.33.0",
-        "`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`",
+        "`doc-guardrails` | `pnpm check:docs` + `pnpm check:structure` + `pnpm check:asserts` + `pnpm check:table-schema` + `pnpm check:schema-parity` + `pnpm check:sql-columns` + `pnpm check:silent-fallbacks` + `pnpm check:pgtable-single-source` + `pnpm check:eval-imports` + `pnpm check:eval-only` + `pnpm check:deps` + `pnpm check:complexity`",
         "`pnpm run ci`",
         "`pnpm --filter @trapmap/evals eval:ci`",
         "`pnpm --filter @trapmap/evals eval:ci:core`",

@@ -15,6 +15,7 @@
  */
 
 import type {
+  RetrievalDegradedReason,
   RetrievalLatencyEndpoint,
   RetrievalPipelineStage,
   RetrievalRecallChannel,
@@ -41,6 +42,22 @@ export function emitStage(
   durationMs: number,
 ): void {
   services?.retrievalMetrics?.recordStage({ endpoint, stage, durationMs });
+}
+
+/**
+ * Record that a fallback branch took over for this request.
+ *
+ * The degraded path still answers with results, so the only evidence that the
+ * primary path is broken is this counter (plus the `console.error` the call
+ * site keeps for local debugging). Never pass error text: `reason` is a metric
+ * label.
+ */
+export function emitDegraded(
+  services: SkillShareerServices | undefined,
+  endpoint: RetrievalLatencyEndpoint,
+  reason: RetrievalDegradedReason,
+): void {
+  services?.retrievalMetrics?.recordDegraded({ endpoint, reason });
 }
 
 /**

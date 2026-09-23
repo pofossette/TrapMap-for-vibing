@@ -271,32 +271,6 @@ export const knowledgeRevisions = pgTable(
 );
 
 /**
- * Submission aggregates preserve the state captured at each submission.
- * They are distinct from revisions because a revision can be edited without
- * entering a review lifecycle.
- */
-export const knowledgeSubmissions = pgTable(
-  'knowledge_submissions',
-  {
-    id: text('id').primaryKey(),
-    entryId: text('entry_id').notNull(),
-    revisionNo: integer('revision_no').notNull(),
-    submittedAt: timestamp('submitted_at', { withTimezone: true }).notNull(),
-    submittedByUserId: text('submitted_by_user_id').notNull(),
-    lifecycleState: text('lifecycle_state').notNull().$type<LifecycleState>(),
-    resubmissionOf: text('resubmission_of'),
-    agentReview: jsonb('agent_review').$type<Record<string, unknown> | null>(),
-    reviewerDecision: jsonb('reviewer_decision').$type<Record<string, unknown> | null>(),
-    reviewNotes: jsonb('review_notes').notNull().$type<Record<string, unknown>[]>().default([]),
-    ...auditTimestamps(),
-  },
-  (table) => [
-    index('idx_knowledge_submissions_entry').on(table.entryId),
-    uniqueIndex('idx_knowledge_submissions_entry_revision').on(table.entryId, table.revisionNo),
-  ],
-);
-
-/**
  * Lifecycle events table for audit trail of state transitions.
  * Each row records a state change with actor and context.
  */
@@ -471,49 +445,9 @@ export const feedbackRecords = pgTable(
 // Usage Analytics Tables (Phase 89)
 // =============================================================================
 
-/**
- * Usage events table for recording retrieval hits.
- * Each row represents one hit on a knowledge entry or skill artifact.
- * Enables time-series analytics and hit ranking queries.
- */
-export const usageEvents = pgTable(
-  'usage_events',
-  {
-    /** Unique event identifier */
-    id: text('id').primaryKey(),
-    /** Query ID grouping hits from same search request */
-    queryId: text('query_id').notNull(),
-    /** Team ID (maps to "organization" in requirements) */
-    teamId: text('team_id'),
-    /** Account ID of the user who made the request */
-    accountId: text('account_id').notNull(),
-    /** Entry type: 'skill' | 'trap' | 'knowledge' */
-    entryType: text('entry_type').notNull(),
-    /** The hit entry's ID */
-    entryId: text('entry_id').notNull(),
-    /** Optional original query text */
-    queryText: text('query_text'),
-    /** Event timestamp */
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    // Composite indexes matching query patterns
-    index('idx_usage_events_team_created').on(table.teamId, table.createdAt),
-    index('idx_usage_events_account_created').on(table.accountId, table.createdAt),
-    index('idx_usage_events_entry_type_created').on(table.entryType, table.createdAt),
-    index('idx_usage_events_entry_id_created').on(table.entryId, table.createdAt),
-  ],
-);
-
-// =============================================================================
-// Usage Analytics Rollup Tables (Round 6)
-// =============================================================================
-
-/**
- * Daily rollup table for usage event aggregation.
- * Pre-aggregated counts per (day, team, entry_type, entry_id) to avoid
- * scanning the full usage_events table for common analytics queries.
- */
+// Retired 2026-09-23: `usage_events` was modeled and created by the migration
+// but no code ever wrote or read it (no INSERT/SELECT anywhere in the repo);
+// retrieval hits are observed through metrics instead.
 
 // =============================================================================
 // Domain Event Outbox (Round 10 Phase 2)

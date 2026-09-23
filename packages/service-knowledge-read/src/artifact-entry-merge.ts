@@ -72,7 +72,25 @@ function decayMetaView(artifact: SkillArtifactRecord): DecayMeta {
 }
 
 /** Map a skill artifact projection into the retrieval entry shape. */
+/**
+ * Per-artifact entry memo: the merge runs on EVERY query (eligibility step),
+ * rebuilding fresh entry objects whose per-object embedding memo would be lost
+ * — the semantic channel then re-embeds every artifact entry each query.
+ * Artifact records come from the cached read model (stable identity), so
+ * reusing the built entry makes the embedding write-back survive across
+ * queries. Content changes arrive as a new artifact object -> memo misses.
+ */
+const mergedEntryMemo = new WeakMap<object, KnowledgeRecord>();
+
 export function artifactToRetrievalEntry(artifact: SkillArtifactRecord): KnowledgeRecord {
+  const memoHit = mergedEntryMemo.get(artifact);
+  if (memoHit) return memoHit;
+  const entry = buildArtifactRetrievalEntry(artifact);
+  mergedEntryMemo.set(artifact, entry);
+  return entry;
+}
+
+function buildArtifactRetrievalEntry(artifact: SkillArtifactRecord): KnowledgeRecord {
   return {
     id: artifact.id,
     teamId: artifact.teamId,

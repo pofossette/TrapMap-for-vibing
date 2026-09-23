@@ -98,6 +98,26 @@ const STEPS: StepDefinition[] = [
     args: ['run', 'check:pgtable-single-source'],
   },
   {
+    name: 'check:schema-parity',
+    command: 'pnpm',
+    args: ['run', 'check:schema-parity'],
+  },
+  {
+    name: 'check:sql-columns',
+    command: 'pnpm',
+    args: ['run', 'check:sql-columns'],
+  },
+  {
+    name: 'check:silent-fallbacks',
+    command: 'pnpm',
+    args: ['run', 'check:silent-fallbacks'],
+  },
+  {
+    name: 'check:skills',
+    command: 'pnpm',
+    args: ['run', 'check:skills'],
+  },
+  {
     name: 'check:eval-imports',
     command: 'pnpm',
     args: ['run', 'check:eval-imports'],

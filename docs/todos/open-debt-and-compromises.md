@@ -113,5 +113,38 @@
 
 - **gene 检索默认关闭（2026-09-19 核实）**：`/v1/retrieval/genes/search` 管线完整（PG 双通道召回 + 专属延迟指标），但受 `TRAPMAP_EXPERIENCE_GENES_MODE` 门控且默认 `off`——不配置即返回治理空响应，生产若要启用必须显式设 `serve`。另外 gene 的端到端验证此前缺失，本轮已补（serve 模式 + 播种 gene 命中验证）；gene 的确定性离线 eval 之外仍无对抗性评测（gene-retrieval-eval spec 待 dispatch）。
 - **retrieval eval v2/v3 期望调优（2026-09-19 更新）**：v3 图计划管线已实现（`backend-core/src/knowledge-read/domain/graph-plan.ts` 的 Kahn 编译 + `search/search-v3-plan.ts` 编排 + 置信度门控），eval 组装服务器已注册 `/v2` `/v3`，用例真实可达且返回契约合法形状，retrieval eval 通过数 5→7。剩余 19 个失败是 fixture 期望按已退役原管线的排序/摘要行为编写（如 `v2-include-summary` 要求摘要支持、`v2-keyword-dominant` 要求特定排序），属评测期望调优而非接线缺陷。注意早期登记的"v3 图计划编译不存在"与"v3 别名"两条已失效，以本条为准。
-- **`skill_artifact_capsules` schema 漂移（2026-09-19 发现）**：`packages/db/src/schema/artifacts.ts` 声明了 `keyword_tokens` / `field_keyword_tokens` / `team_id`，但 `packages/db/migrations/schema.sql` 里没有，写入侧也从不写。胶囊管道已绕开（走全文检索表达式 + 从 `art.team_id` 继承治理），但两边应当对齐：要么删掉 TS schema 的死声明，要么补迁移。注意 `schema.sql` 用的是 `CREATE TABLE IF NOT EXISTS`，已存在的库不会自动获得新列。
+- **`skill_artifact_capsules` schema 漂移（2026-09-19 发现，2026-09-23 已解）**：`packages/db/src/schema/artifacts.ts` 曾声明了 DDL 里没有的 `keyword_tokens` / `field_keyword_tokens`；`7fcc33ac` 已在 `schema.sql:1037-1039` 补齐两列并建 GIN 索引，TS 侧从未声明过 `team_id`（治理从 `art.team_id` 继承），本条事实已失效，关闭。残留项另计：**`skill_artifact_capsules` 只有 bench / live 快照脚本写入，产品侧无写入方**（见下条同类缺口）。
 - **v2 胶囊评分是重实现而非复原**：原胶囊管道随已删除的 `packages/server`（Wave-10）消失，`MIN_CAPSULE_SCORE` 与评分器无留存实现。现行权重取自 `RETRIEVAL.md` 记载，但 RRF 的 k=60 与 `0.7 内容 / 0.3 融合` 的混合比例是判断值，已在代码注释标注。若日后找到原实现，应对齐或显式改文档。
+- **写路径缺口：派生结果只落在 `artifact_revisions.derived` jsonb（2026-09-23 核实）**：`skill_artifact_capsules` 与 `skill_artifact_capsule_embeddings` 有真实读方（v2 胶囊召回 `search/capsule-recall.ts`、gene snapshots/planning/staleness），但全仓唯一的写入方是 `scripts/retrieval-latency-live.ts` 与 `evals/retrieval-live` 的快照恢复；产品的 `artifact-derivation` 只把 capsules 写进 `artifact_revisions.derived`。因此 v2 胶囊通道在真实部署里读的是空表。本次不动这两张表（有读方），缺口单列，修复方向是让派生管线把 capsules 与 embedding 物化进独立表（或显式把 v2 改为读 derived jsonb）。
+- **6 张建模零读写表已退役（2026-09-23）**：`skill_artifact_profiles`、`skill_artifact_client_manifests`、`skill_artifact_manifest_items`、`knowledge_submissions`、`usage_events`、`workflow_runs` —— 建模与 DDL 齐全，但 Phase-2 压缩后全仓无 INSERT / SELECT / 测试引用（前两张的读路径早已改成 `artifact_revisions.derived` jsonb），本次按 `7fcc33ac` 惯例在 `schema.sql` 末尾追加 `DROP TABLE IF EXISTS`、删除 TS 建模并回写文档。副作用一并修掉：`evals/retrieval-live/lib/snapshot-orchestrator.ts` 的 `TRUNCATE` 列表原本含 15 张已退役或不存在的幽灵表（该语句没有 `IF EXISTS`，一旦执行必报错），现已与实际表清单对齐。风险备注：这是一次真 `DROP TABLE`，已在容器库用 `information_schema` 比对验证，但对已有生产库需走正常迁移窗口。
+- **eval-smoke job 自 2026-08-03 起持续红（2026-09-21 核查）**：三层原因叠加。(1) summary 1/6 与 graph extraction F1=0：CI 无 provider key，judge 走 rules-based 兜底、embedding 走哈希实现，属已知降级路径下的期望差距；(2) retrieval 19 个失败即上条"v2/v3 期望调优"债务；(3) `docker compose build` 在镜像导出阶段反复被托管 runner 关闭信号杀死（自 8 月起；2026-09-21 改为单次 `docker build` 后仍在导出开始约 3 分 20 秒处被杀，时间高度一致，怀疑与生产 stage 直接拷贝含 devDeps 的全量 node_modules 导致导出体积过大有关——下一步可试 production stage 改 `pnpm install --prod`，但属推测，未验证）。(1)(2) 不修此 job 仍红。恢复该 job 需要评测期望调优主线立项，属产品级工作而非 CI 修线。
+- **retrieval promptfoo 快照漂移（2026-09-21 已解）**：提交的 `evals/promptfoo/snapshots/retrieval-smoke.json` 生成于 2026-08-09，早于 v2/v3 胶囊与图计划管线及 sql-column-drift-guard 修复，导致 eval-parity 的逐用例对比长期失败。已用规范命令（postgres-coordinated）重新生成：v1 skill-lookup positive 与两个 v3 graph-plan fallback 用例转为通过，其余五个 suite 字节级不变（仅时间戳）。快照基准现与当前意图行为一致。
+
+## SQL 列引用漂移（2026-09-20，由 check:sql-columns 守卫扫描确认；2026-09-20 晚已修 4/5）
+
+守卫扫描 210 条裸 SQL 语句（9 个包），确认 **5 处（8 个 table.column 对、14 处代码位置）引用了 applied schema 中不存在的列**，全部在运行时必失败（多数被 try/catch 静默吞掉）。
+
+**根因修正**：其中 4 处不是代码写错列名，而是 `packages/db/migrations/schema.sql`（`runMigrations` 唯一执行的应用 DDL）比 `packages/db/src/schema` 建模落后一整个 Phase-2 表压缩——压缩提交改了建模与服务端 SQL，却没写迁移。已在 `schema.sql` 补齐迁移并在 docker 真 PG 上验证（`information_schema` 比对 0 差异），随之新增 `check:schema-parity` 守卫防复发。1、4、5 三处已解除，只剩第 2/3 处真 bug：
+
+| # | 位置 | 坏引用 | 修复方向（T2） |
+|---|---|---|---|
+| 1 | `service-knowledge-read/src/retrieval-infra-default.ts:128`（`pgRecall.keywordRecall`） | `knowledge_search_documents.tokens` / `field_tokens_shortcut` / `field_tokens_detail` / `field_tokens_labels` | ✅ 已修（补齐迁移加列）。该表仍无写入方，见下条"DB 召回分支" |
+| 2 | `service-knowledge-write/src/experience-gene-snapshots.ts:84` | `skill_artifacts.latest_revision`、`.remediation` | ✅ 已修：原意核实为**照抄 knowledge 侧门控**——artifacts 从来没有这两列，remediation 只存在于 `knowledge_entries`（无 artifact 写入方），latest revision 应来自 `artifact_revisions`。改为 LATERAL max(revision_no)（与 knowledge 侧同一写法）并移除 artifact 的 remediation 门控 |
+| 3 | `service-knowledge-write/src/experience-gene-staleness-handler.ts:111,125`（另含 `experience-gene-planning.ts:115,155`） | `sa.remediation` | ✅ 已修：同 #2，artifact 派生的 gene 不再按 remediation 判定抑制（`remediationSuppressed` 恒 false，lifecycle_state 是 artifact 唯一门控） |
+| 4 | `service-candidate-ingestion/src/pg-ports.ts:245,429` | `UPDATE candidates SET analysis`（实际列 `analysis_snapshot`）；`INSERT INTO candidate_duplicate_cases (... matches ...)`（表无此列） | ✅ 已修（补齐迁移：`candidates.analysis`、`candidate_duplicate_cases.matches`；顺带修正 `candidate_outcomes` 主键应为 `(candidate_id, kind)` 复合键，否则 resolution 会覆盖 manual） |
+| 5 | `service-knowledge-write/src/experience-gene-repository.ts:236,365` | `UPDATE experience_gene_embeddings SET document, labels` | ✅ 已修（合并表已含 document/labels；`document` 按 `tsvector` 建并加 GIN，写侧改 `to_tsvector('english', $2)`，读侧改 JOIN 合并表） |
+
+守卫 `pnpm check:sql-columns` 已落地并 blocking：**豁免清单已清空（5 处全修）**。局限已在脚本头注释：含 `${}` 的动态片段只校验静态列部分，drizzle ORM 查询不在扫描面（其列引用受 TS 类型保护）。同类根因（建模改了但没写迁移）由新增的 `pnpm check:schema-parity` 拦截。
+
+**新增派生债务**：`experience_gene_embeddings.document` 运行时类型是 `tsvector`（读侧用 `@@`/`ts_rank`），而 drizzle 0.45 没有 tsvector 列类型，建模里仍声明 `text`——`check:schema-parity` 只比列名，这条类型差异靠字段注释与本节记录，drizzle 补上该类型后应同步。
+
+**已消项**：`conflict_relations` 的「双源例外」——该表此前只在 `service-governance-review` 的迁移/裸 SQL 里存在，`packages/db` 未建模，`DATABASE_SCHEMA.md` 明文标注为现状保留的例外，`check:schema-parity` 也为它挂了一条豁免。2026-09-20 补建模（`packages/db/src/schema/governance.ts`）后，建模、DDL、文档三处回到单一真源，豁免清空，冲突链路（检测 → 落库 → 检索回读）在真库端到端验证通过。
+
+## 静默降级（2026-09-20，由 `check:silent-fallbacks` 守卫固化）
+
+守卫扫 `packages/*/src`：593 文件 / 169 个 catch，其中 **36 个"只打日志（或空实现）就继续"的站点已逐个标注** `// silent-fallback-ok: <理由>`，其余靠重抛、指标或把失败转成显式返回值通过。标注时确认了两处**真实缺口**（不是"设计如此"），已挂账：
+
+- **cron 调度 tick 失败无计数**（`service-cron/src/scheduler.ts:89`）：tick 抛错只 `console.error` 后等下一个 poll 周期重试，`service-cron` 目前**完全没有指标端口**（无 deps.metrics）。要做"调度在持续失败"的可观测，需要按 `RetrievalMetricsPort` 的三段式加 port + 双宿主实现 + 组合根注入，属独立任务。
+- **候选去重 PG 通道降级无计数**（`service-candidate-ingestion/src/dedup-strategy/rule-dedup-strategy.ts:145`）：PG 去重通道失败后静默回落到内存规则检测器，与检索 DB 分支同类（同样形状的 catch 在检索链路已有 `trapmap_retrieval_degraded_total`）。修法与检索侧一致：给候选链路补 degraded 计数器。
+
+守卫的判定口径（写在脚本头注释）：catch 体去掉 `console.*`/`logger.*` 调用与注释后若为空，即视为"只打日志"；把失败转成显式返回值（`return false`、`return { status: 503 }`、`state = { reachable: false }`）不算静默，因为调用方拿得到失败信号。标注里没有理由（`// silent-fallback-ok:` 后为空）同样违规。

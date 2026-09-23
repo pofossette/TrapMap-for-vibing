@@ -56,6 +56,7 @@ export async function invokeWithParseRetry<T>(options: {
         return parsed;
       }
     } catch {
+      // silent-fallback-ok: retry loop: the final attempt surfaces the failure as the null return below
       // Retry invoke failures and parse failures through the same path.
     }
 

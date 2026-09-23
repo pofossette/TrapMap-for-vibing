@@ -10,7 +10,17 @@
 
 import type { AnalysisSnapshot, CandidatePayload } from '@trapmap/contracts';
 import { sql } from 'drizzle-orm';
-import { check, index, integer, jsonb, pgTable, real, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  real,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 import { auditTimestamps } from './column-factories.js';
 
 // =============================================================================
@@ -98,7 +108,10 @@ export const candidateDuplicateCases = pgTable(
 export const candidateOutcomes = pgTable(
   'candidate_outcomes',
   {
-    candidateId: text('candidate_id').primaryKey(),
+    // Composite key: one row per (candidate, kind). A single-column key would
+    // let the resolution outcome overwrite the manual one for the same
+    // candidate, which the service explicitly writes both of.
+    candidateId: text('candidate_id').notNull(),
     kind: text('kind').notNull().$type<'manual' | 'resolution'>(),
     decision: text('decision').notNull(),
     notes: text('notes').notNull().default(''),
@@ -117,6 +130,7 @@ export const candidateOutcomes = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    primaryKey({ columns: [table.candidateId, table.kind] }),
     index('idx_candidate_outcomes_kind').on(table.kind),
     check('ck_candidate_outcomes_kind', sql`${table.kind} IN ('manual', 'resolution')`),
     check('ck_candidate_outcomes_decision', sql`${table.decision} IN ('independent', 'merged')`),

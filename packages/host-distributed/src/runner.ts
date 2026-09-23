@@ -89,6 +89,7 @@ export async function runDistributedServices(
         try {
           await closeHandle(handle);
         } catch (error) {
+          // silent-fallback-ok: shutdown is best-effort; every handle is still attempted
           console.error(`Error shutting down ${name}:`, error);
         }
       }),

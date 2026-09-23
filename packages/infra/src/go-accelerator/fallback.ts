@@ -20,6 +20,7 @@ export async function canonicalHashWithFallback(
     try {
       return await client.canonicalHash(payload);
     } catch {
+      // silent-fallback-ok: Go accelerator failure falls back to the local canonical hash below
       // fall through to JS
     }
   }
@@ -38,6 +39,7 @@ export async function cosineWithFallback(
       const res = await client.cosine(a, b);
       return res.similarity;
     } catch {
+      // silent-fallback-ok: Go accelerator failure falls back to the local cosine below
       // fallback
     }
   }
@@ -54,6 +56,7 @@ export async function batchCosineWithFallback(
       const res = await client.batchCosine(query, vectors);
       return res.scores;
     } catch {
+      // silent-fallback-ok: Go accelerator failure falls back to the local batch cosine below
       // fallback
     }
   }
@@ -71,6 +74,7 @@ export async function deterministicFallbackWithFallback(
       const res = await client.fallbackVector(text, d);
       return res.vector;
     } catch {
+      // silent-fallback-ok: Go accelerator failure falls back to the deterministic local vector below
       // fallback
     }
   }
@@ -169,7 +173,9 @@ export async function dedupFingerprintWithFallback(
     try {
       const res = await client.dedupFingerprint(parts);
       return res.fingerprint;
-    } catch {}
+    } catch {
+      // silent-fallback-ok: Go accelerator failure falls back to node:crypto sha256 below
+    }
   }
   const { createHash } = await import('node:crypto');
   return createHash('sha256').update(parts.join('\n'), 'utf8').digest('hex');
@@ -184,7 +190,9 @@ export async function dedupBatchSimilarityWithFallback(
     try {
       const res = await client.dedupBatchSimilarity(leftTokens, rightTokensList);
       return res.similarities;
-    } catch {}
+    } catch {
+      // silent-fallback-ok: Go accelerator failure falls back to the local Jaccard below
+    }
   }
   // JS fallback: per-pair Jaccard
   return rightTokensList.map((rightTokens) => {
@@ -207,7 +215,9 @@ export async function dedupSimilarityWithFallback(
     try {
       const res = await client.dedupSimilarity(leftTokens, rightTokens);
       return res.similarity;
-    } catch {}
+    } catch {
+      // silent-fallback-ok: Go accelerator failure falls back to the local token overlap below
+    }
   }
   const leftSet = new Set(leftTokens.map((t) => t.toLowerCase()));
   const rightSet = new Set(rightTokens.map((t) => t.toLowerCase()));
@@ -240,7 +250,9 @@ export async function geneDeriveBatchWithFallback(
     try {
       const res = await client.geneDeriveBatch(traps);
       return res.results;
-    } catch {}
+    } catch {
+      // silent-fallback-ok: returns [] by contract so the caller takes the local derivation path
+    }
   }
   // fallback: host-local sync deriveOne per trap (simplified, uses same regex logic as backend-core)
   // For host-local, caller should use backend-core directly; this fallback returns empty to force local path
