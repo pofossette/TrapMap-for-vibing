@@ -1051,4 +1051,15 @@ DROP TABLE IF EXISTS "skill_artifact_maintenance_assignments";--> statement-brea
 DROP TABLE IF EXISTS "skill_artifact_manifest_assets";--> statement-breakpoint
 DROP TABLE IF EXISTS "skill_artifact_manifest_references";--> statement-breakpoint
 DROP TABLE IF EXISTS "skill_artifact_manifest_scripts";--> statement-breakpoint
-DROP TABLE IF EXISTS "skill_artifact_metadata";
+DROP TABLE IF EXISTS "skill_artifact_metadata";--> statement-breakpoint
+-- 2026-09-23：6 张建模零读写表退役。
+-- 这 6 张表自 Phase-2 表压缩后无任何写入方与读取方：
+-- skill_artifact_profiles / skill_artifact_client_manifests / skill_artifact_manifest_items
+-- 的读路径早已改成 artifact_revisions.derived jsonb（profile / clientManifest），
+-- knowledge_submissions / usage_events / workflow_runs 全仓无 SQL 引用。
+DROP TABLE IF EXISTS "skill_artifact_profiles";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_client_manifests";--> statement-breakpoint
+DROP TABLE IF EXISTS "skill_artifact_manifest_items";--> statement-breakpoint
+DROP TABLE IF EXISTS "knowledge_submissions";--> statement-breakpoint
+DROP TABLE IF EXISTS "usage_events";--> statement-breakpoint
+DROP TABLE IF EXISTS "workflow_runs";

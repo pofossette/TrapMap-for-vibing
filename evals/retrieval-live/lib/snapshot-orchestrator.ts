@@ -32,8 +32,15 @@ export { detectServiceProfile, materializeCorpusRecords } from './snapshot-suppo
 // =============================================================================
 
 /**
- * Complete list of retrieval-related tables to truncate during snapshot restore.
- * Extends the offline eval truncation list with capsule index tables.
+ * Retrieval-related tables to truncate during snapshot restore.
+ *
+ * Every entry must exist in the applied schema: this statement has no
+ * `IF EXISTS`, so a stale name aborts the whole restore. Pruned 2026-09-23 —
+ * the boundary families, `feedback_custom_answers`, `usage_events_daily_rollup`
+ * and `store_snapshot` were retired long ago, and six never-written tables
+ * (`skill_artifact_profiles`, `skill_artifact_client_manifests`,
+ * `skill_artifact_manifest_items`, `knowledge_submissions`, `usage_events`,
+ * `workflow_runs`) were dropped on the same date.
  */
 const RETRIEVAL_TRUNCATE_TABLES = [
   'knowledge_entries',
@@ -41,27 +48,12 @@ const RETRIEVAL_TRUNCATE_TABLES = [
   'knowledge_embeddings',
   'knowledge_revisions',
   'knowledge_search_documents',
-  'knowledge_boundary_contexts',
-  'knowledge_boundary_evidence',
-  'knowledge_boundary_exclusions',
-  'knowledge_boundary_prerequisites',
-  'knowledge_boundary_signals',
-  'knowledge_boundary_versions',
   'skill_artifacts',
   'skill_artifact_capsules',
   'skill_artifact_capsule_embeddings',
   'skill_artifact_files',
-  'skill_artifact_profiles',
-  'skill_artifact_client_manifests',
   'skill_artifact_script_descriptors',
   'skill_artifact_agent_reviews',
-  'skill_artifact_manifest_items',
-  'skill_artifact_boundary_contexts',
-  'skill_artifact_boundary_evidence',
-  'skill_artifact_boundary_exclusions',
-  'skill_artifact_boundary_prerequisites',
-  'skill_artifact_boundary_signals',
-  'skill_artifact_boundary_versions',
   'artifact_revisions',
   'artifact_lifecycle_events',
   'candidates',
@@ -73,13 +65,12 @@ const RETRIEVAL_TRUNCATE_TABLES = [
   'memberships',
   'access_keys',
   'feedback_records',
-  'feedback_custom_answers',
   'graph_index_documents',
   'entity_lineage',
   'lifecycle_events',
-  'usage_events',
-  'usage_events_daily_rollup',
-  'store_snapshot',
+  'experience_genes',
+  'experience_gene_events',
+  'experience_gene_embeddings',
   'task_queue',
 ];
 

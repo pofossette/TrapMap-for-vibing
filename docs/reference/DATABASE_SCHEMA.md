@@ -1,6 +1,6 @@
 # 数据库表结构
 
-> 状态：Active。核对日期：2026-09-20。真源是 `packages/db/src/schema/`（43 张 `pgTable`）；本页镜像它。表清单漂移时以守卫 `scripts/check-table-schema.ts` 的实测为准，你用 `pnpm check:table-schema` 验证；建模与**运行时应用的 DDL**（`packages/db/migrations/schema.sql`）的一致性由 `pnpm check:schema-parity` 验证。
+> 状态：Active。核对日期：2026-09-23。真源是 `packages/db/src/schema/`（37 张 `pgTable`）；本页镜像它。表清单漂移时以守卫 `scripts/check-table-schema.ts` 的实测为准，你用 `pnpm check:table-schema` 验证；建模与**运行时应用的 DDL**（`packages/db/migrations/schema.sql`）的一致性由 `pnpm check:schema-parity` 验证。
 
 ## 技术栈
 
@@ -11,11 +11,11 @@
 | 向量索引 | HNSW | `packages/db/src/schema/knowledge.ts:48` 迁移注释 |
 | 全文索引 | tsvector 加 GIN，jsonb 加 GIN | `packages/db/src/schema/knowledge.ts:126` 索引定义 |
 
-## 表总览 (43 张表)
+## 表总览 (37 张表)
 
-10 个域加起来 43 张：7 加 11 加 4 加 3 加 6 加 4 加 2 加 4 加 1 加 1。你增删表时同步改本页同节计数，否则守卫变红。
+10 个域加起来 37 张：6 加 8 加 4 加 3 加 6 加 4 加 1 加 3 加 1 加 1。你增删表时同步改本页同节计数，否则守卫变红。
 
-### 知识域 (7 表)
+### 知识域 (6 表)
 
 源码：`packages/db/src/schema/knowledge.ts`。
 
@@ -23,15 +23,16 @@
 |---|---|---|
 | `knowledge_entries` | 知识主表（含 `boundary` 与 `maintenance_meta` jsonb） | `id` |
 | `knowledge_revisions` | 修订历史 | `id` |
-| `knowledge_submissions` | 提交加审核快照（含 `reviewerDecision` jsonb） | `id` |
 | `lifecycle_events` | 状态审计 | 行内列组合 |
 | `knowledge_labels` | 标签（`entry_id` 加 `label` 唯一） | 复合唯一 |
 | `knowledge_embeddings` | 向量（HNSW） | `id` |
 | `knowledge_search_documents` | 全文加关键词（`tokens` GIN） | `entry_id` 加 `revision_no` |
 
-### 技能工件域 (11 表)
+### 技能工件域 (8 表)
 
-源码：`packages/db/src/schema/artifacts.ts`。结构化子表是事实源，主表与修订表上的 JSONB 做兼容缓存。
+源码：`packages/db/src/schema/artifacts.ts`。派生结果统一落在 `artifact_revisions.derived` jsonb（`profile` / `capsules` / `clientManifest`）；只有需要 pgvector 或 GIN 独立索引的胶囊形态另立表。
+
+> 2026-09-23 退役：`skill_artifact_profiles`、`skill_artifact_client_manifests`、`skill_artifact_manifest_items` 三表自 Phase-2 压缩后零读写，Profile 与 Manifest 的实际落点是 `artifact_revisions.derived`。
 
 | 表 | 用途 | 主键 |
 |---|---|---|
@@ -40,11 +41,8 @@
 | `artifact_lifecycle_events` | 状态审计 | 行内列组合 |
 | `skill_artifact_files` | 文件记录 | `id` |
 | `skill_artifact_script_descriptors` | 脚本描述 | `id` |
-| `skill_artifact_profiles` | 派生配置（1 对 1） | `artifact_revision_id` |
 | `skill_artifact_capsules` | 派生胶囊（含 `keywordTokens` jsonb 加 GIN） | `capsule_id` |
 | `skill_artifact_capsule_embeddings` | 胶囊向量（HNSW） | `capsule_id` |
-| `skill_artifact_client_manifests` | 客户端清单（1 对 1） | `artifact_revision_id` |
-| `skill_artifact_manifest_items` | 清单条目（references、assets、scripts 三合一） | `id` |
 | `skill_artifact_agent_reviews` | Agent 审核（1 对 1） | `artifact_id` |
 
 ### 候选域 (4 表)
@@ -92,23 +90,25 @@
 | `canonical_label_embeddings` | 标签向量 | `canonical_label_id` |
 | `label_alignment_events` | 对齐审计 | `id` |
 
-### 反馈与分析 (2 表)
+### 反馈 (1 表)
 
-源码：`packages/db/src/schema/knowledge.ts:383`（`feedback_records`）、`packages/db/src/schema/knowledge.ts:479`（`usage_events`）。
+源码：`packages/db/src/schema/knowledge.ts:383`（`feedback_records`）。
+
+> 2026-09-23 退役：`usage_events` 自建模以来全仓无写入方与读取方，检索命中实际由指标面观测。
 
 | 表 | 用途 | 主键 |
 |---|---|---|
 | `feedback_records` | 反馈（含 `custom_answers` jsonb 加 GIN 与 remediation 列） | `id` |
-| `usage_events` | 使用事件 | `id` |
 
-### 跨域 (4 表)
+### 跨域 (3 表)
+
+> 2026-09-23 退役：`workflow_runs` 从未被 job handler 读写，长任务进度由 `task_queue` 行与 `domain_event_outbox` 承载。
 
 | 表 | 用途 | 主键 | 源码 |
 |---|---|---|---|
 | `task_queue` | 后台队列 | `id` | `packages/db/src/schema/queue.ts:27` |
 | `domain_event_outbox` | 领域 outbox | `id` | `packages/db/src/schema/knowledge.ts:522` |
 | `graph_index_documents` | 图索引文档 | `id` | `packages/db/src/schema/retrieval.ts:14` |
-| `workflow_runs` | 工作流快照 | `run_id` | `packages/db/src/schema/queue.ts:36` |
 
 ### 调度 (1 表)
 

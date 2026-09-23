@@ -83,8 +83,10 @@ Skill 派生的可操作知识单元。表是 `skill_artifact_capsules` 与 `ski
 
 ### Profile 与 Manifest
 
-- **Profile**：`skill_artifact_profiles`（派生配置，1 对 1）。
-- **Manifest**：`skill_artifact_client_manifests` 加 `skill_artifact_manifest_items`（references、assets、scripts 三合一）。
+- **Profile**：`artifact_revisions.derived.profile`（派生配置）。
+- **Manifest**：`artifact_revisions.derived.clientManifest`，其中 references / assets / scripts 三类条目在同一 JSON 结构内。
+
+> 2026-09-23：`skill_artifact_profiles`、`skill_artifact_client_manifests`、`skill_artifact_manifest_items` 三张结构化子表已退役（零读写），派生结果的唯一落点是 `artifact_revisions.derived` jsonb。
 
 ### Experience Gene
 
@@ -136,4 +138,4 @@ Skill 派生的可操作知识单元。表是 `skill_artifact_capsules` 与 `ski
 |---|---|
 | **Entity Lineage** | `entity_lineage` 表，跨实体溯源（见 `packages/db/src/schema/candidates.ts:126`） |
 | **Single Source of Truth** | `packages/db/src/schema/` 与 `packages/contracts` 是真源；文档是镜像 |
-| **Usage Events** | `usage_events` 表，检索命中时序记录（见 `packages/db/src/schema/knowledge.ts:479`） |
+| **Usage Events** | 已于 2026-09-23 随 `usage_events` 表退役；检索命中时序改由指标面观测（`docs/architecture/OBSERVABILITY.md`） |

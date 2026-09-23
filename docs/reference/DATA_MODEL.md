@@ -2,7 +2,7 @@
 
 > 状态：Active。核对日期：2026-09-08。本文档描述 TrapMap 核心实体与持久化边界。你要找表定义去 [数据库表结构](DATABASE_SCHEMA.md)；你要找契约去 `packages/contracts/src/domain/`。
 
-基线：PostgreSQL 42 张表是唯一主事实源；`packages/db/src/schema/` 说了算。旧快照存储已退役，历史见 `docs/archived/`。
+基线：PostgreSQL 37 张表是唯一主事实源；`packages/db/src/schema/` 说了算。旧快照存储已退役，历史见 `docs/archived/`。
 
 ## 事实源边界
 
@@ -10,7 +10,7 @@
 |---|---|---|
 | Knowledge / Skill Artifact / Candidate / Task Queue | PostgreSQL 结构化表 | 主表加修订加事件加子表，PG-first |
 | Team / User / Member / Session / AccessKey / Audit | PostgreSQL | `users`、`teams`、`memberships`、`sessions`、`access_keys`、`audit_events`（见 `packages/db/src/schema/auth.ts`） |
-| Feedback / Usage | PostgreSQL | `feedback_records`（`custom_answers` jsonb 加 GIN）与 `usage_events`（见 `packages/db/src/schema/knowledge.ts`） |
+| Feedback | PostgreSQL | `feedback_records`（`custom_answers` jsonb 加 GIN，见 `packages/db/src/schema/knowledge.ts`）；原配的 `usage_events` 已于 2026-09-23 退役（零读写） |
 | 检索索引 | PostgreSQL | `knowledge_embeddings`（HNSW）、`knowledge_search_documents`（tsvector 加 GIN）、`graph_index_documents`、`skill_artifact_capsule_embeddings` |
 | 标签目录 | PostgreSQL | `canonical_labels`、`label_aliases`、`canonical_label_embeddings`、`label_alignment_events`（见 `packages/db/src/schema/labels.ts`） |
 | Gene | PostgreSQL | `experience_genes`、`experience_gene_events`、`experience_gene_embeddings`（见 `packages/db/src/schema/experience-genes.ts`） |
@@ -41,7 +41,7 @@
 ### Queue、Outbox 与 Workflow
 
 - `task_queue`（`pending`、`running`、`completed`、`failed`、`dead`）与 `domain_event_outbox`（`pending`、`processing`、`completed`、`failed`）都带租约列（`workerId`、`startedAt`、`heartbeatAt`、`leaseUntil`）。
-- `workflow_runs`：`pending`、`running`、`completed`、`failed`，`stepName` 做线性 checkpoint。
+- 长任务进度记在 `task_queue` 行与 outbox 事件里；原 `workflow_runs` checkpoint 表已于 2026-09-23 退役（从未被 job handler 读写）。
 - 候选创建与 `task_queue` 入队在同一事务；知识生命周期变更与 outbox 写入在同一事务。租约过期的行可以回收重领。
 
 ### Gene 与 Label

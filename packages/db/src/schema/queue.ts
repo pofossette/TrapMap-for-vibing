@@ -2,10 +2,14 @@
  * Shared task queue domain table.
  *
  * Covers: durable task queue backed by PostgreSQL SKIP LOCKED.
+ *
+ * Retired 2026-09-23: `workflow_runs` was modeled and created by the migration
+ * but no job handler ever wrote or read it; long-running progress is carried by
+ * `task_queue` rows plus the domain event outbox.
  */
 import { sql } from 'drizzle-orm';
-import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
-import { auditTimestamps, taskQueueColumns } from './column-factories.js';
+import { index, pgTable, uniqueIndex } from 'drizzle-orm/pg-core';
+import { taskQueueColumns } from './column-factories.js';
 
 // =============================================================================
 // Task Queue Table
@@ -32,24 +36,3 @@ export const taskQueue = pgTable('task_queue', taskQueueColumns(), (table) => [
     .on(table.type, table.dedupeKey)
     .where(sql`${table.status} IN ('pending', 'running')`),
 ]);
-
-export const workflowRuns = pgTable(
-  'workflow_runs',
-  {
-    runId: text('run_id').primaryKey(),
-    workflowType: text('workflow_type').notNull(),
-    subjectId: text('subject_id').notNull(),
-    status: text('status').notNull(),
-    stepName: text('step_name'),
-    attempt: integer('attempt').notNull().default(0),
-    startedAt: timestamp('started_at', { withTimezone: true }),
-    completedAt: timestamp('completed_at', { withTimezone: true }),
-    lastError: text('last_error'),
-    stats: jsonb('stats').notNull(),
-    ...auditTimestamps(),
-  },
-  (table) => [
-    index('workflow_runs_type_subject_idx').on(table.workflowType, table.subjectId),
-    index('workflow_runs_status_updated_idx').on(table.status, table.updatedAt),
-  ],
-);

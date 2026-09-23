@@ -25,7 +25,7 @@ TrapMap 以 Nest 宿主承载 HTTP 面，以无框架领域内核承载规则。
 | `knowledge-read` | `packages/service-knowledge-read/src/`（+ Go 读服务） | 检索读模型、召回、图查询、经验基因检索 |
 | `governance-review` | `packages/service-governance-review/src/` | 审核队列、冲突、decay / maintenance 编排 |
 | `candidate-ingestion` | `packages/service-candidate-ingestion/src/` | 候选提交、去重、异步摄取 |
-| `job-runtime` | `packages/service-job-runtime/src/` | task queue / outbox / worker / workflow_runs |
+| `job-runtime` | `packages/service-job-runtime/src/` | task queue / outbox / worker |
 
 判断节点契约注册表在 `packages/assembly/src/contracts/judgment-contracts.ts:93-100`，6 个 descriptor：`intent-recognition`、`dedup-strategy`、`conflict-trigger`、`artifact-derivation`、`label-alignment`、`channel-merge`。
 

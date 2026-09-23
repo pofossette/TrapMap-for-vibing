@@ -1,6 +1,6 @@
 # 持久化层
 
-> 真源：`packages/db/src/schema/`（42 表）。完整表清单见 [docs/reference/DATABASE_SCHEMA.md](../../reference/DATABASE_SCHEMA.md)，你用 `pnpm check:table-schema` 验证。PostgreSQL 是主要且权威的生产存储后端。状态：Active。
+> 真源：`packages/db/src/schema/`（37 表）。完整表清单见 [docs/reference/DATABASE_SCHEMA.md](../../reference/DATABASE_SCHEMA.md)，你用 `pnpm check:table-schema` 验证。PostgreSQL 是主要且权威的生产存储后端。状态：Active。
 
 ## 决策
 
@@ -8,11 +8,11 @@
 - 迁移：空库 baseline 建立当前 schema；各 service 以 owner-local 迁移脚本演进（`packages/service-*/src/migrations.ts`），`packages/db/src/schema/index.ts` 聚合全表供 `check:table-schema` 校验。
 - 索引：向量 `HNSW`、全文 `tsvector + GIN`、低频字段 `jsonb + GIN / 函数索引`。
 
-## 42 表分布
+## 37 表分布
 
-42 表分属各 owner，逐表清单只在 [数据库表清单](../../reference/DATABASE_SCHEMA.md) 中维护，本页不复述。真源是 `packages/db/src/schema/`，你用 `pnpm check:table-schema` 验证。
+37 表分属各 owner，逐表清单只在 [数据库表清单](../../reference/DATABASE_SCHEMA.md) 中维护，本页不复述。真源是 `packages/db/src/schema/`，你用 `pnpm check:table-schema` 验证。
 
-> 详细用途与主键见 [数据库表清单](../../reference/DATABASE_SCHEMA.md)。`skill_artifacts` / `artifact_revisions` 上的 JSONB 为兼容缓存，结构化子表为事实源。
+> 详细用途与主键见 [数据库表清单](../../reference/DATABASE_SCHEMA.md)。派生结果（Profile / Capsules / ClientManifest）的事实源是 `artifact_revisions.derived` jsonb；2026-09-23 退役了三张从未被读写的工件派生子表与 `knowledge_submissions` / `usage_events` / `workflow_runs`。
 
 ## 索引策略
 
